@@ -1,0 +1,10 @@
+target_sprite    equ 0
+emp_sprites      equ 1
+battery_sprite   equ 17
+mine_sprites     equ 18
+drone_sprites    equ 20
+base_sprite      equ 276
+turret_sprites   equ 277
+bullet_sprites   equ 533
+explosion_sprite equ 549
+charge_sprites   equ 565
