@@ -128,7 +128,7 @@ mouse (recommended):
 When you die or reach the target cross, you can quit the level with
 <kbd>Redo</kbd>, <kbd>Back</kbd>, or <kbd>Quit</kbd>.
 
-You can exit Mame by pressing <kbd>Esc</kbd>.
+You can exit Mame by pressing <kbd>Scroll Lock</kbd> and then <kbd>Esc</kbd>.
 
 ## Technical background
 
