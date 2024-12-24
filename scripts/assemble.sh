@@ -19,6 +19,7 @@ mkdir -p $OUTPUT_DIR \
      --register-symbols \
      --binary \
      --output $OUTPUT_ROM \
+     "$@" \
      $INPUT \
 && rm -f "$OUTPUT_RPK" \
 && zip \
