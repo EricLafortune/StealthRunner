@@ -17,7 +17,7 @@ import java.util.List;
  */
 public class CompressSprites
 {
-    private static final boolean DEBUG = false;
+    private static final boolean DEBUG = true;
 
 
     public static void main(String[] args)
@@ -29,9 +29,6 @@ public class CompressSprites
         String positionOutputFileName = args[args.length - 2];
         String patternOutputFileName  = args[args.length - 1];
 
-        ByteArrayOutputStream indexArrayOutputStream;
-        ByteArrayOutputStream positionArrayOutputStream;
-
         try (PrintWriter nameWriter =
                 new PrintWriter(
                 new BufferedWriter(
@@ -39,17 +36,13 @@ public class CompressSprites
         {
         try (DataOutputStream indexOutputStream =
                  new DataOutputStream(
-                 new TeeOutputStream(
-                 indexArrayOutputStream = new ByteArrayOutputStream(),
                  new BufferedOutputStream(
-                 new FileOutputStream(indexOutputFileName)))))
+                 new FileOutputStream(indexOutputFileName))))
         {
         try (DataOutputStream positionOutputStream =
                  new DataOutputStream(
-                 new TeeOutputStream(
-                 positionArrayOutputStream = new ByteArrayOutputStream(),
                  new BufferedOutputStream(
-                 new FileOutputStream(positionOutputFileName)))))
+                 new FileOutputStream(positionOutputFileName))))
         {
         try (DataOutputStream patternOutputStream =
                  new DataOutputStream(
@@ -57,21 +50,19 @@ public class CompressSprites
                  new FileOutputStream(patternOutputFileName))))
         {
             // Options.
-            int    shiftX                   = 0;
-            int    shiftY                   = 0;
-            int    color                    = 15;
-            int    explosionCount           = 0;
-            double explosionSpeed           = 1;
-            double explosionGravity         = 0.;
-            int    appendPositionStartIndex = 0;
-            int    appendPositionCount      = 0;
+            int    color            = 15;
+            int    shiftX           = 0;
+            int    shiftY           = 0;
+            int    explosionCount   = 0;
+            double explosionSpeed   = 1;
+            double explosionGravity = 0.;
+            String appendFileName   = null;
+            int    appendShiftX     = 0;
+            int    appendShiftY     = 0;
+            int    appendColor      = 0;
 
-            // Counters.
-            int spritePositionIndex = 0;
-            int spritePatternIndex  = 0;
-
-            // Keep a map of supersprite names and their corresponding supersprite indices.
-            Map<String,Integer> nameIndices = new HashMap<>();
+            // Keep a map of file names to supersprite definitions.
+            Map<String,SpriteImage> nameImageMap = new HashMap<>();
 
             // Parse any options, also inbetween regular arguments.
             int argIndex = 0;
@@ -84,9 +75,9 @@ public class CompressSprites
                     // Parse the option.
                     switch (arg)
                     {
+                        case "-color"            -> color            = Integer.parseInt(args[argIndex++]);
                         case "-shiftx"           -> shiftX           = Integer.parseInt(args[argIndex++]);
                         case "-shifty"           -> shiftY           = Integer.parseInt(args[argIndex++]);
-                        case "-color"            -> color            = Integer.parseInt(args[argIndex++]);
                         case "-explosioncount"   -> explosionCount   = Integer.parseInt(args[argIndex++]);
                         case "-explosionspeed"   -> explosionSpeed   = Double.parseDouble(args[argIndex++]);
                         case "-explosiongravity" -> explosionGravity = Double.parseDouble(args[argIndex++]);
@@ -98,39 +89,14 @@ public class CompressSprites
 
                             nameWriter.println(String.format("%-16s equ %d", name, superSpriteIndex));
 
-                            nameIndices.put(name, superSpriteIndex);
+                            appendFileName = null;
                         }
                         case "-append" ->
                         {
-                            String name = args[argIndex++];
-
-                            if (name.equals("/"))
-                            {
-                                appendPositionStartIndex = 0;
-                                appendPositionCount      = 0;
-                            }
-                            else
-                            {
-                                Integer index = nameIndices.get(name);
-                                if (index == null)
-                                {
-                                    throw new IllegalArgumentException("Option \"-name "+name+"\" needed before option \"-append \""+name+"\"");
-                                }
-
-                                int offset = index * 2;
-
-                                byte[] indices = indexArrayOutputStream.toByteArray();
-
-                                appendPositionStartIndex =
-                                    (indices[offset]   & 0xff) << 8 | (indices[offset+1] & 0xff);
-
-                                int appendPositionEndIndex = offset+2 < indices.length ?
-                                    (indices[offset+2] & 0xff) << 8 | (indices[offset+3] & 0xff) :
-                                    spritePositionIndex;
-
-                                appendPositionCount =
-                                    appendPositionEndIndex - appendPositionStartIndex;
-                            }
+                            appendFileName  = args[argIndex++];
+                            appendColor     = color;
+                            appendShiftX    = shiftX;
+                            appendShiftY    = shiftY;
                         }
                         default -> throw new IllegalArgumentException("Unknown option [" + arg + "]");
                     }
@@ -140,160 +106,29 @@ public class CompressSprites
                     // Read the image.
                     if (DEBUG)
                     {
-                        System.out.println("["+arg+"]:");
+                        System.out.println("#"+(indexOutputStream.size()/2)+" ["+arg+"]:");
                     }
 
-                    BufferedImage image          = ImageIO.read(new File(arg));
-                    Raster        originalRaster = image.getRaster();
-
-                    // Create a working copy of the raster.
-                    WritableRaster raster = originalRaster.createCompatibleWritableRaster();
-                    raster.setRect(originalRaster);
-
-                    int width  = raster.getWidth();
-                    int height = raster.getHeight();
-
-                    // Collect the sprite positions.
-                    List<Point> spritePositions = new ArrayList<>();
-
-                    // Mark the sprite coverage with bits in a bitraster.
-                    int[][] bitraster = new int[width][height];
-
-                    for (int positionIndex = 0;; positionIndex++)
-                    {
-                        Rectangle bounds =
-                            computeCropBounds(raster, new Rectangle(0, 0, width, height));
-
-                        if (bounds.x == Integer.MAX_VALUE)
-                        {
-                            break;
-                        }
-
-                        Point position =
-                            findBestCornerSprite(raster, bounds);
-
-                        if (DEBUG)
-                        {
-                            System.out.println("  #"+(spritePositionIndex+positionIndex)+
-                                               ": ("+position.x+", "+position.y+
-                                               ") from "+bounds.width+" x "+bounds.height+
-                                               " @ ("+bounds.x+", "+bounds.y+")");
-                        }
-
-                        spritePositions.add(position);
-
-                        // Clear the created quadsprite in the raster.
-                        clearSprite(raster, position.x, position.y);
-
-                        // Copy the sprite from the raster to the bitraster.
-                        copySprite(originalRaster,
-                                   position.x,
-                                   position.y,
-                                   1 << positionIndex,
-                                   bitraster);
-                    }
-
-                    int positionCount = spritePositions.size();
-
-                    if (DEBUG)
-                    {
-                        System.out.println("  -> "+positionCount+" patterns:");
-                    }
-
-                    // Write the quadsprite patterns.
-                    for (int positionIndex = 0; positionIndex < positionCount; positionIndex++)
-                    {
-                        Point position = spritePositions.get(positionIndex);
-
-                        int spriteX = position.x;
-                        int spriteY = position.y;
-
-                        // Extract the quadsprite from the supersprite bitraster,
-                        // gradually clearing its pixels.
-                        byte[] spritePattern = extractSprite(bitraster,
-                                                             spriteX,
-                                                             spriteY,
-                                                             1 << positionIndex);
-
-                        // Write the sprite pattern.
-                        patternOutputStream.write(spritePattern);
-
-                        if (DEBUG)
-                        {
-                            System.out.print("    #"+(spritePatternIndex+positionIndex)+
-                                             ": ("+spriteX+", "+spriteY+") 0x");
-
-                            for (int index = 0; index < spritePattern.length; index++)
-                            {
-                                System.out.printf("%02x", spritePattern[index]);
-                            }
-                            System.out.println();
-                        }
-                    }
-
-                    // Find the global crop bounds of the supersprite.
-                    Rectangle superBounds =
-                        computeCropBounds(originalRaster, new Rectangle(0, 0, width, height));
-
-                    int superCenterX = superBounds.x + superBounds.width  / 2;
-                    int superCenterY = superBounds.y + superBounds.height / 2;
-
-                    byte[] appendPositions = appendPositionCount <= 0 ? null :
-                        positionArrayOutputStream.toByteArray();
-
-                    // Write the quadsprite positions, including exploded ones.
-                    for (int explosionIndex = 0; explosionIndex <= explosionCount; explosionIndex++)
-                    {
-                        // Write the quadsprite start index for this
-                        // supersprite in the explosion.
-                        indexOutputStream.writeChar(spritePositionIndex);
-
-                        double explosionFraction = (double)explosionIndex / explosionCount;
-
-                        for (int positionIndex = 0; positionIndex < positionCount; positionIndex++)
-                        {
-                            Point position = spritePositions.get(positionIndex);
-
-                            // Find the local crop bounds of the quadsprite.
-                            Rectangle spriteBounds =
-                                computeCropBounds(originalRaster, new Rectangle(position.x, position.y, 16, 16));
-
-                            // Compute the deltas for the exploding supersprite.
-                            int spriteCenterX = spriteBounds.x + spriteBounds.width  / 2;
-                            int spriteCenterY = spriteBounds.y + spriteBounds.height / 2;
-
-                            int deltaX = spriteCenterX - superCenterX;
-                            int deltaY = spriteCenterY - superCenterY;
-
-                            int explosionX = (int)Math.round(explosionFraction *  deltaX * explosionSpeed);
-                            int explosionY = (int)Math.round(explosionFraction * (deltaY * explosionSpeed + explosionFraction * explosionGravity) / Math.sqrt(2));
-
-                            positionOutputStream.writeChar(position.x + explosionX + shiftX);
-                            positionOutputStream.writeChar(position.y + explosionY + shiftY);
-                            positionOutputStream.writeChar(color);
-                            positionOutputStream.writeChar(spritePatternIndex + positionIndex);
-
-                            //ImageIO.write(image, "png", new File("/tmp/image"+spriteIndex+".png"));
-                        }
-
-                        if (appendPositionCount > 0)
-                        {
-                            positionOutputStream.write(appendPositions,
-                                                       appendPositionStartIndex * 8,
-                                                       appendPositionCount      * 8);
-
-                            spritePositionIndex += appendPositionCount;
-                        }
-
-                        spritePositionIndex += positionCount;
-                    }
-
-                    spritePatternIndex += positionCount;
+                    appendSprite(arg,
+                                 color,
+                                 shiftX,
+                                 shiftY,
+                                 explosionCount,
+                                 explosionSpeed,
+                                 explosionGravity,
+                                 appendFileName,
+                                 appendColor,
+                                 appendShiftX,
+                                 appendShiftY,
+                                 indexOutputStream,
+                                 positionOutputStream,
+                                 patternOutputStream,
+                                 nameImageMap);
                 }
             }
 
             // Write the sentinel.
-            indexOutputStream.writeChar(spritePositionIndex);
+            indexOutputStream.writeChar(positionOutputStream.size() / 8);
         }
         }
         }
@@ -301,42 +136,275 @@ public class CompressSprites
     }
 
 
-    private static Rectangle computeCropBounds(Raster    raster,
-                                               Rectangle bounds)
+    /**
+     * Appends a named sprite to the sprite that is currently being defined.
+     */
+    private static void appendSprite(String                  fileName,
+                                     int                     color,
+                                     int                     shiftX,
+                                     int                     shiftY,
+                                     int                     explosionCount,
+                                     double                  explosionSpeed,
+                                     double                  explosionGravity,
+                                     String                  appendFileName,
+                                     int                     appendColor,
+                                     int                     appendShiftX,
+                                     int                     appendShiftY,
+                                     DataOutputStream        indexOutputStream,
+                                     DataOutputStream        positionOutputStream,
+                                     DataOutputStream        patternOutputStream,
+                                     Map<String,SpriteImage> nameImageMap)
+    throws IOException
     {
-        // Find the global crop bounds of the image.
-        int minX = Integer.MAX_VALUE;
-        int maxX = Integer.MIN_VALUE;
-        int minY = Integer.MAX_VALUE;
-        int maxY = Integer.MIN_VALUE;
-
-        for (int y = bounds.y; y < bounds.y + bounds.height; y++)
+        // Get the earlier defined sprite image, or create a new one
+        // (writing  out the sprite patterns).
+        // Note that computeIfAbsent can't handle the declared IOException.
+        SpriteImage spriteImage = nameImageMap.get(fileName);
+        if (spriteImage == null)
         {
-            for (int x = bounds.x; x < bounds.x + bounds.width; x++)
+            spriteImage = createSpriteImage(fileName, patternOutputStream);
+
+            nameImageMap.put(fileName, spriteImage);
+        }
+
+        // Write out the sprite indices and positions, pointing to the above
+        // patterns.
+        appendSprite(spriteImage,
+                     color,
+                     shiftX,
+                     shiftY,
+                     explosionCount,
+                     explosionSpeed,
+                     explosionGravity,
+                     appendFileName,
+                     appendColor,
+                     appendShiftX,
+                     appendShiftY,
+                     indexOutputStream,
+                     positionOutputStream,
+                     patternOutputStream,
+                     nameImageMap);
+    }
+
+
+    /**
+     * Creates and returns a new supersprite based on the specified image file,
+     * writing out the quadsprite patterns (but not yet any indices or positions).
+     */
+    private static SpriteImage createSpriteImage(String           fileName,
+                                                 DataOutputStream patternOutputStream)
+    throws IOException
+    {
+        BufferedImage image          = ImageIO.read(new File(fileName));
+        Raster        originalRaster = image.getRaster();
+
+        // Create a working copy of the raster.
+        WritableRaster raster = originalRaster.createCompatibleWritableRaster();
+        raster.setRect(originalRaster);
+
+        int width  = raster.getWidth();
+        int height = raster.getHeight();
+
+        // Find the global crop bounds of the supersprite.
+        Rectangle cropBounds =
+            computeCropBounds(originalRaster,
+                              new Rectangle(0, 0, width, height));
+
+        if (DEBUG)
+        {
+            System.out.println("  Creating quadsprite image from [" + fileName +
+                               "] (" + width + "x" + height +
+                               " pixels) (" + cropBounds.x + ", " + cropBounds.y +
+                               ", " + cropBounds.width + "x" + cropBounds.height + " covered):");
+        }
+
+        // Collect the quadsprite positions.
+        List<Point>     positions = new ArrayList<>();
+        List<Rectangle> bounds    = new ArrayList<>();
+
+        // Mark the quadsprite coverage with bits in a bitraster
+        // for the image.
+        int[][] bitraster = new int[width][height];
+
+        for (int positionIndex = 0;; positionIndex++)
+        {
+            Point position = findBestCornerSprite(raster);
+            if (position == null)
             {
-                if (isSet(raster, x, y))
+                break;
+            }
+
+            positions.add(position);
+
+            // Find the crop bounds of the quadsprite.
+            Rectangle spriteBounds =
+                computeCropBounds(raster,
+                                  new Rectangle(position.x, position.y, 16, 16));
+
+            bounds.add(spriteBounds);
+
+            // Clear the created quadsprite in the raster.
+            clearSprite(raster, position.x, position.y);
+
+            // Copy the quadsprite from the raster to the bitraster.
+            copySprite(originalRaster,
+                       position.x,
+                       position.y,
+                       1 << positionIndex,
+                       bitraster);
+        }
+
+        // Remember the index of the first pattern.
+        int firstPatternIndex = patternOutputStream.size() / 32;
+
+        if (DEBUG)
+        {
+            System.out.println("  Extracting corresponding patterns, starting at #"+firstPatternIndex+":");
+        }
+
+        int positionCount = positions.size();
+
+        // Write the quadsprite patterns.
+        for (int positionIndex = 0; positionIndex < positionCount; positionIndex++)
+        {
+            Point position = positions.get(positionIndex);
+
+            int spriteX = position.x;
+            int spriteY = position.y;
+
+            // Extract the quadsprite from the supersprite bitraster,
+            // gradually clearing its pixels.
+            byte[] spritePattern = extractSprite(bitraster,
+                                                 spriteX,
+                                                 spriteY,
+                                                 1 << positionIndex);
+
+            // Write the sprite pattern.
+            patternOutputStream.write(spritePattern);
+
+            if (DEBUG)
+            {
+                System.out.print("    #" + positionIndex +
+                                 ": (" + spriteX + ", " + spriteY + ") 0x");
+
+                for (int index = 0; index < spritePattern.length; index++)
                 {
-                    if (minX > x)
-                    {
-                        minX = x;
-                    }
-                    if (maxX < x)
-                    {
-                        maxX = x;
-                    }
-                    if (minY > y)
-                    {
-                        minY = y;
-                    }
-                    if (maxY < y)
-                    {
-                        maxY = y;
-                    }
+                    System.out.printf("%02x", spritePattern[index]);
                 }
+                System.out.println();
             }
         }
 
-        return new Rectangle(minX, minY, maxX - minX + 1, maxY - minY + 1);
+        return new SpriteImage(cropBounds, positions, bounds, firstPatternIndex);
+    }
+
+
+    /**
+     * Creates or appends a given supersprite (depending on indexOutputStream
+     * not being null).
+     * @return the number of quad sprite positions that were added.
+     */
+    private static void appendSprite(SpriteImage             spriteImage,
+                                     int                     color,
+                                     int                     shiftX,
+                                     int                     shiftY,
+                                     int                     explosionCount,
+                                     double                  explosionSpeed,
+                                     double                  explosionGravity,
+                                     String                  appendFileName,
+                                     int                     appendColor,
+                                     int                     appendShiftX,
+                                     int                     appendShiftY,
+                                     DataOutputStream        indexOutputStream,
+                                     DataOutputStream        positionOutputStream,
+                                     DataOutputStream        patternOutputStream,
+                                     Map<String,SpriteImage> nameImageMap)
+    throws IOException
+    {
+        // Compute the center of the (optional) explosion.
+        Rectangle imageBounds = spriteImage.imageBounds;
+
+        int explosionCenterX = imageBounds.x + imageBounds.width  / 2;
+        int explosionCenterY = imageBounds.y + imageBounds.height / 2;
+
+        List<Point>     positions = spriteImage.spritePositions;
+        List<Rectangle> bounds    = spriteImage.spriteBounds;
+
+        int positionCount = positions.size();
+
+        // Write the quadsprite positions, including exploded ones.
+        for (int explosionCounter = 0; explosionCounter <= explosionCount; explosionCounter++)
+        {
+            // Optionally write the quadsprite start index for this explosion
+            // supersprite.
+            if (indexOutputStream != null)
+            {
+                indexOutputStream.writeChar(positionOutputStream.size() / 8);
+            }
+
+            double explosionFraction = (double)explosionCounter / explosionCount;
+
+            if (DEBUG && explosionCount > 1)
+            {
+                System.out.println("  Explosion #"+explosionCounter+":");
+            }
+
+            for (int positionCounter = 0; positionCounter < positionCount; positionCounter++)
+            {
+                Point     position     = positions.get(positionCounter);
+                Rectangle spriteBounds = bounds.get(positionCounter);
+
+                // Compute the deltas for the exploding explosionsprite.
+                int spriteCenterX = spriteBounds.x + spriteBounds.width  / 2;
+                int spriteCenterY = spriteBounds.y + spriteBounds.height / 2;
+
+                int deltaX = spriteCenterX - explosionCenterX;
+                int deltaY = spriteCenterY - explosionCenterY;
+
+                int explosionX = (int)Math.round(explosionFraction *  deltaX * explosionSpeed);
+                int explosionY = (int)Math.round(explosionFraction * (deltaY * explosionSpeed + explosionFraction * explosionGravity) / Math.sqrt(2));
+
+                int positionX = position.x + explosionX + shiftX;
+                int positionY = position.y + explosionY + shiftY;
+
+                if (DEBUG)
+                {
+                    System.out.println("    #" + (positionOutputStream.size() / 8) +
+                                       ": (x("+position.x+"+"+explosionX+"+"+shiftX+") = " + positionX +
+                                       ", y = " + positionY +
+                                       ", color = " + color +
+                                       ", pattern = " + (spriteImage.firstPatternIndex + positionCounter) + ")");
+                }
+
+                positionOutputStream.writeChar(positionX);
+                positionOutputStream.writeChar(positionY);
+                positionOutputStream.writeChar(color);
+                positionOutputStream.writeChar(spriteImage.firstPatternIndex + positionCounter);
+
+                //ImageIO.write(image, "png", new File("/tmp/image"+spriteIndex+".png"));
+            }
+
+            // Append a sprite, if specified, without giving it its own index
+            // in the index output stream.
+            if (appendFileName != null)
+            {
+                appendSprite(appendFileName,
+                             appendColor,
+                             appendShiftX,
+                             appendShiftY,
+                             0,
+                             0.0,
+                             0.0,
+                             null,
+                             0,
+                             0,
+                             0,
+                             null,
+                             positionOutputStream,
+                             patternOutputStream,
+                             nameImageMap);
+            }
+        }
     }
 
 
@@ -344,9 +412,20 @@ public class CompressSprites
      * Finds the position of the 16x16 quadsprite near the corners of the given
      * raster that covers the most pixels (roughly).
      */
-    private static Point findBestCornerSprite(Raster    raster,
-                                              Rectangle bounds)
+    private static Point findBestCornerSprite(Raster raster)
     {
+        int width  = raster.getWidth();
+        int height = raster.getHeight();
+
+        Rectangle bounds =
+                computeCropBounds(raster,
+                                  new Rectangle(0, 0, width, height));
+
+        if (bounds.x == Integer.MAX_VALUE)
+        {
+            return null;
+        }
+
         int minX = bounds.x;
         int minY = bounds.y;
         int maxX = minX + bounds.width  - 1;
@@ -430,7 +509,53 @@ public class CompressSprites
             minCornerDistance = cornerDistance;
         }
 
+        if (DEBUG)
+        {
+            System.out.println("    Sprite @ (" + spriteX + ", " + spriteY +
+                               ") from (" + minX + ", " + minY +
+                               ", " + width + "x" + height + " pixels)");
+        }
+
         return new Point(spriteX, spriteY);
+    }
+
+
+    private static Rectangle computeCropBounds(Raster    raster,
+                                               Rectangle bounds)
+    {
+        // Find the global crop bounds of the image.
+        int minX = Integer.MAX_VALUE;
+        int maxX = Integer.MIN_VALUE;
+        int minY = Integer.MAX_VALUE;
+        int maxY = Integer.MIN_VALUE;
+
+        for (int y = bounds.y; y < bounds.y + bounds.height; y++)
+        {
+            for (int x = bounds.x; x < bounds.x + bounds.width; x++)
+            {
+                if (isSet(raster, x, y))
+                {
+                    if (minX > x)
+                    {
+                        minX = x;
+                    }
+                    if (maxX < x)
+                    {
+                        maxX = x;
+                    }
+                    if (minY > y)
+                    {
+                        minY = y;
+                    }
+                    if (maxY < y)
+                    {
+                        maxY = y;
+                    }
+                }
+            }
+        }
+
+        return new Rectangle(minX, minY, maxX - minX + 1, maxY - minY + 1);
     }
 
 
@@ -634,6 +759,40 @@ public class CompressSprites
     private static boolean isSet(Raster raster, int x, int y)
     {
         return raster.getSample(x, y, 0) != 0;
+    }
+
+
+    /**
+     * An image represented by quadsprites.
+     */
+    private static class SpriteImage
+    {
+        public final Rectangle       imageBounds;
+        public final List<Point>     spritePositions;
+        public final List<Rectangle> spriteBounds;
+        public final int             firstPatternIndex;
+
+
+        /**
+         * Creates a new instance.
+         * @param imageBounds       The crop bounds of the original image.
+         * @param spritePositions   The quadsprite positions relative to the
+         *                          original image.
+         * @param spriteBounds      The quadsprite crop bounds relative to
+         *                          the original image.
+         * @param firstPatternIndex The first index of the quadsprite patterns
+         *                          in an external array.
+         */
+        public SpriteImage(Rectangle           imageBounds,
+                               List<Point>     spritePositions,
+                               List<Rectangle> spriteBounds,
+                               int             firstPatternIndex)
+        {
+            this.imageBounds       = imageBounds;
+            this.spritePositions   = spritePositions;
+            this.spriteBounds      = spriteBounds;
+            this.firstPatternIndex = firstPatternIndex;
+        }
     }
 
 

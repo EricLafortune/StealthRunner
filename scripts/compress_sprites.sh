@@ -6,10 +6,23 @@
 INPUT_DIR=out/animations/bw
 OUTPUT_DIR=out
 
+# Shift the supersprites so they are centered on the screen (together with
+# the player graphics) when they are drawn at (0,0).
 INPUT_FRAMES=${1:-
+  -shiftx 64
+  -shifty 24
+
   -name target_sprite
   -color 11
   $INPUT_DIR/Target/*.png
+
+  -name bush_sprite
+  -color 9
+  -append $INPUT_DIR/Base/*.png
+  -color 12
+  -shifty 0
+  $INPUT_DIR/Explosion/06.png
+  -shifty 24
 
   -name emp_sprites
   -color 3
@@ -30,20 +43,15 @@ INPUT_FRAMES=${1:-
   -explosiongravity 50
   -color 7
   $INPUT_DIR/Drone/*.png
-
-  -name base_sprite
   -explosioncount 0
-  -color 14
-  $INPUT_DIR/Base/*.png
 
   -name turret_sprites
   -explosioncount 15
   -explosionspeed 2
   -explosiongravity 50
   -color 14
-  -append base_sprite
+  -append $INPUT_DIR/Base/*.png
   $INPUT_DIR/Cannon/*.png
-  -append /
 
   -name bullet_sprites
   -explosioncount 0
@@ -59,9 +67,9 @@ INPUT_FRAMES=${1:-
   -explosionspeed 2
   -explosiongravity 0
   $INPUT_DIR/Explosion/08.png
+  -explosioncount 0
 
   -name charge_sprites
-  -explosioncount 0
   -color 2
   $INPUT_DIR/Charge/*.png
 }
@@ -70,11 +78,7 @@ OUTPUT_INDEX=${3:-$OUTPUT_DIR/sprite_index.dat}
 OUTPUT_POSITIONS=${4:-$OUTPUT_DIR/sprite_positions.dat}
 OUTPUT_PATTERNS=$OUTPUT_DIR/${5:-sprite_patterns.dat}
 
-# Shift the supersprites so they are centered on the screen (together with
-# the player graphics) when they are drawn at (0,0).
 java -cp out CompressSprites \
-  -shiftx 64 \
-  -shifty 24 \
   $INPUT_FRAMES \
   $OUTPUT_NAMES \
   $OUTPUT_INDEX \

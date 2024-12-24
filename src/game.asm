@@ -295,6 +295,7 @@ module_end
     dorg >a000
 
 * Object lists.
+bushes                    bss >0100 ; X ordinate, y ordinate.
 batteries                 bss >0100 ; X ordinate, y ordinate.
 mines                     bss >0100 ; X ordinate, y ordinate, explosion.
 drones                    bss >0100 ; X ordinate, y ordinate, fractional x ordinate, fractional y ordinate, direction (0..15 = 4 bits).

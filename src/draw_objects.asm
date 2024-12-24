@@ -207,6 +207,25 @@ draw_charge
     bl   @draw_small_supersprite
 draw_charge_end
 
+* Draw the bushes (supersprite, low priority).
+    li   r8, bushes
+
+draw_bush_loop
+    mov  *r8+, r2              ; Get the x ordinate.
+    jlt  draw_bush_loop_end ; Is it the last bush?
+    mov  *r8+, r3              ; Get the y ordinate.
+    jlt  draw_bush_loop     ; Is it inactive?
+
+    li   r1, bush_sprite
+
+    s    @player_x, r2         ; Get the coordinates in screen space.
+    s    @player_y, r3
+
+    bl   @draw_small_supersprite
+
+    jmp  draw_bush_loop
+draw_bush_loop_end
+
 * End the list of sprites.
     li   r1, sprite_attribute_table_terminator * 256
     .vdpwd r1

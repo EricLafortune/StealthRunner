@@ -54,6 +54,16 @@ exploding equ >0800
     mov  *r0+, @target_y
     inct r0
 
+* Initialize the bush positions and directions.
+    li   r1, bushes
+
+initialize_bush_loop
+    mov  *r0+, *r1+            ; Copy the x ordinate.
+    jlt  initialize_bush_loop_end ; Is it the last bush?
+    mov  *r0+, *r1+            ; Copy the y ordinate.
+    jmp  initialize_bush_loop
+initialize_bush_loop_end
+
 * Initialize the battery positions and directions.
     li   r1, batteries
 

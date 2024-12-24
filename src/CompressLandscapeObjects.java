@@ -24,6 +24,7 @@ public class CompressLandscapeObjects
     private static final int LANDSCAPE =  3;
     private static final int PLAYER    =  4;
     private static final int TARGET    = 11;
+    private static final int BUSH      = 12;
     private static final int BATTERY   =  2;
     private static final int MINE      =  8;
     private static final int DRONE     =  7;
@@ -98,6 +99,7 @@ public class CompressLandscapeObjects
     {
         writeObjectPositions(outputStream, PLAYER);
         writeObjectPositions(outputStream, TARGET);
+        writeObjectPositions(outputStream, BUSH);
         writeObjectPositions(outputStream, BATTERY);
         writeObjectPositions(outputStream, MINE);
         writeObjectPositions(outputStream, DRONE);
