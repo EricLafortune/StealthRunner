@@ -24,41 +24,41 @@ player_color    equ blue
 
 * The complete color table.
 colors
-    byte landscape_color * 16 + black
-    byte player_color * 16 + black
-    byte player_color * 16 + black
-    byte player_color * 16 + black
-    byte player_color * 16 + black
-    byte player_color * 16 + black
-    byte player_color * 16 + black
-    byte player_color * 16 + black
+    .byte_color landscape_color, black
+    .byte_color player_color, black
+    .byte_color player_color, black
+    .byte_color player_color, black
+    .byte_color player_color, black
+    .byte_color player_color, black
+    .byte_color player_color, black
+    .byte_color player_color, black
 
-    byte player_color * 16 + black
-    byte player_color * 16 + black
-    byte player_color * 16 + black
-    byte player_color * 16 + black
-    byte player_color * 16 + black
-    byte player_color * 16 + black
-    byte player_color * 16 + black
-    byte player_color * 16 + black
+    .byte_color player_color, black
+    .byte_color player_color, black
+    .byte_color player_color, black
+    .byte_color player_color, black
+    .byte_color player_color, black
+    .byte_color player_color, black
+    .byte_color player_color, black
+    .byte_color player_color, black
 
-    byte player_color * 16 + black
-    byte player_color * 16 + black
-    byte player_color * 16 + black
-    byte player_color * 16 + black
-    byte player_color * 16 + black
-    byte player_color * 16 + black
-    byte player_color * 16 + black
-    byte player_color * 16 + black
+    .byte_color player_color, black
+    .byte_color player_color, black
+    .byte_color player_color, black
+    .byte_color player_color, black
+    .byte_color player_color, black
+    .byte_color player_color, black
+    .byte_color player_color, black
+    .byte_color player_color, black
 
-    byte player_color * 16 + black
-    byte player_color * 16 + black
-    byte player_color * 16 + black
-    byte player_color * 16 + black
-    byte player_color * 16 + black
-    byte player_color * 16 + black
-    byte player_color * 16 + black
-    byte player_color * 16 + black
+    .byte_color player_color, black
+    .byte_color player_color, black
+    .byte_color player_color, black
+    .byte_color player_color, black
+    .byte_color player_color, black
+    .byte_color player_color, black
+    .byte_color player_color, black
+    .byte_color player_color, black
 
 * The landscape patterns.
 
