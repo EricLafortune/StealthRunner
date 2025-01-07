@@ -118,6 +118,16 @@ check_vsync_marker
     inc  r2                    ; Did we get a VSYNC marker?
     jne  check_next_bank_marker
 
+** Check for a key press (in key column 0).
+    li   r12, cru_write_keyboard_column ; Set the keyboad columns.
+    clr  r3
+    ldcr r3, cru_keyboard_column_bit_count
+
+    li   r12, cru_read_keyboard_rows ; Is any key pressed?
+    stcr r3, cru_read_keyboard_row_bit_count
+    ci   r3, >ff00
+    jne  end_video             ; Then skip the rest of the video.
+
 * Wait for VSYNC.
     .wait_for_vsync
     jmp  frame_loop            ; Continue with the rest of the frame.
@@ -126,6 +136,7 @@ check_next_bank_marker
     inc  r2                    ; Did we get a NEXT_BANK marker?
     jeq  bank_loop             ; Then continue with the next bank.
 
+end_video
                                ; Otherwise we got an EOF marker.
     .switch_bank @module_bank_selection ; Reset to the first bank.
 
