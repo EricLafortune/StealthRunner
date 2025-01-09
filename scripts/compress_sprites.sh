@@ -6,23 +6,45 @@
 INPUT_DIR=out/animations/bw
 OUTPUT_DIR=out
 
-# Shift the supersprites so they are centered on the screen (together with
-# the player graphics) when they are drawn at (0,0).
+# Shift the 128x128 pixel supersprites so offset (0,0) puts their bases
+# (3D origins), (64,64) in the images, at the base of the player, (128,112)
+# on the screen.
 INPUT_FRAMES=${1:-
   -shiftx 64
-  -shifty 24
+  -shifty 48
 
   -name target_sprite
   -color 11
   $INPUT_DIR/Target/*.png
 
-  -name bush_sprite
+  -name stone_sprite
+  -color 14
+  $INPUT_DIR/Sphere/*.png
+
+  -name bullet_sprite
+  -color 11
+  -shifty 19
+  $INPUT_DIR/Sphere/*.png
+  -shifty 48
+
+  -name grenade_sprite
   -color 9
-  -append $INPUT_DIR/Base/*.png
+  -shifty 44
+  $INPUT_DIR/Sphere/*.png
+  -shifty 48
+
+  -name bush_sprite
   -color 12
-  -shifty 0
   $INPUT_DIR/Explosion/06.png
-  -shifty 24
+
+  -name tree_sprite
+  -color 9
+  -shifty 58
+  -append $INPUT_DIR/Trunk/*.png
+  -color 12
+  -shifty 4
+  $INPUT_DIR/Explosion/08.png
+  -shifty 48
 
   -name emp_sprites
   -color 3
@@ -35,7 +57,14 @@ INPUT_FRAMES=${1:-
   -name mine_sprites
   -color 9
   $INPUT_DIR/Mine/*.png
-  -color 15
+
+  -name launcher_sprites
+  -explosioncount 15
+  -explosionspeed 2
+  -explosiongravity -50
+  -color 14
+  $INPUT_DIR/Launcher/*.png
+  -explosioncount 0
 
   -name drone_sprites
   -explosioncount 15
@@ -52,13 +81,9 @@ INPUT_FRAMES=${1:-
   -color 14
   -append $INPUT_DIR/Base/*.png
   $INPUT_DIR/Cannon/*.png
-
-  -name bullet_sprites
   -explosioncount 0
-  -color 11
-  $INPUT_DIR/Bullets/*.png
 
-  -name explosion_sprite
+  -name explosion_sprites
   -color 14
   $INPUT_DIR/Explosion/02.png
   $INPUT_DIR/Explosion/04.png
@@ -68,6 +93,12 @@ INPUT_FRAMES=${1:-
   -explosiongravity 0
   $INPUT_DIR/Explosion/08.png
   -explosioncount 0
+
+  -shifty 25
+
+  -name stone_counter_sprites
+  -color 14
+  $INPUT_DIR/StoneCounters/*.png
 
   -name charge_sprites
   -color 2

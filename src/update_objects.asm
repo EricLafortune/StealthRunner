@@ -45,16 +45,18 @@ exploding equ >0800
     .defm initialize_objects
 
     clr  @charge_count
+    seto @stone_frame
     seto @charge_frame
     seto @emp_x
     seto @bullet_x
+    seto @grenade_x
 
 * Initialize the target position.
     mov  *r0+, @target_x
     mov  *r0+, @target_y
     inct r0
 
-* Initialize the bush positions and directions.
+* Initialize the bush positions.
     li   r1, bushes
 
 initialize_bush_loop
@@ -64,7 +66,27 @@ initialize_bush_loop
     jmp  initialize_bush_loop
 initialize_bush_loop_end
 
-* Initialize the battery positions and directions.
+* Initialize the tree positions.
+    li   r1, trees
+
+initialize_tree_loop
+    mov  *r0+, *r1+            ; Copy the x ordinate.
+    jlt  initialize_tree_loop_end ; Is it the last tree?
+    mov  *r0+, *r1+            ; Copy the y ordinate.
+    jmp  initialize_tree_loop
+initialize_tree_loop_end
+
+* Initialize the stone positions.
+    li   r1, stones
+
+initialize_stone_loop
+    mov  *r0+, *r1+            ; Copy the x ordinate.
+    jlt  initialize_stone_loop_end ; Is it the last stone?
+    mov  *r0+, *r1+            ; Copy the y ordinate.
+    jmp  initialize_stone_loop
+initialize_stone_loop_end
+
+* Initialize the battery positions.
     li   r1, batteries
 
 initialize_battery_loop
@@ -74,7 +96,7 @@ initialize_battery_loop
     jmp  initialize_battery_loop
 initialize_battery_loop_end
 
-* Initialize the mine positions and directions.
+* Initialize the mine positions and states.
     li   r1, mines
 
 initialize_mine_loop
@@ -98,6 +120,17 @@ initialize_drone_loop
     jmp  initialize_drone_loop
 initialize_drone_loop_end
 
+* Initialize the launcher positions.
+    li   r1, launchers
+
+initialize_launcher_loop
+    mov  *r0+, *r1+            ; Copy the x ordinate.
+    jlt  initialize_launcher_loop_end ; Is it the last launcher?
+    mov  *r0+, *r1+            ; Copy the y ordinate.
+    clr  *r1+                  ; Initialize the explosion.
+    jmp  initialize_launcher_loop
+initialize_launcher_loop_end
+
 * Initialize the turret positions and directions.
     li   r1, turrets
 
@@ -113,7 +146,7 @@ initialize_turret_loop_end
 
 
 * One-time macro: update the objects in the world.
-* IN OUT charge_frame
+* IN OUT overlay_frame
 * IN OUT emp_x
 * IN OUT emp_y
 * IN OUT emp_direction
@@ -131,16 +164,30 @@ initialize_turret_loop_end
 
     .switch_bank @code_bank    ; The motion deltas are in the code bank.
 
-* Update the battery charge meter.
+* Update the stone_counter.
+update_stone_counter
+    mov  @stone_frame, r3
+    jlt  update_stone_counter_end     ; Is it inactive?
+
+    mov  r3, r2
+    ai   r3, >0800
+    mov  r3, @stone_frame
+
+    srl  r2, 11
+    .play_tone0_frame sound_emp, sound_emp_frames, r2
+update_stone_counter_end
+
+* Update the charge.
 update_charge
     mov  @charge_frame, r3
     jlt  update_charge_end     ; Is it inactive?
 
+    mov  r3, r2
     ai   r3, >0800
     mov  r3, @charge_frame
 
-    srl  r3, 11
-    .play_tone0_frame sound_emp, sound_emp_frames, r3
+    srl  r2, 11
+    .play_tone0_frame sound_emp, sound_emp_frames, r2
 update_charge_end
 
 * Update the EMP state and position.
@@ -202,6 +249,27 @@ check_target
     .start_speech speech_ahohe ; Start singing.
 check_target_end
 
+* Update the stone states.
+    li   r5, stones
+
+update_stone_loop
+    mov  *r5+, r0              ; Get the x ordinate.
+    jlt  update_stone_loop_end ; Is it the last stone?
+    mov  *r5+, r1              ; Get the y ordinate.
+    jlt  update_stone_loop   ; Is it inactive?
+
+check_stone_player
+    .dist @player_x, r0, 20    ; Is it close to the player?
+    jgt  update_stone_loop
+    .dist @player_y, r1, 40
+    jgt  update_stone_loop
+
+    inc  @stone_count          ; Then increment the number of available stones.
+    clr  @stone_frame
+    seto @-2(r5)               ; Disable the stone.
+    jmp  update_stone_loop
+update_stone_loop_end
+
 * Update the battery states.
     li   r5, batteries
 
@@ -233,7 +301,7 @@ update_mine_loop
     mov  *r5+, r2              ; Get the sprite.
     jlt  update_mine_loop      ; Is it inactive?
 
-    jh   explode_mine          ; Is the mine already exploding?
+    jh   update_mine_explosion ; Is the mine already exploding?
 
 check_mine_player
     .dist @player_x, r0, r3, 128+10 ; Is it very far from the player?
@@ -247,7 +315,7 @@ check_mine_player
     jgt  check_mine_emp
 
     bl   @kill_player          ; Then kill the player.
-    jmp  explode_mine          ; And let the mine explode.
+    jmp  update_mine_explosion ; And let the mine explode.
 
 check_mine_emp
     .dist @emp_x, r0, 16       ; Is it close to the EMP?
@@ -255,7 +323,7 @@ check_mine_emp
     .dist @emp_y, r1, 16
     jgt  update_mine_loop
 
-explode_mine
+update_mine_explosion
     ai   r2, exploding         ; Let the mine explode, automatically
     mov  r2,@-2(r5)            ; disabling it at the end.
     jlt  update_mine_loop
@@ -354,7 +422,7 @@ update_turret_loop
     jlt  update_turret_loop    ; Is it inactive?
 
     ci   r2, exploding         ; Is the turret already exploding?
-    jhe  explode_turret
+    jhe  update_turret_explosion
 
 check_turret_player
     .dist @player_x, r0, r4, 128+20 ; Is it very far?
@@ -365,7 +433,7 @@ check_turret_player
     ci   r4, 40                ; Is it very near?
     jgt  check_turret_emp      ; Then let the turret explode.
     ci   r5, 20
-    jlt  explode_turret
+    jlt  update_turret_explosion
 
 check_turret_emp
     .dist @emp_x, r0, r4, 20   ; Is it close to the EMP?
@@ -373,7 +441,7 @@ check_turret_emp
     .dist @emp_y, r1, r5, 32
     jgt  update_turret_direction
 
-explode_turret
+update_turret_explosion
     ai   r2, exploding         ; Let the turret explode, automatically
     mov  r2,@-2(r6)            ; disabling it at the end.
     jlt  update_turret_loop
@@ -392,6 +460,7 @@ update_turret_direction
     bl   @adjust_projected_direction ; Update the direction.
     mov  r2, @-2(r6)           ; Save it.
 
+fire_turret_bullet
     mov  @bullet_x, r0         ; Don't we have a bullet flying?
     jgt  update_turret_loop
 
@@ -403,6 +472,77 @@ update_turret_direction
 
     jmp  update_turret_loop
 update_turret_loop_end
+
+* Update the launcher states.
+    li   r6, launchers
+
+update_launcher_loop
+    mov  *r6+, r0              ; Get the x ordinate.
+    jlt  update_launcher_loop_end ; Is it the last launcher?
+    mov  *r6+, r1              ; Get the y ordinate.
+    mov  *r6+, r2              ; Get the state.
+    jlt  update_launcher_loop  ; Is it inactive?
+
+    ci   r2, exploding         ; Is the launcher already exploding?
+    jhe  update_launcher_explosion
+
+check_launcher_player
+    .dist @player_x, r0, r4, 128+20 ; Is it very far?
+    jgt  update_launcher_loop  ; Then continue with the next launcher.
+    .dist @player_y, r1, r5, 96+20
+    jgt  update_launcher_loop
+
+    ci   r4, 40                ; Is it very near?
+    jgt  check_launcher_emp    ; Then let the launcher explode.
+    ci   r5, 20
+    jlt  update_launcher_explosion
+
+check_launcher_emp
+    .dist @emp_x, r0, r4, 20   ; Is it close to the EMP?
+    jgt  fire_launcher_grenade
+    .dist @emp_y, r1, r5, 32
+    jgt  fire_launcher_grenade
+
+update_launcher_explosion
+    ai   r2, exploding         ; Let the launcher explode, automatically
+    mov  r2,@-2(r6)            ; disabling it at the end.
+    jlt  update_launcher_loop
+
+    srl  r2, 11                ; Compute the sound frame of the explosion.
+    .play_noise_frame sound_explosion, sound_explosion_frames, r2
+    jmp  update_launcher_loop
+
+fire_launcher_grenade
+    mov  @grenade_x, r2        ; Don't we have a grenade flying?
+    jgt  update_launcher_loop
+
+    mov  r0, @grenade_x        ; Then fire a new grenade.
+    mov  r1, @grenade_y
+    clr  @grenade_fx
+    clr  @grenade_fy
+    clr  @grenade_counter
+
+    s    @player_x, r0         ; Compute the direction vector.
+    s    @player_y, r1
+
+    neg  r0                    ; Pointing from the launcher to the player.
+    neg  r1
+
+    mov  r0, r2                ; Copy the direction vector.
+    mov  r1, r3
+
+    sra  r0, 5                 ; The speed is 1/32th the direction vector.
+    sra  r1, 5
+    sla  r2, 11                ; Also compute the fractional part.
+    src  r3, 11
+
+    mov  r0, @grenade_dx       ; Save the resulting fixed-point speed.
+    mov  r1, @grenade_dy
+    movb r2, @grenade_dfx
+    movb r3, @grenade_dfy
+
+    jmp  update_launcher_loop
+update_launcher_loop_end
 
 * Update the bullet state and position.
     mov  @bullet_x, r0
@@ -419,7 +559,7 @@ update_turret_loop_end
     ci   r3, 20
     jgt  update_bullet_position
 
-    bl   @kill_player           ; Then kill the player.
+    bl   @kill_player          ; Then kill the player.
 
 disable_bullet                 ; Disable the bullet.
     seto @bullet_x
@@ -443,5 +583,58 @@ update_bullet_position
     .play_noise_frame sound_bullet, sound_bullet_frames, r3
 
 update_bullet_end
+
+* Update the grenade state and position.
+    mov  @grenade_x, r0
+    jlt  update_grenade_end    ; Is it inactive?
+    mov  @grenade_y, r1
+    mov  @grenade_counter, r2
+
+    ci   r2, 32
+    jl   update_grenade_position
+    ci   r2, 36
+    jhe  disable_grenade
+
+update_grenade_explosion
+    .dist @player_x, r0, 40    ; Is the grenade near the player?
+    jgt  !
+    .dist @player_y, r1, 20
+    jgt  !
+
+    bl   @kill_player          ; Then kill the player.
+!
+    ai   r2, -32               ; Compute the sound frame of the explosion.
+    .play_noise_frame sound_short_explosion, sound_short_explosion_frames, r2
+    jmp  update_grenade_counter
+
+disable_grenade                ; Disable the grenade.
+    seto @grenade_x
+
+    jmp  update_grenade_end
+
+update_grenade_position
+    a    @grenade_dx, r0       ; Adjust the coordinates.
+    a    @grenade_dy, r1
+
+    a    @grenade_dfx, @grenade_fx
+    jnc  !
+    inc  r0
+!   a    @grenade_dfy, @grenade_fy
+    jnc  !
+    inc  r1
+!
+    mov  r2, r3
+    sla  r3, 1                 ; Add a parabolic curve to the y ordinate.
+    s    @parabolic_delta(r3), r1
+
+    mov  r0, @grenade_x        ; Save them.
+    mov  r1, @grenade_y
+soundlabel
+    .play_tone0_frame sound_grenade, sound_grenade_frames, r2
+
+update_grenade_counter
+    inc  @grenade_counter
+
+update_grenade_end
 
     .endm

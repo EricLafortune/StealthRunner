@@ -40,27 +40,15 @@ sound_explosion_frames         ; 16 frames.
     .noise_attenuation 14      ; Frame 14.
     byte 0                     ; Frame 15.
 
-* The EMP disappearing in the distance.
-sound_emp
-    .tone_frequency 0, 100
+* Short explosion.
+sound_short_explosion
+    .noise_frequency white_noise, 0
 
-sound_emp_frames               ; 16 frames.
-    .tone_attenuation 0, 0     ; Frame 0.
-    .tone_attenuation 0, 1     ; Frame 1.
-    .tone_attenuation 0, 4     ; Frame 2.
-    .tone_attenuation 0, 3     ; Frame 3.
-    .tone_attenuation 0, 6     ; Frame 4.
-    .tone_attenuation 0, 5     ; Frame 5.
-    .tone_attenuation 0, 8     ; Frame 6.
-    .tone_attenuation 0, 7     ; Frame 7.
-    .tone_attenuation 0, 10    ; Frame 8.
-    .tone_attenuation 0, 9     ; Frame 9.
-    .tone_attenuation 0, 12    ; Frame 10.
-    .tone_attenuation 0, 11    ; Frame 11.
-    .tone_attenuation 0, 14    ; Frame 12.
-    .tone_attenuation 0, 13    ; Frame 13.
-    .tone_attenuation 0, 14    ; Frame 14.
-    byte 0                     ; Frame 15.
+sound_short_explosion_frames   ; 4 frames.
+    .noise_attenuation 0       ; Frame 0.
+    .noise_attenuation 6       ; Frame 1.
+    .noise_attenuation 12      ; Frame 2.
+    byte 0                     ; Frame 3.
 
 * The bullet approaching from the distance.
 sound_bullet
@@ -83,6 +71,44 @@ sound_bullet_frames               ; 16 frames.
     .noise_attenuation 13         ; Frame 13.
     .noise_attenuation 14         ; Frame 14.
     byte 0                        ; Frame 15.
+
+* The grenade being launched.
+sound_grenade
+    .tone_frequency 0, 1023
+
+sound_grenade_frames           ; 32 frames.
+    .tone_attenuation 0, 11    ; Frame 0.
+    .tone_attenuation 0, 7     ; Frame 1.
+    .tone_attenuation 0, 3     ; Frame 2.
+    .tone_attenuation 0, 0     ; Frame 3.
+    .tone_attenuation 0, 2     ; Frame 4.
+    .tone_attenuation 0, 4     ; Frame 5.
+    .tone_attenuation 0, 6     ; Frame 6.
+    .tone_attenuation 0, 8     ; Frame 7.
+    .tone_attenuation 0, 10    ; Frame 8.
+    .tone_attenuation 0, 11    ; Frame 9.
+    .tone_attenuation 0, 12    ; Frame 10.
+    .tone_attenuation 0, 13    ; Frame 11.
+    .tone_attenuation 0, 14    ; Frame 12.
+    .tone_attenuation 0, 14    ; Frame 13.
+    .tone_attenuation 0, 14    ; Frame 14.
+    byte 0                     ; Frame 15.
+    byte 0                     ; Frame 16.
+    byte 0                     ; Frame 17.
+    byte 0                     ; Frame 18.
+    byte 0                     ; Frame 19.
+    byte 0                     ; Frame 20.
+    byte 0                     ; Frame 21.
+    byte 0                     ; Frame 22.
+    byte 0                     ; Frame 23.
+    byte 0                     ; Frame 24.
+    byte 0                     ; Frame 25.
+    byte 0                     ; Frame 26.
+    byte 0                     ; Frame 27.
+    byte 0                     ; Frame 28.
+    byte 0                     ; Frame 29.
+    byte 0                     ; Frame 30.
+    byte 0                     ; Frame 31.
 
 * The drone in the distance.
 sound_drone
@@ -121,6 +147,28 @@ sound_drone_frames             ; 32 frames.
     .noise_attenuation 14      ; Frame 29.
     .noise_attenuation 13      ; Frame 30.
     byte 0                     ; Frame 31.
+
+* The EMP disappearing in the distance.
+sound_emp
+    .tone_frequency 0, 100
+
+sound_emp_frames               ; 16 frames.
+    .tone_attenuation 0, 0     ; Frame 0.
+    .tone_attenuation 0, 1     ; Frame 1.
+    .tone_attenuation 0, 4     ; Frame 2.
+    .tone_attenuation 0, 3     ; Frame 3.
+    .tone_attenuation 0, 6     ; Frame 4.
+    .tone_attenuation 0, 5     ; Frame 5.
+    .tone_attenuation 0, 8     ; Frame 6.
+    .tone_attenuation 0, 7     ; Frame 7.
+    .tone_attenuation 0, 10    ; Frame 8.
+    .tone_attenuation 0, 9     ; Frame 9.
+    .tone_attenuation 0, 12    ; Frame 10.
+    .tone_attenuation 0, 11    ; Frame 11.
+    .tone_attenuation 0, 14    ; Frame 12.
+    .tone_attenuation 0, 13    ; Frame 13.
+    .tone_attenuation 0, 14    ; Frame 14.
+    byte 0                     ; Frame 15.
 
 * The player walking and running.
 sound_walking

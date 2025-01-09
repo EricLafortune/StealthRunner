@@ -85,10 +85,10 @@
     .switch_bank @landscape_mask_bank ; Check the new position.
 
     mov  r2, r0                ; Scale the x ordinate to a char ordinate.
-    ai   r0, -player_center_x
+    ai   r0, -player_base_x
     srl  r0, 3
     mov  r4, r6                ; Scale the y ordinate to a char ordinate.
-    ai   r6, -player_center_y
+    ai   r6, -player_base_y
     srl  r6, 3
     sla  r6, 3                 ; Compute the y offset of the mask span.
     ai   r6, module_memory

@@ -18,11 +18,12 @@
 
 * Definitions to draw the player in the center of the screen.
 
-player_screen_offset_x equ 8   ; Player graphics top-left position on the
-player_screen_offset_y equ 6   ; screen, expresssed in characters.
+player_screen_offset_x equ 8   ; Top-left position of the 16x16 character
+player_screen_offset_y equ 6   ; player graphics on the screen, expresssed
+                               ; in characters.
 
-player_center_x        equ 128 ; Player center on the screen, expressed
-player_center_y        equ  96 ; in pixels.
+player_base_x equ player_screen_offset_x * 8 + 64 ; Player base on the screen,
+player_base_y equ player_screen_offset_y * 8 + 64 ; expressed in pixels.
 
 
 * One-time macro: draw the character and pattern deltas of a player animation

@@ -25,10 +25,13 @@ public class CompressLandscapeObjects
     private static final int PLAYER    =  4;
     private static final int TARGET    = 11;
     private static final int BUSH      = 12;
+    private static final int TREE      =  9;
+    private static final int STONE     =  6;
     private static final int BATTERY   =  2;
     private static final int MINE      =  8;
     private static final int DRONE     =  7;
-    private static final int TURRET    = 14;
+    private static final int LAUNCHER  = 14;
+    private static final int TURRET    = 15;
 
     private final Raster raster;
     private final int    width;
@@ -100,9 +103,12 @@ public class CompressLandscapeObjects
         writeObjectPositions(outputStream, PLAYER);
         writeObjectPositions(outputStream, TARGET);
         writeObjectPositions(outputStream, BUSH);
+        writeObjectPositions(outputStream, TREE);
+        writeObjectPositions(outputStream, STONE);
         writeObjectPositions(outputStream, BATTERY);
         writeObjectPositions(outputStream, MINE);
         writeObjectPositions(outputStream, DRONE);
+        writeObjectPositions(outputStream, LAUNCHER);
         writeObjectPositions(outputStream, TURRET);
 
         int size = outputStream.size();

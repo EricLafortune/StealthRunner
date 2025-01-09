@@ -85,14 +85,14 @@ draw_landscape_characters
     ai   r0, landscape_characters_banks ; The landscape characters memory banks.
 
     mov  @player_y, r3         ; Compute the address of the first visible row.
-    ai   r3, -player_center_y
+    ai   r3, -player_base_y
     srl  r3, 3
     andi r3, >01ff
     sla  r3, 1
     ai   r3, >6000
 
     mov  @player_x, r4         ; Compute the character offset in the rows.
-    ai   r4, -player_center_x
+    ai   r4, -player_base_x
     srl  r4, 3
     andi r4, >03ff
 

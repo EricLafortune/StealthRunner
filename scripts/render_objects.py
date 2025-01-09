@@ -62,10 +62,12 @@ scene.render.resolution_y = 256
 
 # Render all relevant objects in the input file.
 render_object('Target', 1)
+render_object('Sphere', 1)
+render_object('Trunk', 1)
 render_object('Battery', 1)
 render_object('Mine', 2)
 render_object('Drone', 16)
 render_object('Base', 1)
 render_object('Cannon', 16)
-render_object('Bullets', 16)
+render_object('Launcher', 1)
 render_object('Explosion', 16)

@@ -240,6 +240,7 @@ blit_code_start
 blit_code_end
 
     copy "direction_data.asm"
+    copy "parabola_data.asm"
     copy "motion_data.asm"
     copy "graphics_data.asm"
     copy "sound_data.asm"
@@ -294,11 +295,15 @@ module_end
 * Global variables.
     dorg >a000
 
-* Object lists.
+* Object lists. All coordinates are those of the top-left corner of a
+* virtual screen in the world, compatible with the player coordinates.
 bushes                    bss >0100 ; X ordinate, y ordinate.
+trees                     bss >0100 ; X ordinate, y ordinate.
+stones                    bss >0100 ; X ordinate, y ordinate.
 batteries                 bss >0100 ; X ordinate, y ordinate.
 mines                     bss >0100 ; X ordinate, y ordinate, explosion.
 drones                    bss >0100 ; X ordinate, y ordinate, fractional x ordinate, fractional y ordinate, direction (0..15 = 4 bits).
+launchers                 bss >0100 ; X ordinate, y ordinate, explosion.
 turrets                   bss >0100 ; X ordinate, y ordinate, direction (0..15 = 4 bits).
 
 * Supersprite/quadsprite cache pointers.
@@ -323,11 +328,13 @@ current_noise data 0 ; The start address of the currently playing noise.
 current_speech        data 0; The address of the speech data currently being spoken.
 current_speech_length data 0; The address of the speech data currently being spoken.
 
-* Player variables.
+* Player variables. The coordinates are those of the top-left corner of the
+* screen in the world. The player is centered on the screen, with his base
+* at (128,112) expressed in pixels.
 player_x           data 0 ; X ordinate, expressed in pixels.
 player_y           data 0 ; Y ordinate, expressed in pixels.
-player_fx          data 0 ; Fractional x ordinate (fixed point 8.8 bits).
-player_fy          data 0 ; Fractional y ordinate (fixed point 8.8 bits).
+player_fx          data 0 ; Fractional x ordinate (fixed point 16.16 bits).
+player_fy          data 0 ; Fractional y ordinate (fixed point 16.16 bits).
 player_speed       data 0 ; Speed (-1 for dying, 0 for standing,...)
 player_direction   data 0 ; Direction (0..15).
 
@@ -343,9 +350,14 @@ previous_player_frame          data 0
 previous_landscape_patterns_offset    data 0 ; Most recently drawn landscape patterns source offset.
 previous_landscape_character_quadrant data 0 ; Most recently drawn landscape character quadrant.
 
-* Target variables.
+* Target variables. The coordinates are those of the top-left corner of a
+* virtual screen in the world, compatible with the player coordinates.
 target_x data 0 ; X ordinate, expressed in pixels.
 target_y data 0 ; Y ordinate, expressed in pixels.
+
+* Stone variables.
+stone_count data 0 ; Number of stones available.
+stone_frame data 0 ; Frame of the stone counter.
 
 * Battery charge variables.
 charge_count data 0 ; Number of EMPs available.
@@ -354,16 +366,27 @@ charge_frame data 0 ; Frame of the charge meter.
 * Emp variables.
 emp_x         data 0 ; X ordinate, expressed in pixels.
 emp_y         data 0 ; Y ordinate, expressed in pixels.
-emp_fx        data 0 ; Fractional x ordinate (fixed point 8.8 bits).
-emp_fy        data 0 ; Fractional y ordinate (fixed point 8.8 bits).
+emp_fx        data 0 ; Fractional x ordinate (fixed point 16.16 bits).
+emp_fy        data 0 ; Fractional y ordinate (fixed point 16.16 bits).
 emp_direction data 0 ; Direction (0..15).
 
 * Bullet variables.
 bullet_x         data 0 ; X ordinate, expressed in pixels.
 bullet_y         data 0 ; Y ordinate, expressed in pixels.
-bullet_fx        data 0 ; Fractional x ordinate (fixed point 8.8 bits).
-bullet_fy        data 0 ; Fractional y ordinate (fixed point 8.8 bits).
+bullet_fx        data 0 ; Fractional x ordinate (fixed point 16.16 bits).
+bullet_fy        data 0 ; Fractional y ordinate (fixed point 16.16 bits).
 bullet_direction data 0 ; Direction (0..15).
+
+* Grenade variables.
+grenade_x       data 0 ; X ordinate, expressed in pixels.
+grenade_y       data 0 ; Y ordinate, expressed in pixels.
+grenade_fx      data 0 ; Fractional x ordinate (fixed point 16.16 bits).
+grenade_fy      data 0 ; Fractional y ordinate (fixed point 16.16 bits).
+grenade_dx      data 0 ; X speed, expressed in pixels per frame.
+grenade_dy      data 0 ; Y speed, expressed in pixels per frame.
+grenade_dfx     data 0 ; Fractional x speed (fixed point 16.16 bits).
+grenade_dfy     data 0 ; Fractional y speed (fixed point 16.16 bits).
+grenade_counter data 0 ; Counter in the life time of the grenade.
 
 * The memory bank addresses: >6000, >6002,.... (multiples of 2).
     dorg >6000
@@ -377,7 +400,7 @@ landscape_characters_banks       bss 2 * 4
 landscape_mask_bank              bss 2 * 1
 sprite_index_bank                bss 2 * 1
 sprite_positions_banks           bss 2 * 4
-sprite_patterns_banks            bss 2 * 2
+sprite_patterns_banks            bss 2 * 1
 speech_data_bank                 bss 2 * 1
 
     .ifne  module_start + (($ & >00fe) * >1000), module_end + >1fff & >e000
