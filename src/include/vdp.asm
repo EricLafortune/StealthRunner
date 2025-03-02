@@ -24,6 +24,20 @@
 *     http://www.unige.ch/medecine/nouspikel/ti99/tms9918a.htm
 ******************************************************************************
 
+* Fixed sizes.
+display_character_width  equ 32
+display_character_height equ 24
+
+character_pixel_width  equ 8
+character_pixel_height equ 8
+
+display_pixel_width  equ display_character_width * character_pixel_width   ; 256 pixels.
+display_pixel_height equ display_character_height * character_pixel_height ; 192 pixels.
+
+display_color_count  equ 16
+display_sprite_count equ 32
+
+
 * VDP register write addresses (including the register bit >8000).
 vdp_r0 equ >8000
 vdp_r1 equ >8100

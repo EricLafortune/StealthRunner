@@ -18,6 +18,14 @@
 
 * Subroutines to display supersprites, which are collages of quadsprites.
 
+* A supersprite can in principle cover any area.
+* For performance, we're culling by assuming approximate visual bounds of
+* 100x100 pixels, * centered around the player base (128,112).
+supersprite_center_x equ player_base_x
+supersprite_center_y equ player_base_y
+supersprite_width    equ 100
+supersprite_height   equ 100
+
 * Subroutine: initialize the quadsprite cache.
 * LOCAL r0
 * LOCAL r1
@@ -56,31 +64,132 @@ initialize_quadsprites
 * IN     r1:    the supersprite number.
 * IN     r2:    the supersprite x ordinate on the screen.
 * IN     r3:    the supersprite y ordinate on the screen.
+* LOCAL  r4:    the supersprite position/color/pattern offset.
+* LOCAL  r5:    the quadsprite x ordinate.
+* LOCAL  r6:    the quadsprite y ordinate, color.
+* LOCAL  r7:    the number of quadsprites in this supersprite.
+* LOCAL  r11:   the quadsprite subroutine return address.
+* LOCAL  r12:   the subroutine return address.
+* LOCAL  r13:   the memory bank address.
 * IN     vdpwa: the destination address in the VDP sprite descriptor table.
-* LOCAL  r4:    the current quadsprite number in the position list.
-* LOCAL  r5:    the last quadsprite number in the position list.
-* LOCAL  r6:    the quadsprite x ordinate.
-* LOCAL  r7:    the quadsprite y ordinate, color.
-* LOCAL  r11:   the subroutine return address.
 draw_supersprite
-    ci    r2, -128             ; Is the supersprite off-screen horizontally?
-    jlt   draw_supersprite_end
-    ci    r2, 255
-    jgt   draw_supersprite_end
+    mov   r11, r12             ; Save the return address.
 
-    ci    r3, -128             ; Is the supersprite off-screen vertically?
-    jlt   draw_supersprite_end
-    ci    r3, 191
-    jgt   draw_supersprite_end
+    .switch_bank @sprite_bounds_bank
 
-draw_small_supersprite         ; Alternative entry point without early clipping.
+    mov  r1, r4                ; Compute the address of the supersprite bounds
+    sla  r4, 3                 ; (8 bytes per bounds, max 1024 entries).
+    ai   r4, >6000
+
+    c    r2, *r4+              ; Is the supersprite off-screen horizontally?
+    jlt  draw_supersprite_end
+    c    r2, *r4+
+    jgt  draw_supersprite_end
+
+    c    r3, *r4+              ; Is the supersprite off-screen vertically?
+    jlt  draw_supersprite_end
+    c    r3, *r4
+    jgt  draw_supersprite_end
+
     .switch_bank @sprite_index_bank
 
-    sla  r1, 1                 ; Compute the address in the supersprite index.
-    ai   r1, >6000
+    sla  r1, 1                 ; Compute the address in the supersprite index
+    ai   r1, >6000             ; (2 bytes per index, max 4096 entries).
 
     mov  *r1+, r4              ; Get the position number of the first quadsprite.
-    mov  *r1+, r5              ; Get the position number after the last quadsprite.
+    mov  *r1, r7               ; Get the position number after the last quadsprite.
+
+    s    r4, r7                ; Compute the number of quadsprites.
+
+    mov  r4, r13               ; Compute the CPU source memory bank of the
+    andi r13, >fc00            ; quadsprite entry (position, color, pattern index;
+    srl  r13, 9                ; 8 bytes each, 1024 per memory bank).
+    ai   r13, sprite_positions_banks
+    .switch_bank *r13          ; Switch to that memory bamk.
+
+    andi r4, >03ff             ; Compute the CPU source memory address of the
+    sla  r4, 3                 ; quadsprite entry in this memory bank.
+    ai   r4, >6000
+
+quadsprite_loop
+    mov  *r4+, r5              ; Compute the quadsprite x ordinate.
+    a    r2, r5
+
+    ci    r5, -15              ; Is the quadsprite off-screen horizontally?
+    jlt   skip_quadsprite      ; (rarely)
+    ci    r5, 255
+    jgt   skip_quadsprite
+
+    mov  *r4+, r6              ; Compute the quadsprite y ordinate.
+    a    r3, r6
+
+    ci    r6, -15              ; Is the quadsprite off-screen vertically?
+    jlt   skip_quadsprite      ; (rarely)
+    ci    r6, 191
+    jgt   skip_quadsprite
+
+    bl    @draw_quadsprite     ; Draw the quadsprite.
+
+    dec  r7                    ; Are there any more quadsprites?
+    jeq  draw_supersprite_end
+
+    inct r4                    ; Continue with the next quadsprite.
+    jgt  quadsprite_loop       ; Is it starting in the next memory bank?
+    jmp  next_memory_bank      ; (rarely)
+
+skip_quadsprite
+    dec  r7                    ; Are there any more quadsprites?
+    jeq  draw_supersprite_end
+
+    andi r4, >fff8             ; Continue with the next quadsprite.
+    ai   r4, 8
+    jgt  quadsprite_loop       ; Is it starting in the next memory bank?
+                               ; (rarely)
+next_memory_bank
+    inct r13
+    .switch_bank *r13          ; Switch to the next memory bamk.
+
+    jmp  quadsprite_loop
+
+draw_supersprite_end
+    b    *r12
+
+* Subroutine: add the single quadsprite of a specified small supersprite to
+* the sprite attribute table, starting at the current VDP address.
+* Adds quadsprites whose patterns still need to be written to VDP memory to
+* a cache queue.
+* IN OUT r0:    the current address in the cache queue.
+* IN     r1:    the supersprite number.
+* IN     r2:    the supersprite x ordinate on the screen.
+* IN     r3:    the supersprite y ordinate on the screen.
+* LOCAL  r4:    the supersprite position/color/pattern offset.
+* LOCAL  r5:    the quadsprite x ordinate.
+* LOCAL  r6:    the quadsprite y ordinate.
+* LOCAL  r11:   the subroutine return address.
+* IN     vdpwa: the destination address in the VDP sprite descriptor table.
+draw_small_supersprite
+    .switch_bank @sprite_bounds_bank
+
+    mov  r1, r4                ; Compute the address of the supersprite bounds
+    sla  r4, 3                 ; (8 bytes per bounds, max 1024 entries).
+    ai   r4, >6000
+
+    c    r2, *r4+              ; Is the supersprite off-screen horizontally?
+    jlt  draw_quadsprite_end
+    c    r2, *r4+
+    jgt  draw_quadsprite_end
+
+    c    r3, *r4+              ; Is the supersprite off-screen vertically?
+    jlt  draw_quadsprite_end
+    c    r3, *r4
+    jgt  draw_quadsprite_end
+
+    .switch_bank @sprite_index_bank
+
+    sla  r1, 1                 ; Compute the address in the supersprite index
+    ai   r1, >6000             ; (2 bytes per index, max 4096 entries).
+
+    mov  *r1, r4               ; Get the position number of the only quadsprite.
 
     mov  r4, r1                ; Compute the CPU source memory bank of the
     andi r1, >fc00             ; quadsprite entry (position, color, pattern index;
@@ -88,58 +197,51 @@ draw_small_supersprite         ; Alternative entry point without early clipping.
     ai   r1, sprite_positions_banks
     .switch_bank *r1           ; Switch to that memory bamk.
 
-sprite_loop
-    mov  r4, r1                ; Compute the CPU source memory address of the
-    andi r1, >03ff             ; quadsprite entry (position, color, pattern index;
-    sla  r1, 3                 ; 8 bytes each, 1024 per memory bank).
-    ai   r1, >6000
+    andi r4, >03ff             ; Compute the CPU source memory address of the
+    sla  r4, 3                 ; quadsprite entry in this memory bank.
+    ai   r4, >6000
 
-    mov  *r1+, r6              ; Compute the quadsprite x ordinate.
-    a    r2, r6
+    mov  *r4+, r5              ; Compute the quadsprite x ordinate.
+    a    r2, r5
 
-    ci    r6, -15              ; Is the quadsprite off-screen horizontally?
-    jlt   sprite_skip
-    ci    r6, 255
-    jgt   sprite_skip
+    mov  *r4+, r6              ; Compute the quadsprite y ordinate.
+    a    r3, r6
+                               ; Continue drawing the single quadsprite...
 
-    mov  *r1+, r7              ; Compute the quadsprite y ordinate.
-    a    r3, r7
-
-    ci    r7, -15              ; Is the quadsprite off-screen vertically?
-    jlt   sprite_skip
-    ci    r7, 191
-    jgt   sprite_skip
-
+* Subroutine: add the specified quadsprite the sprite attribute table,
+* starting at the current VDP address.
+* Adds quadsprites whose patterns still need to be written to VDP memory to
+* a cache queue.
+* IN OUT r0:    the current address in the cache queue.
+* LOCAL  r1
+* IN OUT r4:    the supersprite color/pattern offset.
+* IN     r5:    the quadsprite x ordinate.
+* IN     r6:    the quadsprite y ordinate.
+* LOCAL  r11:   the subroutine return address.
+* IN     vdpwa: the destination address in the VDP sprite descriptor table.
 draw_quadsprite
 * Write the y ordinate.
-    dec  r7                    ; Adjust the y ordinate to start at >ff.
-    swpb r7                    ; Write the y ordinate.
-    .vdpwd r7
-
-    mov  *r1+, r7              ; Get the quadsprite color.
-
-;  mov  *r1, r7                 ; Randomize the colors of the quadsprites.
-;  andi r7, >f
-;  ci   r7, 1
-;  jh   !
-;  ori  r7, >8
-;!
-
-* Write the x ordinate.
-    mov  r6, r6                ; Adjust the x ordinate if necessary, to fade in
-    jgt  !                     ; gradually on the left edge of the screen.
-    ai   r6, sprite_early_clock_shift
-    ori  r7, sprite_early_clock_flag
-!
-    swpb r6                    ; Write the x ordinate.
+    dec  r6                    ; Adjust the y ordinate to start at >ff.
+    swpb r6                    ; Write the y ordinate.
     .vdpwd r6
 
-* Get a suitable VDP quadsprite number (character).
-    mov  *r1+, r6              ; Get the CPU quadsprite pattern number.
+    mov  *r4+, r6              ; Get the quadsprite color.
 
-    sla  r6, 1                 ; Is the CPU quadsprite cached in VDP memory?
-    mov  @vdp_quadsprite_numbers(r6), r1 ; (0..63 = 6 bits, shifted left 1 bit).
-    c    r6, @cpu_quadsprite_numbers(r1)
+* Write the x ordinate.
+    mov  r5, r5                ; Adjust the x ordinate if necessary, to fade in
+    jgt  !                     ; gradually on the left edge of the screen.
+    ai   r5, sprite_early_clock_shift
+    ori  r6, sprite_early_clock_flag
+!
+    swpb r5                    ; Write the x ordinate.
+    .vdpwd r5
+
+* Get a suitable VDP quadsprite number (character).
+    mov  *r4, r5               ; Get the CPU quadsprite pattern number.
+
+    sla  r5, 1                 ; Is the CPU quadsprite cached in VDP memory?
+    mov  @vdp_quadsprite_numbers(r5), r1 ; (0..63 = 6 bits, shifted left 1 bit).
+    c    r5, @cpu_quadsprite_numbers(r1)
     jeq  quadsprite_cached
 
     mov  @vdp_quadsprite_counter, r1 ; Otherwise get the next free quadsprite
@@ -152,12 +254,12 @@ draw_quadsprite
 
     mov  r1, @vdp_quadsprite_counter
 
-    mov  r1, @vdp_quadsprite_numbers(r6) ; Remember in which VDP quadsprite
+    mov  r1, @vdp_quadsprite_numbers(r5) ; Remember in which VDP quadsprite
                                          ; this source quadsprite is cached.
-    mov  r6, @cpu_quadsprite_numbers(r1) ; Remember which source quadsprite is
+    mov  r5, @cpu_quadsprite_numbers(r1) ; Remember which source quadsprite is
                                          ; cached in this VDP quadsprite.
 
-    mov  r6, *r0+              ; Add the source quadsprite to the cache queue.
+    mov  r5, *r0+              ; Add the source quadsprite to the cache queue.
 
 quadsprite_cached
                                ; Remember that this quadsprite is used in this frame.
@@ -167,15 +269,10 @@ quadsprite_cached
     sla  r1, 9
     .vdpwd r1                  ; Write the character.
 
-    swpb r7
-    .vdpwd r7                  ; Write the color and early clock flag.
+    swpb r6
+    .vdpwd r6                  ; Write the color and the early clock flag.
 
-sprite_skip
-    inc  r4                    ; Continue with the next quadsprite.
-    c    r4, r5                ; Are there any more quadsprites?
-    jl   sprite_loop
-
-draw_supersprite_end
+draw_quadsprite_end
     rt
 
 

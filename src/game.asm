@@ -33,6 +33,7 @@
     copy "check_input.asm"
     copy "update_objects.asm"
     copy "ordinates.asm"
+    copy "optimize_objects.asm"
     copy "video_macros.asm"
     copy "blit_macros.asm"
     copy "sound_macros.asm"
@@ -276,6 +277,9 @@ blit_code_end
 ;out/levels/00_mask
     bcopy "../out/levels/00_mask.dat"
     .next_bank
+;sprite_bounds
+    bcopy "../out/sprite_bounds.dat"
+    .next_bank
 ;sprite_index
     bcopy "../out/sprite_index.dat"
     .next_bank
@@ -295,16 +299,35 @@ module_end
 * Global variables.
     dorg >a000
 
-* Object lists. All coordinates are those of the top-left corner of a
+* Object lists. We have a set of object data per horizontal strip of 128 pixels
+* high. All coordinates in the lists are those of the top-left corner of a
 * virtual screen in the world, compatible with the player coordinates.
-bushes                    bss >0100 ; X ordinate, y ordinate.
-trees                     bss >0100 ; X ordinate, y ordinate.
-stones                    bss >0100 ; X ordinate, y ordinate.
-batteries                 bss >0100 ; X ordinate, y ordinate.
-mines                     bss >0100 ; X ordinate, y ordinate, explosion.
-drones                    bss >0100 ; X ordinate, y ordinate, fractional x ordinate, fractional y ordinate, direction (0..15 = 4 bits).
-launchers                 bss >0100 ; X ordinate, y ordinate, explosion.
-turrets                   bss >0100 ; X ordinate, y ordinate, direction (0..15 = 4 bits).
+* Reserve space for the first strip of object lists.
+strip_object_lists
+targets                   bss >0010 ; X ordinate, y ordinate.
+bushes                    bss >0010 ; X ordinate, y ordinate.
+trees                     bss >0020 ; X ordinate, y ordinate.
+stones                    bss >0020 ; X ordinate, y ordinate.
+batteries                 bss >0020 ; X ordinate, y ordinate.
+mines                     bss >0020 ; X ordinate, y ordinate, explosion.
+drones                    bss >0020 ; X ordinate, y ordinate, fractional x ordinate, fractional y ordinate, direction (0..15 = 4 bits).
+launchers                 bss >0020 ; X ordinate, y ordinate, explosion.
+turrets                   bss >0020 ; X ordinate, y ordinate, direction (0..15 = 4 bits).
+strip_object_lists_end
+
+world_character_height    equ 256 ; Number of characters vertically in the world.
+world_pixel_height        equ world_character_height * 8 ; Number of characters vertically in the world.
+
+object_strip_pixel_height       equ 128 ; Number of pixels vertically per strip.
+object_strip_pixel_height_shift equ 7 ; The corresponding bit shift.
+
+object_strip_size         equ strip_object_lists_end - strip_object_lists    ; 256 bytes of data per strip.
+object_strip_size_shift   equ 8                                              ; The corresponding bit shift.
+object_strip_count        equ world_pixel_height / object_strip_pixel_height ; 16 strips.
+
+* Reserve space for the remaining strips of object lists.
+                          bss (object_strip_count - 1) * object_strip_size
+
 
 * Supersprite/quadsprite cache pointers.
 vdp_quadsprite_numbers    bss 1024 * 2 ; The VDP quadsprite number (0..63 = 6 bits, shifted left 1 bit) for each CPU ROM quadsprite number (0..1023).
@@ -350,11 +373,6 @@ previous_player_frame          data 0
 previous_landscape_patterns_offset    data 0 ; Most recently drawn landscape patterns source offset.
 previous_landscape_character_quadrant data 0 ; Most recently drawn landscape character quadrant.
 
-* Target variables. The coordinates are those of the top-left corner of a
-* virtual screen in the world, compatible with the player coordinates.
-target_x data 0 ; X ordinate, expressed in pixels.
-target_y data 0 ; Y ordinate, expressed in pixels.
-
 * Stone variables.
 stone_count data 0 ; Number of stones available.
 stone_frame data 0 ; Frame of the stone counter.
@@ -362,6 +380,11 @@ stone_frame data 0 ; Frame of the stone counter.
 * Battery charge variables.
 charge_count data 0 ; Number of EMPs available.
 charge_frame data 0 ; Frame of the charge meter.
+
+* Target variables. The coordinates are those of the top-left corner of a
+* virtual screen in the world, compatible with the player coordinates.
+latest_target_x data 0 ; X ordinate, expressed in pixels.
+latest_target_y data 0 ; Y ordinate, expressed in pixels.
 
 * Emp variables.
 emp_x         data 0 ; X ordinate, expressed in pixels.
@@ -398,6 +421,7 @@ standing_player_animation_banks  bss 2 * 9 * 16
 landscape_objects_bank           bss 2 * 1
 landscape_characters_banks       bss 2 * 4
 landscape_mask_bank              bss 2 * 1
+sprite_bounds_bank               bss 2 * 1
 sprite_index_bank                bss 2 * 1
 sprite_positions_banks           bss 2 * 4
 sprite_patterns_banks            bss 2 * 1

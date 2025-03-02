@@ -10,21 +10,36 @@ import java.util.List;
  * of 16x16 pixel quadsprites).
  *
  * Usage:
- *   java CompressSprites [options] <input_file> ... <index_output_file> <position_output_file> <pattern_output_file>
+ *   java CompressSprites [options] <input_file> ... <name_output_file> <bounds_output_file> <index_output_file> <position_output_file> <pattern_output_file>
  * where options are
- *   -shiftx <s>     the horizontal shift added to the object positions, expressed in pixels.
- *   -shifty <s>     the vertical shift added to the object positions, expressed in pixels.
+ *   -color <n>           the color number of the next supersprite(s).
+ *   -shiftx <s>          the horizontal shift added to the object positions, expressed in pixels.
+ *   -shifty <s>          the vertical shift added to the object positions, expressed in pixels.
+ *   -explosioncount      the number of explosion frames.
+ *   -explosionspeed      the speed of the exploding fragments (quadsprites).
+ *   -explosiongravity    the gravity of the exploding fragments (quadsprites).
+ *   -name                the name of the next supersprite.
+ *   -append <input_file> an image to add to subsequent supersprites (with the modifier options at this point).
+ * the input files
+ *   input_file           a monochrome image file.
+ * and the output files
+ *   name_output_file     the names of all supersprites (in assembly text format).
+ *   bounds_output_file   the display bounds of each supersprite.
+ *   index_output_file    the first quadsprite index of each supersprite.
+ *   position_output_file the coordinates of all quadsprites.
+ *   pattern_output_file  the patterns of all quadsprites.
  */
 public class CompressSprites
 {
-    private static final boolean DEBUG = true;
+    private static final boolean DEBUG = false;
 
 
     public static void main(String[] args)
     throws IOException
     {
         // Compress and write out the patterns.
-        String nameOutputFileName     = args[args.length - 4];
+        String nameOutputFileName     = args[args.length - 5];
+        String boundsOutputFileName   = args[args.length - 4];
         String indexOutputFileName    = args[args.length - 3];
         String positionOutputFileName = args[args.length - 2];
         String patternOutputFileName  = args[args.length - 1];
@@ -33,6 +48,11 @@ public class CompressSprites
                 new PrintWriter(
                 new BufferedWriter(
                 new FileWriter(nameOutputFileName))))
+        {
+        try (DataOutputStream boundsOutputStream =
+                 new DataOutputStream(
+                 new BufferedOutputStream(
+                 new FileOutputStream(boundsOutputFileName))))
         {
         try (DataOutputStream indexOutputStream =
                  new DataOutputStream(
@@ -67,7 +87,7 @@ public class CompressSprites
             // Parse any options, also inbetween regular arguments.
             int argIndex = 0;
 
-            while (argIndex < args.length - 4)
+            while (argIndex < args.length - 5)
             {
                 String arg = args[argIndex++];
                 if (arg.startsWith("-"))
@@ -120,6 +140,8 @@ public class CompressSprites
                                  appendColor,
                                  appendShiftX,
                                  appendShiftY,
+                                 null,
+                                 boundsOutputStream,
                                  indexOutputStream,
                                  positionOutputStream,
                                  patternOutputStream,
@@ -129,6 +151,7 @@ public class CompressSprites
 
             // Write the sentinel.
             indexOutputStream.writeChar(positionOutputStream.size() / 8);
+        }
         }
         }
         }
@@ -150,6 +173,8 @@ public class CompressSprites
                                      int                     appendColor,
                                      int                     appendShiftX,
                                      int                     appendShiftY,
+                                     Rectangle               boundsOutput,
+                                     DataOutputStream        boundsOutputStream,
                                      DataOutputStream        indexOutputStream,
                                      DataOutputStream        positionOutputStream,
                                      DataOutputStream        patternOutputStream,
@@ -180,6 +205,8 @@ public class CompressSprites
                      appendColor,
                      appendShiftX,
                      appendShiftY,
+                     boundsOutput,
+                     boundsOutputStream,
                      indexOutputStream,
                      positionOutputStream,
                      patternOutputStream,
@@ -195,8 +222,13 @@ public class CompressSprites
                                                  DataOutputStream patternOutputStream)
     throws IOException
     {
-        BufferedImage image          = ImageIO.read(new File(fileName));
-        Raster        originalRaster = image.getRaster();
+        BufferedImage image = ImageIO.read(new File(fileName));
+        if (image == null)
+        {
+            throw new IOException("Unsupported image format ["+fileName+"]");
+        }
+
+        Raster originalRaster = image.getRaster();
 
         // Create a working copy of the raster.
         WritableRaster raster = originalRaster.createCompatibleWritableRaster();
@@ -302,7 +334,6 @@ public class CompressSprites
     /**
      * Creates or appends a given supersprite (depending on indexOutputStream
      * not being null).
-     * @return the number of quad sprite positions that were added.
      */
     private static void appendSprite(SpriteImage             spriteImage,
                                      int                     color,
@@ -315,6 +346,8 @@ public class CompressSprites
                                      int                     appendColor,
                                      int                     appendShiftX,
                                      int                     appendShiftY,
+                                     Rectangle               boundsOutput,
+                                     DataOutputStream        boundsOutputStream,
                                      DataOutputStream        indexOutputStream,
                                      DataOutputStream        positionOutputStream,
                                      DataOutputStream        patternOutputStream,
@@ -354,15 +387,15 @@ public class CompressSprites
                 Point     position     = positions.get(positionCounter);
                 Rectangle spriteBounds = bounds.get(positionCounter);
 
-                // Compute the deltas for the exploding explosionsprite.
+                // Compute the deltas for the exploding sprite.
                 int spriteCenterX = spriteBounds.x + spriteBounds.width  / 2;
                 int spriteCenterY = spriteBounds.y + spriteBounds.height / 2;
 
-                int deltaX = spriteCenterX - explosionCenterX;
-                int deltaY = spriteCenterY - explosionCenterY;
+                int directionX = spriteCenterX - explosionCenterX;
+                int directionY = spriteCenterY - explosionCenterY;
 
-                int explosionX = (int)Math.round(explosionFraction *  deltaX * explosionSpeed);
-                int explosionY = (int)Math.round(explosionFraction * (deltaY * explosionSpeed + explosionFraction * explosionGravity) / Math.sqrt(2));
+                int explosionX = (int)Math.round(explosionFraction *  directionX * explosionSpeed);
+                int explosionY = (int)Math.round(explosionFraction * (directionY * explosionSpeed + explosionFraction * explosionGravity) / Math.sqrt(2));
 
                 int positionX = position.x + explosionX + shiftX;
                 int positionY = position.y + explosionY + shiftY;
@@ -370,16 +403,34 @@ public class CompressSprites
                 if (DEBUG)
                 {
                     System.out.println("    #" + (positionOutputStream.size() / 8) +
-                                       ": (x("+position.x+"+"+explosionX+"+"+shiftX+") = " + positionX +
+                                       ": x = " + positionX +
                                        ", y = " + positionY +
                                        ", color = " + color +
-                                       ", pattern = " + (spriteImage.firstPatternIndex + positionCounter) + ")");
+                                       ", pattern = " + (spriteImage.firstPatternIndex + positionCounter));
                 }
 
+                // Write the quadsprite information.
                 positionOutputStream.writeChar(positionX);
                 positionOutputStream.writeChar(positionY);
                 positionOutputStream.writeChar(color);
                 positionOutputStream.writeChar(spriteImage.firstPatternIndex + positionCounter);
+
+                // Compute the exploding quadsprite's bounds.
+                Rectangle explodingBounds = spriteBounds.getBounds();
+                explodingBounds.translate(explosionX + shiftX,
+                                          explosionY + shiftY);
+
+                // Update the exploding supersprite's bounds.
+                // We're accumulating bounds across all explosions,
+                // but that should be ok.
+                if (boundsOutput == null)
+                {
+                    boundsOutput = explodingBounds;
+                }
+                else
+                {
+                    boundsOutput.add(explodingBounds);
+                }
 
                 //ImageIO.write(image, "png", new File("/tmp/image"+spriteIndex+".png"));
             }
@@ -399,10 +450,22 @@ public class CompressSprites
                              0,
                              0,
                              0,
+                             boundsOutput,
+                             null,
                              null,
                              positionOutputStream,
                              patternOutputStream,
                              nameImageMap);
+            }
+
+            // Optionally write the bounds for this explosion supersprite
+            // with appended sprite.
+            if (boundsOutputStream != null)
+            {
+                boundsOutputStream.writeShort(1 - boundsOutput.x - boundsOutput.width);
+                boundsOutputStream.writeShort(255 - boundsOutput.x);
+                boundsOutputStream.writeShort(1 - boundsOutput.y - boundsOutput.height);
+                boundsOutputStream.writeShort(191 - boundsOutput.y);
             }
         }
     }
@@ -418,8 +481,8 @@ public class CompressSprites
         int height = raster.getHeight();
 
         Rectangle bounds =
-                computeCropBounds(raster,
-                                  new Rectangle(0, 0, width, height));
+            computeCropBounds(raster,
+                              new Rectangle(0, 0, width, height));
 
         if (bounds.x == Integer.MAX_VALUE)
         {
@@ -775,7 +838,7 @@ public class CompressSprites
 
         /**
          * Creates a new instance.
-         * @param imageBounds       The crop bounds of the original image.
+         * @param imageBounds       The bounds of the original image.
          * @param spritePositions   The quadsprite positions relative to the
          *                          original image.
          * @param spriteBounds      The quadsprite crop bounds relative to
@@ -783,10 +846,10 @@ public class CompressSprites
          * @param firstPatternIndex The first index of the quadsprite patterns
          *                          in an external array.
          */
-        public SpriteImage(Rectangle           imageBounds,
-                               List<Point>     spritePositions,
-                               List<Rectangle> spriteBounds,
-                               int             firstPatternIndex)
+        public SpriteImage(Rectangle       imageBounds,
+                           List<Point>     spritePositions,
+                           List<Rectangle> spriteBounds,
+                           int             firstPatternIndex)
         {
             this.imageBounds       = imageBounds;
             this.spritePositions   = spritePositions;

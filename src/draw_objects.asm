@@ -78,8 +78,15 @@ draw_bullet
     bl   @draw_small_supersprite
 draw_bullet_end
 
+* Draw the object lists of all surrounding horizontal strips.
+    .first_object_strip r9
+    .last_object_strip r10
+
+draw_object_strip_loop
+
 * Draw the drones (supersprites, high priority).
     li   r8, drones
+    a    r9, r8
 
 draw_drone_loop
     mov  *r8+, r2              ; Get the x ordinate.
@@ -103,6 +110,7 @@ draw_drone_loop_end
 
 * Draw the turrets (supersprites, high priority).
     li   r8, turrets
+    a    r9, r8
 
 draw_turret_loop
     mov  *r8+, r2              ; Get the x ordinate.
@@ -125,6 +133,7 @@ draw_turret_loop_end
 
 * Draw the launchers (supersprites, high priority).
     li   r8, launchers
+    a    r9, r8
 
 draw_launcher_loop
     mov  *r8+, r2              ; Get the x ordinate.
@@ -146,6 +155,7 @@ draw_launcher_loop_end
 
 * Draw the mines (supersprites, low priority).
     li   r8, mines
+    a    r9, r8
 
 draw_mine_loop
     mov  *r8+, r2              ; Get the x ordinate.
@@ -160,7 +170,10 @@ draw_mine_loop
 
     s    @player_x, r2         ; Get the coordinates in screen space.
     s    @player_y, r3
-    jmp  !!
+
+    bl   @draw_supersprite     ; Draw the exploding mine.
+
+    jmp  draw_mine_loop
 !
     li   r1, mine_sprites      ; Compute the mine sprite number.
 
@@ -177,24 +190,34 @@ draw_mine_loop
     jhe  !
     inc  r1                    ; Then fold out the mine's antennae.
 !
-    bl   @draw_supersprite
+    bl   @draw_small_supersprite ; Draw the unexploded mine.
 
     jmp  draw_mine_loop
 draw_mine_loop_end
 
-* Draw the target (supersprite, low priority).
-    mov  @target_x, r2
-    mov  @target_y, r3
+* Draw the targets (supersprites, low priority).
+    li   r8, targets
+    a    r9, r8
+
+draw_target_loop
+    mov  *r8+, r2              ; Get the x ordinate.
+    jlt  draw_target_loop_end  ; Is it the last target?
+    mov  *r8+, r3              ; Get the y ordinate.
+    jlt  draw_target_loop      ; Is it inactive?
+
+    li   r1, target_sprite
 
     s    @player_x, r2         ; Get the coordinates in screen space.
     s    @player_y, r3
 
-    li   r1, target_sprite
-
     bl   @draw_small_supersprite
+
+    jmp  draw_target_loop
+draw_target_loop_end
 
 * Draw the batteries (supersprites, low priority).
     li   r8, batteries
+    a    r9, r8
 
 draw_battery_loop
     mov  *r8+, r2              ; Get the x ordinate.
@@ -214,6 +237,7 @@ draw_battery_loop_end
 
 * Draw the stones (supersprites, low priority).
     li   r8, stones
+    a    r9, r8
 
 draw_stone_loop
     mov  *r8+, r2              ; Get the x ordinate.
@@ -230,6 +254,52 @@ draw_stone_loop
 
     jmp  draw_stone_loop
 draw_stone_loop_end
+
+* Draw the bushes (supersprite, low priority).
+    li   r8, bushes
+    a    r9, r8
+
+draw_bush_loop
+    mov  *r8+, r2              ; Get the x ordinate.
+    jlt  draw_bush_loop_end    ; Is it the last bush?
+    mov  *r8+, r3              ; Get the y ordinate.
+    jlt  draw_bush_loop        ; Is it inactive?
+
+    li   r1, bush_sprite
+
+    s    @player_x, r2         ; Get the coordinates in screen space.
+    s    @player_y, r3
+
+    bl   @draw_supersprite
+
+    jmp  draw_bush_loop
+draw_bush_loop_end
+
+* Draw the trees (supersprite, low priority).
+    li   r8, trees
+    a    r9, r8
+
+draw_tree_loop
+    mov  *r8+, r2              ; Get the x ordinate.
+    jlt  draw_tree_loop_end    ; Is it the last tree?
+    mov  *r8+, r3              ; Get the y ordinate.
+    jlt  draw_tree_loop        ; Is it inactive?
+
+    li   r1, tree_sprite
+
+    s    @player_x, r2         ; Get the coordinates in screen space.
+    s    @player_y, r3
+
+    bl   @draw_supersprite
+
+    jmp  draw_tree_loop
+draw_tree_loop_end
+
+* Repeat for the next strip, if any.
+    .next_object_strip r9, r10
+    jh   !
+    b    @draw_object_strip_loop
+!
 
 * Draw the Electro-Magnetic Pulse, if any (supersprite, low priority).
 draw_emp
@@ -279,25 +349,6 @@ draw_charge
 
     bl   @draw_small_supersprite
 draw_charge_end
-
-* Draw the trees (supersprite, low priority).
-    li   r8, trees
-
-draw_tree_loop
-    mov  *r8+, r2              ; Get the x ordinate.
-    jlt  draw_tree_loop_end    ; Is it the last tree?
-    mov  *r8+, r3              ; Get the y ordinate.
-    jlt  draw_tree_loop        ; Is it inactive?
-
-    li   r1, tree_sprite
-
-    s    @player_x, r2         ; Get the coordinates in screen space.
-    s    @player_y, r3
-
-    bl   @draw_small_supersprite
-
-    jmp  draw_tree_loop
-draw_tree_loop_end
 
 * End the list of sprites.
     li   r1, sprite_attribute_table_terminator * 256

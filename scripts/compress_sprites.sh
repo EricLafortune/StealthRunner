@@ -48,7 +48,9 @@ INPUT_FRAMES=${1:-
 
   -name emp_sprites
   -color 3
+  -shifty 16
   $INPUT_DIR/Emp/*.png
+  -shifty 48
 
   -name battery_sprite
   -color 2
@@ -105,13 +107,15 @@ INPUT_FRAMES=${1:-
   $INPUT_DIR/Charge/*.png
 }
 OUTPUT_NAMES=${2:-$OUTPUT_DIR/sprite_names.asm}
-OUTPUT_INDEX=${3:-$OUTPUT_DIR/sprite_index.dat}
-OUTPUT_POSITIONS=${4:-$OUTPUT_DIR/sprite_positions.dat}
-OUTPUT_PATTERNS=$OUTPUT_DIR/${5:-sprite_patterns.dat}
+OUTPUT_BOUNDS=${3:-$OUTPUT_DIR/sprite_bounds.dat}
+OUTPUT_INDEX=${4:-$OUTPUT_DIR/sprite_index.dat}
+OUTPUT_POSITIONS=${5:-$OUTPUT_DIR/sprite_positions.dat}
+OUTPUT_PATTERNS=$OUTPUT_DIR/${6:-sprite_patterns.dat}
 
 java -cp out CompressSprites \
   $INPUT_FRAMES \
   $OUTPUT_NAMES \
+  $OUTPUT_BOUNDS \
   $OUTPUT_INDEX \
   $OUTPUT_POSITIONS \
   $OUTPUT_PATTERNS

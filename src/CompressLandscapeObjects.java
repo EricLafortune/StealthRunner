@@ -18,8 +18,11 @@ import java.io.*;
  */
 public class CompressLandscapeObjects
 {
-    private static final int MAX_WIDTH  = 0x1fff;
-    private static final int MAX_HEIGHT = 512;
+    // Each pair of two vertical pixels corresponds to one character
+    // (8x8 pixels in the game).
+    private static final int MAX_WIDTH    = 0x1fff;
+    private static final int MAX_HEIGHT   = 512;
+    private static final int STRIP_HEIGHT = 128 * 2 / 8;
 
     private static final int LANDSCAPE =  3;
     private static final int PLAYER    =  4;
@@ -100,16 +103,22 @@ public class CompressLandscapeObjects
     private void write(DataOutputStream outputStream)
     throws IOException
     {
-        writeObjectPositions(outputStream, PLAYER);
-        writeObjectPositions(outputStream, TARGET);
-        writeObjectPositions(outputStream, BUSH);
-        writeObjectPositions(outputStream, TREE);
-        writeObjectPositions(outputStream, STONE);
-        writeObjectPositions(outputStream, BATTERY);
-        writeObjectPositions(outputStream, MINE);
-        writeObjectPositions(outputStream, DRONE);
-        writeObjectPositions(outputStream, LAUNCHER);
-        writeObjectPositions(outputStream, TURRET);
+        writeObjectPositions(0, height, outputStream, PLAYER);
+
+        for (int startY = 0; startY < height; startY += STRIP_HEIGHT)
+        {
+            int endY = Math.min(height, startY + STRIP_HEIGHT);
+
+            writeObjectPositions(startY, endY, outputStream, TARGET);
+            writeObjectPositions(startY, endY, outputStream, BUSH);
+            writeObjectPositions(startY, endY, outputStream, TREE);
+            writeObjectPositions(startY, endY, outputStream, STONE);
+            writeObjectPositions(startY, endY, outputStream, BATTERY);
+            writeObjectPositions(startY, endY, outputStream, MINE);
+            writeObjectPositions(startY, endY, outputStream, DRONE);
+            writeObjectPositions(startY, endY, outputStream, LAUNCHER);
+            writeObjectPositions(startY, endY, outputStream, TURRET);
+        }
 
         int size = outputStream.size();
         if (size > 8 * 1024)
@@ -122,13 +131,15 @@ public class CompressLandscapeObjects
     }
 
 
-    private void writeObjectPositions(DataOutputStream outputStream,
+    private void writeObjectPositions(int              startY,
+                                      int              endY,
+                                      DataOutputStream outputStream,
                                       int              objectValue)
     throws IOException
     {
         // The landscape height is half the raster height.
         // We're scanning all rows anyway.
-        for (int y = 0; y < height; y++)
+        for (int y = startY; y < endY; y++)
         {
             for (int x = 0; x < width; x++)
             {

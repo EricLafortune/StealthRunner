@@ -24,24 +24,29 @@ exploding equ >0800
 
 * One-time macro: initialize the objects in the world.
 * IN r0: a pointer to the initial values.
-* OUT target_x
-* OUT target_y
 * OUT charge_count
 * OUT charge_frame
 * OUT emp_x
 * OUT emp_y
 * OUT emp_direction
+* OUT targets
+* OUT stones
 * OUT batteries
+* OUT mines
 * OUT drones
+* OUT launchers
 * OUT turrets
 * OUT bullet_x
 * OUT bullet_y
 * OUT bullet_direction
-* OUT mines
-* OUT player_x
-* OUT player_y
+* OUT grenade_x
+* OUT grenade_y
+* OUT grenade_fx
+* OUT grenade_fy
+* OUT grenade_counter
 * LOCAL r0
 * LOCAL r1
+* LOCAL r2
     .defm initialize_objects
 
     clr  @charge_count
@@ -51,112 +56,144 @@ exploding equ >0800
     seto @bullet_x
     seto @grenade_x
 
-* Initialize the target position.
-    mov  *r0+, @target_x
-    mov  *r0+, @target_y
-    inct r0
+* Initialize the object lists of all horizontal strips.
+    clr  r1
+
+initialize_object_strip_loop
+
+* Initialize the target positions.
+    li   r2, targets
+    a    r1, r2
+
+initialize_target_loop
+    mov  *r0+, *r2+            ; Copy the x ordinate.
+    jlt  initialize_target_loop_end ; Is it the last target?
+    mov  *r0+, *r2+            ; Copy the y ordinate.
+    jmp  initialize_target_loop
+initialize_target_loop_end
 
 * Initialize the bush positions.
-    li   r1, bushes
+    li   r2, bushes
+    a    r1, r2
 
 initialize_bush_loop
-    mov  *r0+, *r1+            ; Copy the x ordinate.
+    mov  *r0+, *r2+            ; Copy the x ordinate.
     jlt  initialize_bush_loop_end ; Is it the last bush?
-    mov  *r0+, *r1+            ; Copy the y ordinate.
+    mov  *r0+, *r2+            ; Copy the y ordinate.
     jmp  initialize_bush_loop
 initialize_bush_loop_end
 
 * Initialize the tree positions.
-    li   r1, trees
+    li   r2, trees
+    a    r1, r2
 
 initialize_tree_loop
-    mov  *r0+, *r1+            ; Copy the x ordinate.
+    mov  *r0+, *r2+            ; Copy the x ordinate.
     jlt  initialize_tree_loop_end ; Is it the last tree?
-    mov  *r0+, *r1+            ; Copy the y ordinate.
+    mov  *r0+, *r2+            ; Copy the y ordinate.
     jmp  initialize_tree_loop
 initialize_tree_loop_end
 
 * Initialize the stone positions.
-    li   r1, stones
+    li   r2, stones
+    a    r1, r2
 
 initialize_stone_loop
-    mov  *r0+, *r1+            ; Copy the x ordinate.
+    mov  *r0+, *r2+            ; Copy the x ordinate.
     jlt  initialize_stone_loop_end ; Is it the last stone?
-    mov  *r0+, *r1+            ; Copy the y ordinate.
+    mov  *r0+, *r2+            ; Copy the y ordinate.
     jmp  initialize_stone_loop
 initialize_stone_loop_end
 
 * Initialize the battery positions.
-    li   r1, batteries
+    li   r2, batteries
+    a    r1, r2
 
 initialize_battery_loop
-    mov  *r0+, *r1+            ; Copy the x ordinate.
+    mov  *r0+, *r2+            ; Copy the x ordinate.
     jlt  initialize_battery_loop_end ; Is it the last battery?
-    mov  *r0+, *r1+            ; Copy the y ordinate.
+    mov  *r0+, *r2+            ; Copy the y ordinate.
     jmp  initialize_battery_loop
 initialize_battery_loop_end
 
 * Initialize the mine positions and states.
-    li   r1, mines
+    li   r2, mines
+    a    r1, r2
 
 initialize_mine_loop
-    mov  *r0+, *r1+            ; Copy the x ordinate.
+    mov  *r0+, *r2+            ; Copy the x ordinate.
     jlt  initialize_mine_loop_end ; Is it the last mine?
-    mov  *r0+, *r1+            ; Copy the y ordinate.
-    clr  *r1+                  ; Initialize the explosion.
+    mov  *r0+, *r2+            ; Copy the y ordinate.
+    clr  *r2+                  ; Initialize the explosion.
     jmp  initialize_mine_loop
 initialize_mine_loop_end
 
 * Initialize the drone positions and directions.
-    li   r1, drones
+    li   r2, drones
+    a    r1, r2
 
 initialize_drone_loop
-    mov  *r0+, *r1+            ; Copy the x ordinate.
+    mov  *r0+, *r2+            ; Copy the x ordinate.
     jlt  initialize_drone_loop_end ; Is it the last drone?
-    mov  *r0+, *r1+            ; Copy the y ordinate.
-    clr  *r1+                  ; Clear the fractional x ordinate.
-    clr  *r1+                  ; Clear the fractional y ordinate.
-    clr  *r1+                  ; Initialize the direction.
+    mov  *r0+, *r2+            ; Copy the y ordinate.
+    clr  *r2+                  ; Clear the fractional x ordinate.
+    clr  *r2+                  ; Clear the fractional y ordinate.
+    clr  *r2+                  ; Initialize the direction.
     jmp  initialize_drone_loop
 initialize_drone_loop_end
 
-* Initialize the launcher positions.
-    li   r1, launchers
+* Initialize the grenade launcher positions.
+    li   r2, launchers
+    a    r1, r2
 
 initialize_launcher_loop
-    mov  *r0+, *r1+            ; Copy the x ordinate.
+    mov  *r0+, *r2+            ; Copy the x ordinate.
     jlt  initialize_launcher_loop_end ; Is it the last launcher?
-    mov  *r0+, *r1+            ; Copy the y ordinate.
-    clr  *r1+                  ; Initialize the explosion.
+    mov  *r0+, *r2+            ; Copy the y ordinate.
+    clr  *r2+                  ; Initialize the explosion.
     jmp  initialize_launcher_loop
 initialize_launcher_loop_end
 
 * Initialize the turret positions and directions.
-    li   r1, turrets
+    li   r2, turrets
+    a    r1, r2
 
 initialize_turret_loop
-    mov  *r0+, *r1+            ; Copy the x ordinate.
+    mov  *r0+, *r2+            ; Copy the x ordinate.
     jlt  initialize_turret_loop_end ; Is it the last turret?
-    mov  *r0+, *r1+            ; Copy the y ordinate.
-    clr  *r1+                  ; Initialize the direction.
+    mov  *r0+, *r2+            ; Copy the y ordinate.
+    clr  *r2+                  ; Initialize the direction.
     jmp  initialize_turret_loop
 initialize_turret_loop_end
+
+* Repeat for the next strip, if any.
+    ai   r1, object_strip_size
+    ci   r1, object_strip_count * object_strip_size
+    jl   initialize_object_strip_loop
 
     .endm
 
 
 * One-time macro: update the objects in the world.
-* IN OUT overlay_frame
+* IN OUT stone_frame
+* IN OUT charge_frame
 * IN OUT emp_x
 * IN OUT emp_y
 * IN OUT emp_direction
+* IN OUT stones
 * IN OUT batteries
+* IN OUT mines
 * IN OUT drones
+* IN OUT launchers
 * IN OUT turrets
 * IN OUT bullet_x
 * IN OUT bullet_y
 * IN OUT bullet_direction
-* IN OUT mines
+* IN OUT grenade_x
+* IN OUT grenade_y
+* IN OUT grenade_fx
+* IN OUT grenade_fy
+* IN OUT grenade_counter
 * IN     player_x
 * IN     player_y
 * LOCAL r0-r15
@@ -167,7 +204,7 @@ initialize_turret_loop_end
 * Update the stone_counter.
 update_stone_counter
     mov  @stone_frame, r3
-    jlt  update_stone_counter_end     ; Is it inactive?
+    jlt  update_stone_counter_end ; Is it inactive?
 
     mov  r3, r2
     ai   r3, >0800
@@ -227,36 +264,48 @@ update_emp_position
 
 update_emp_end
 
-* Check if the player has reached the target.
-check_target
-    .dist @player_x, @target_x, r0, 20 ; Is it close to the player?
-    jgt  check_target_end
-    .dist @player_y, @target_y, r1, 40
-    jgt  check_target_end
 
-    seto @target_x             ; Move the target out of the way.
-    seto @target_y
-    seto @mines                ; Disable all mines.
-    seto @drones               ; Disable all drones.
-    seto @turrets              ; Disable all turrets.
-    seto @bullet_x             ; Disable the bullet.
+* Update the object lists of all surrounding horizontal strips.
+    .first_object_strip r9
+    .last_object_strip r10
 
-    li   r0, >9f00             ; Stop all sound.
-    .sound r0
-    li   r0, >ff00
-    .sound r0
+update_object_strip_loop
+
+* Check if the player has reached a target.
+    li   r8, targets
+    a    r9, r8
+
+update_target_loop
+    mov  *r8+, r0             ; Get the x ordinate.
+    jlt  update_target_loop_end ; Is it the last target?
+    mov  *r8+, r1             ; Get the y ordinate.
+    jlt  update_target_loop   ; Is it inactive?
+
+check_target_player
+    .dist @player_x, r0, r2, 20 ; Is it close to the player?
+    jgt  update_target_loop
+    .dist @player_y, r1, r3, 40
+    jgt  update_target_loop
+
+    mov  r0, @latest_target_x  ; Remember the target position.
+    mov  r1, @latest_target_y
+
+    seto @-2(r8)               ; Disable the target.
 
     .start_speech speech_ahohe ; Start singing.
-check_target_end
+
+    jmp  update_target_loop
+update_target_loop_end
 
 * Update the stone states.
-    li   r5, stones
+    li   r8, stones
+    a    r9, r8
 
 update_stone_loop
-    mov  *r5+, r0              ; Get the x ordinate.
+    mov  *r8+, r0              ; Get the x ordinate.
     jlt  update_stone_loop_end ; Is it the last stone?
-    mov  *r5+, r1              ; Get the y ordinate.
-    jlt  update_stone_loop   ; Is it inactive?
+    mov  *r8+, r1              ; Get the y ordinate.
+    jlt  update_stone_loop     ; Is it inactive?
 
 check_stone_player
     .dist @player_x, r0, 20    ; Is it close to the player?
@@ -266,17 +315,18 @@ check_stone_player
 
     inc  @stone_count          ; Then increment the number of available stones.
     clr  @stone_frame
-    seto @-2(r5)               ; Disable the stone.
+    seto @-2(r8)               ; Disable the stone.
     jmp  update_stone_loop
 update_stone_loop_end
 
 * Update the battery states.
-    li   r5, batteries
+    li   r8, batteries
+    a    r9, r8
 
 update_battery_loop
-    mov  *r5+, r0              ; Get the x ordinate.
+    mov  *r8+, r0              ; Get the x ordinate.
     jlt  update_battery_loop_end ; Is it the last battery?
-    mov  *r5+, r1              ; Get the y ordinate.
+    mov  *r8+, r1              ; Get the y ordinate.
     jlt  update_battery_loop   ; Is it inactive?
 
 check_battery_player
@@ -287,18 +337,19 @@ check_battery_player
 
     inc  @charge_count         ; Then increment the number of available EMPs.
     clr  @charge_frame
-    seto @-2(r5)               ; Disable the battery.
+    seto @-2(r8)               ; Disable the battery.
     jmp  update_battery_loop
 update_battery_loop_end
 
 * Update the mine states.
-    li   r5, mines
+    li   r8, mines
+    a    r9, r8
 
 update_mine_loop
-    mov  *r5+, r0              ; Get the x ordinate.
+    mov  *r8+, r0              ; Get the x ordinate.
     jlt  update_mine_loop_end  ; Is it the last mine?
-    mov  *r5+, r1              ; Get the y ordinate.
-    mov  *r5+, r2              ; Get the sprite.
+    mov  *r8+, r1              ; Get the y ordinate.
+    mov  *r8+, r2              ; Get the sprite.
     jlt  update_mine_loop      ; Is it inactive?
 
     jh   update_mine_explosion ; Is the mine already exploding?
@@ -325,7 +376,7 @@ check_mine_emp
 
 update_mine_explosion
     ai   r2, exploding         ; Let the mine explode, automatically
-    mov  r2,@-2(r5)            ; disabling it at the end.
+    mov  r2,@-2(r8)            ; disabling it at the end.
     jlt  update_mine_loop
 
     srl  r2, 11                ; Compute the sound frame of the explosion.
@@ -335,6 +386,7 @@ update_mine_loop_end
 
 * Update the drone states, positions, and directions.
     li   r8, drones
+    a    r9, r8
 
 update_drone_loop
     mov  *r8+, r0              ; Get the x ordinate.
@@ -412,13 +464,14 @@ update_drone_direction
 update_drone_loop_end
 
 * Update the turret states and directions.
-    li   r6, turrets
+    li   r8, turrets
+    a    r9, r8
 
 update_turret_loop
-    mov  *r6+, r0              ; Get the x ordinate.
+    mov  *r8+, r0              ; Get the x ordinate.
     jlt  update_turret_loop_end ; Is it the last turret?
-    mov  *r6+, r1              ; Get the y ordinate.
-    mov  *r6+, r2              ; Get the direction.
+    mov  *r8+, r1              ; Get the y ordinate.
+    mov  *r8+, r2              ; Get the direction.
     jlt  update_turret_loop    ; Is it inactive?
 
     ci   r2, exploding         ; Is the turret already exploding?
@@ -443,7 +496,7 @@ check_turret_emp
 
 update_turret_explosion
     ai   r2, exploding         ; Let the turret explode, automatically
-    mov  r2,@-2(r6)            ; disabling it at the end.
+    mov  r2,@-2(r8)            ; disabling it at the end.
     jlt  update_turret_loop
 
     srl  r2, 11                ; Compute the sound frame of the explosion.
@@ -458,14 +511,14 @@ update_turret_direction
     neg  r1
 
     bl   @adjust_projected_direction ; Update the direction.
-    mov  r2, @-2(r6)           ; Save it.
+    mov  r2, @-2(r8)           ; Save it.
 
 fire_turret_bullet
     mov  @bullet_x, r0         ; Don't we have a bullet flying?
     jgt  update_turret_loop
 
-    mov  @-6(r6), @bullet_x    ; Then fire a new bullet.
-    mov  @-4(r6), @bullet_y
+    mov  @-6(r8), @bullet_x    ; Then fire a new bullet.
+    mov  @-4(r8), @bullet_y
     clr  @bullet_fx
     clr  @bullet_fy
     mov  r2, @bullet_direction
@@ -473,14 +526,15 @@ fire_turret_bullet
     jmp  update_turret_loop
 update_turret_loop_end
 
-* Update the launcher states.
-    li   r6, launchers
+* Update the grenade launcher states.
+    li   r8, launchers
+    a    r9, r8
 
 update_launcher_loop
-    mov  *r6+, r0              ; Get the x ordinate.
+    mov  *r8+, r0              ; Get the x ordinate.
     jlt  update_launcher_loop_end ; Is it the last launcher?
-    mov  *r6+, r1              ; Get the y ordinate.
-    mov  *r6+, r2              ; Get the state.
+    mov  *r8+, r1              ; Get the y ordinate.
+    mov  *r8+, r2              ; Get the state.
     jlt  update_launcher_loop  ; Is it inactive?
 
     ci   r2, exploding         ; Is the launcher already exploding?
@@ -505,7 +559,7 @@ check_launcher_emp
 
 update_launcher_explosion
     ai   r2, exploding         ; Let the launcher explode, automatically
-    mov  r2,@-2(r6)            ; disabling it at the end.
+    mov  r2,@-2(r8)            ; disabling it at the end.
     jlt  update_launcher_loop
 
     srl  r2, 11                ; Compute the sound frame of the explosion.
@@ -543,6 +597,12 @@ fire_launcher_grenade
 
     jmp  update_launcher_loop
 update_launcher_loop_end
+
+* Repeat for the next strip, if any.
+    .next_object_strip r9, r10
+    jh   !
+    b    @update_object_strip_loop
+!
 
 * Update the bullet state and position.
     mov  @bullet_x, r0
