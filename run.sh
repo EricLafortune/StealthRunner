@@ -23,4 +23,5 @@ mame ti99_4a \
   -ioport:peb:slot2 32kmem \
   -ioport:peb:slot3 speech \
   -joyport mecmouse \
-  -cart1 $RPK
+  -cart1 $RPK \
+  "$@"
