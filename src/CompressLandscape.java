@@ -66,19 +66,19 @@ public class CompressLandscape
     private static final int EMPTY     = 0;
     private static final int LANDSCAPE = 3;
 
+    private static final boolean DEBUG = false;
+
+
     private final Raster raster;
     private final int    width;
     private final int    height;
-    private final int    shiftX;
-    private final int    shiftY;
 
+    private int deltaIndex; // For debug printing.
 
     public static void main(String[] args)
     throws IOException
     {
         int charOffset = 1;
-        int shiftX     = 0;
-        int shiftY     = 0;
 
         // Parse any options.
         int argIndex = 0;
@@ -96,8 +96,6 @@ public class CompressLandscape
             switch (arg)
             {
                 case "-charoffset" -> charOffset  = Integer.parseInt(args[argIndex++]);
-                case "-shiftx"     -> shiftX      = Integer.parseInt(args[argIndex++]);
-                case "-shifty"     -> shiftY      = Integer.parseInt(args[argIndex++]);
                 default            -> throw new IllegalArgumentException("Unknown option [" + arg + "]");
             }
         }
@@ -106,9 +104,13 @@ public class CompressLandscape
         String outputFileName = args[argIndex++];
 
         BufferedImage image = ImageIO.read(new File(inputFileName));
+        if (image == null)
+        {
+            throw new IOException("Unsupported image format ["+inputFileName+"]");
+        }
 
         CompressLandscape landscape =
-            new CompressLandscape(image.getRaster(), shiftX, shiftY);
+            new CompressLandscape(image.getRaster());
 
         try (DataOutputStream outputStream =
                  new DataOutputStream(
@@ -120,21 +122,90 @@ public class CompressLandscape
     }
 
 
-    public CompressLandscape(Raster raster,
-                             int    shiftX,
-                             int    shiftY)
+    public CompressLandscape(Raster raster)
     {
         this.raster = raster;
         this.width  = Math.min(MAX_WIDTH,  raster.getWidth());
         this.height = Math.min(MAX_HEIGHT, raster.getHeight());
-        this.shiftX = shiftX;
-        this.shiftY = shiftY;
     }
 
 
     private void write(DataOutputStream outputStream)
     throws IOException
     {
+        // Write out the landscape deltas for each source quadrant to each of
+        // its surrounding quadrants.
+        for (int quadrantY = 0; quadrantY <= 1; quadrantY++)
+        {
+            for (int quadrantX = 0; quadrantX <= 1; quadrantX++)
+            {
+                for (int quadrantDeltaY = -1; quadrantDeltaY <= 1; quadrantDeltaY++)
+                {
+                    for (int quadrantDeltaX = -1; quadrantDeltaX <= 1; quadrantDeltaX++)
+                    {
+                        // We're skipping the zero shift, reducing the number
+                        // of landscape deltas from 9 to 8 (for each of the
+                        // 4 shifts).
+                        if (quadrantDeltaX != 0 ||
+                            quadrantDeltaY != 0)
+                        {
+                            writeLandscapeDelta(quadrantX,
+                                                quadrantY,
+                                                quadrantDeltaX,
+                                                quadrantDeltaY,
+                                                outputStream);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+
+    private void writeLandscapeDelta(int              quadrantX,
+                                     int              quadrantY,
+                                     int              quadrantDeltaX,
+                                     int              quadrantDeltaY,
+                                     DataOutputStream outputStream)
+    throws IOException
+    {
+        if (DEBUG)
+        {
+            System.out.printf("#0x%02X: Quadrant (%d, %d), delta (%d, %d)\n",
+                              deltaIndex++,
+                              quadrantX,
+                              quadrantY,
+                              quadrantDeltaX,
+                              quadrantDeltaY);
+            for (int charY = 0; charY < height / 2; charY++)
+            {
+                for (int charX = 0; charX < width; charX++)
+                {
+                    int character =
+                        landscapeCharacter(quadrantX,
+                                           quadrantY,
+                                           charX,
+                                           charY);
+
+                    int oldCharacter =
+                        landscapeCharacter(quadrantX,
+                                           quadrantY,
+                                           quadrantDeltaX,
+                                           quadrantDeltaY,
+                                           charX,
+                                           charY);
+
+                    System.out.print(character != oldCharacter ?
+                                         "" + (char)('0' + character) + (char)('0' + oldCharacter):
+                                         "" + (character == 0 ? '.' :
+                                               character == 3 ? ':' :
+                                                                '-') + ' ');
+                }
+                System.out.println();
+            }
+            System.out.println();
+        }
+        
         // Compress and write out the patterns.
         ByteArrayOutputStream offsetOutputStream =
             new ByteArrayOutputStream(height);
@@ -142,15 +213,13 @@ public class CompressLandscape
         ByteArrayOutputStream frameOutputStream =
             new ByteArrayOutputStream(8 * 1024);
 
-        // Precompute the length of the table with offsets,
-        // so we can adjust the offsets properly.
-        // The landscape height is half the raster height.
-        int offsetsLength = height;
-
         // Write the characters compressed as spans.
-        writeSpans(offsetsLength,
-                   new DataOutputStream(offsetOutputStream),
-                   new DataOutputStream(frameOutputStream));
+        writeCharacterSpans(quadrantX,
+                            quadrantY,
+                            quadrantDeltaX,
+                            quadrantDeltaY,
+                            new DataOutputStream(offsetOutputStream),
+                            new DataOutputStream(frameOutputStream));
 
         int size = offsetOutputStream.size() +
                    frameOutputStream.size();
@@ -165,42 +234,66 @@ public class CompressLandscape
         outputStream.write(frameOutputStream.toByteArray());
 
         // Skip to the next memory bank.
-        //outputStream.write(new byte[8 * 1024 - size]);
+        outputStream.write(new byte[8 * 1024 - size]);
     }
 
 
-    private void writeSpans(int              offsetOffset,
-                            DataOutputStream offsetOutputStream,
-                            DataOutputStream frameOutputStream)
+    private void writeCharacterSpans(int              quadrantX,
+                                     int              quadrantY,
+                                     int              quadrantDeltaX,
+                                     int              quadrantDeltaY,
+                                     DataOutputStream offsetOutputStream,
+                                     DataOutputStream frameOutputStream)
     throws IOException
     {
         // The landscape height is half the raster height.
         // Scan all landscape rows.
-        for (int y = 0; y < height; y += 2)
+        for (int charY = 0; charY < height / 2; charY++)
         {
-            // Write the offset to the spans.
-            offsetOutputStream.writeChar(offsetOffset + frameOutputStream.size());
+            // Write the offset to the spans (including the size of the list
+            // of offsets in the same memory bank).
+            offsetOutputStream.writeChar(height + frameOutputStream.size());
 
             // Write the spans of this row.
-            writeSpans(y, frameOutputStream);
+            writeCharacterSpans(quadrantX,
+                                quadrantY,
+                                quadrantDeltaX,
+                                quadrantDeltaY,
+                                charY,
+                                frameOutputStream);
         }
     }
 
 
-    private void writeSpans(int y, DataOutputStream frameOutputStream)
+    private void writeCharacterSpans(int              quadrantX,
+                                     int              quadrantY,
+                                     int              quadrantDeltaX,
+                                     int              quadrantDeltaY,
+                                     int              charY,
+                                     DataOutputStream frameOutputStream)
     throws IOException
     {
         int endX = -1;
         while (true)
         {
             // Compute the start and end of the next span.
-            int startX = spanStart(endX + 1, y);
+            int startX = characterSpanStart(quadrantX,
+                                            quadrantY,
+                                            quadrantDeltaX,
+                                            quadrantDeltaY,
+                                            endX + 1,
+                                            charY);
             if (startX == width)
             {
                 break;
             }
 
-            endX = spanEnd(startX + 1, y);
+            endX = characterSpanEnd(quadrantX,
+                                    quadrantY,
+                                    quadrantDeltaX,
+                                    quadrantDeltaY,
+                                    startX + 1,
+                                    charY);
 
             int length = endX - startX;
             if (length > 255)
@@ -213,9 +306,12 @@ public class CompressLandscape
             frameOutputStream.write(startX >> 8);
             frameOutputStream.write(length);
 
-            for (int x = startX; x < endX; x++)
+            for (int charX = startX; charX < endX; charX++)
             {
-                frameOutputStream.write(landscapeCharacter(x, y));
+                frameOutputStream.write(landscapeCharacter(quadrantX,
+                                                           quadrantY,
+                                                           charX,
+                                                           charY));
             }
         }
 
@@ -225,71 +321,104 @@ public class CompressLandscape
     }
 
 
-    private int spanStart(int x, int y)
+    private int characterSpanStart(int quadrantX,
+                                   int quadrantY,
+                                   int quadrantDeltaX,
+                                   int quadrantDeltaY,
+                                   int charX,
+                                   int charY)
     {
-        for (; x < width; x++)
+        for (; charX < width; charX++)
         {
-            if (isEdge(x, y))
+            if (isDifferentLandscapeCharacter(quadrantX,
+                                              quadrantY,
+                                              quadrantDeltaX,
+                                              quadrantDeltaY,
+                                              charX,
+                                              charY))
             {
                 break;
             }
         }
 
-        return x;
+        return charX;
     }
 
 
-    private int spanEnd(int x, int y)
+    private int characterSpanEnd(int quadrantX,
+                                 int quadrantY,
+                                 int quadrantDeltaX,
+                                 int quadrantDeltaY,
+                                 int charX,
+                                 int charY)
     {
-        for (; x < width; x++)
+        for (; charX < width; charX++)
         {
-            if (                   !isEdge(x,     y)  &&
-                (x >= width + 1 || !isEdge(x + 1, y)) &&
-                (x >= width + 2 || !isEdge(x + 2, y)))
+            if (!isDifferentLandscapeCharacter(quadrantX,
+                                               quadrantY,
+                                               quadrantDeltaX,
+                                               quadrantDeltaY,
+                                               charX,
+                                               charY))
             {
                 break;
             }
         }
 
-        return x;
+        return charX;
     }
 
 
-    private boolean isEdge(int x, int y)
+    private boolean isDifferentLandscapeCharacter(int quadrantX,
+                                                  int quadrantY,
+                                                  int quadrantDeltaX,
+                                                  int quadrantDeltaY,
+                                                  int charX,
+                                                  int charY)
     {
-        // The base coordinates of pixel 1 for the pixels 2 surrounding it.
-        int x1 = x + shiftX;
-        int y1 = y + 2 * shiftY;
-
-        boolean p1 = landscapePixel(x, y);
-        boolean p2 = landscapePixel(x1 - 1, y1 - 1);
-
         return
-            landscapePixel(x, y + 2 )      != p1 ||
-            landscapePixel(x + 1, y     )  != p1 ||
-            landscapePixel(x + 1, y + 2 )  != p1 ||
-            landscapePixel(x1, y1 - 1)     != p2 ||
-            landscapePixel(x1 - 1, y1 + 1) != p2 ||
-            landscapePixel(x1, y1 + 1)     != p2;
+            landscapeCharacter(quadrantX, quadrantY,                                 charX, charY) !=
+            landscapeCharacter(quadrantX, quadrantY, quadrantDeltaX, quadrantDeltaY, charX, charY);
     }
 
 
-    private int landscapeCharacter(int x, int y)
+    private int landscapeCharacter(int quadrantX,
+                                   int quadrantY,
+                                   int quadrantDeltaX,
+                                   int quadrantDeltaY,
+                                   int charX,
+                                   int charY)
     {
-        // The coordinates of pixel 1 depend on the shifts.
-        int x1 = x + shiftX;
-        int y1 = y + 2 * shiftY;
+        int oldQuadrantX = quadrantX - quadrantDeltaX;
+        int oldQuadrantY = quadrantY - quadrantDeltaY;
+
+        return landscapeCharacter(oldQuadrantX & 1,
+                                  oldQuadrantY & 1,
+                                  charX + (oldQuadrantX >> 1),
+                                  charY + (oldQuadrantY >> 1));
+    }
+
+
+    private int landscapeCharacter(int quadrantX,
+                                   int quadrantY,
+                                   int charX,
+                                   int charY)
+    {
+        // The coordinates of pixel 1 depend on the quadrant.
+        int x1 =      charX + quadrantX;
+        int y1 = 2 * (charY + quadrantY);
 
         // The coordinates of pixel 2 are fixed.
-        int x2 = x;
-        int y2 = y + 1;
+        int x2 =     charX;
+        int y2 = 2 * charY + 1;
 
         return (landscapePixel(x1, y1) ? 1 : 0) |
                (landscapePixel(x2, y2) ? 2 : 0);
     }
 
 
-    private boolean landscapePixel(int x, int y)
+    private boolean landscapePixel(int x,
+                                   int y)
     {
         if (x < 0)           x = 0;
         if (x >= width - 1)  x = width - 1;

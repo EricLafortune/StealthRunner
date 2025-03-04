@@ -74,6 +74,10 @@ public class CompressLandscapeObjects
         String outputFileName = args[argIndex++];
 
         BufferedImage image = ImageIO.read(new File(inputFileName));
+        if (image == null)
+        {
+            throw new IOException("Unsupported image format ["+inputFileName+"]");
+        }
 
         CompressLandscapeObjects landscape =
             new CompressLandscapeObjects(image.getRaster(), shiftX, shiftY);

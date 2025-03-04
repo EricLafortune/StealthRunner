@@ -121,6 +121,7 @@ play_game
 
     .initialize_player
     .initialize_objects
+    .initialize_landscape
 
 * Reset the sound pointers.
     seto @current_tone0
@@ -262,18 +263,9 @@ blit_code_end
 ;landscape_objects
     bcopy "../out/levels/00_objects.dat"
     .next_bank
-;out/levels/00_characters_00
-    bcopy "../out/levels/00_00.dat"
-    .next_bank
-;out/levels/00_characters_10
-    bcopy "../out/levels/00_10.dat"
-    .next_bank
-;out/levels/00_characters_01
-    bcopy "../out/levels/00_01.dat"
-    .next_bank
-;out/levels/00_characters_11
-    bcopy "../out/levels/00_11.dat"
-    .next_bank
+;out/levels/00_landscape
+    bcopy "../out/levels/00_landscape.dat"
+    ;.next_bank
 ;out/levels/00_mask
     bcopy "../out/levels/00_mask.dat"
     .next_bank
@@ -370,8 +362,9 @@ player_frame                   data 0 ; Animation frame (0..n-1).
 previous_player_frame          data 0
 
 * Derived landscape display variables.
-previous_landscape_patterns_offset    data 0 ; Most recently drawn landscape patterns source offset.
-previous_landscape_character_quadrant data 0 ; Most recently drawn landscape character quadrant.
+previous_landscape_patterns_offset data 0 ; Most recently drawn landscape patterns source offset.
+previous_quadrant_x                data 0 ; Most recently drawn landscape quadrant ordinates,
+previous_quadrant_y                data 0 ; expressed as multiples of 4 pixels.
 
 * Stone variables.
 stone_count data 0 ; Number of stones available.
@@ -419,7 +412,7 @@ intro_video_bank                 bss 2 * 3
 dying_player_animation_banks     bss 2 * 16
 standing_player_animation_banks  bss 2 * 9 * 16
 landscape_objects_bank           bss 2 * 1
-landscape_characters_banks       bss 2 * 4
+landscape_characters_banks       bss 2 * 32
 landscape_mask_bank              bss 2 * 1
 sprite_bounds_bank               bss 2 * 1
 sprite_index_bank                bss 2 * 1

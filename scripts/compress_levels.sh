@@ -12,19 +12,9 @@ OUTPUT_PREFIX=$OUTPUT_DIR/$LEVEL
 
 mkdir -p $OUTPUT_DIR
 
-for SHIFT_X in 0 1
-do
-  for SHIFT_Y in 0 1
-  do
-
-    java -cp out CompressLandscape \
-      -shiftx $SHIFT_X \
-      -shifty $SHIFT_Y \
-      $INPUT \
-      ${OUTPUT_PREFIX}_${SHIFT_X}${SHIFT_Y}.dat
-
-  done
-done
+java -cp out CompressLandscape \
+  $INPUT \
+  ${OUTPUT_PREFIX}_landscape.dat
 
 java -cp out CompressLandscapeMask \
   -shiftx 8 \

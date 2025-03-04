@@ -18,6 +18,23 @@
 
 * Macros to draw the landscape of dots.
 
+* One-time macro: initialize the landscape.
+* OUT previous_landscape_patterns_offset
+* OUT previous_quadrant_x
+* OUT previous_quadrant_y
+* LOCAL r0
+    .defm initialize_landscape
+    clr  @previous_landscape_patterns_offset
+
+    mov  @player_x, r0         ; Initialize the previous quadrant x ordinate.
+    srl  r0, 2
+    mov  r0, @previous_quadrant_x
+
+    mov  @player_y, r0         ; Initialize the previous quadrant y ordinate.
+    srl  r0, 2
+    mov  r0, @previous_quadrant_y
+    .endm
+
 * One-time macro: draw the characted and pattern deltas of the landscape.
 * IN player_x
 * IN player_y
@@ -66,34 +83,51 @@ draw_landscape_patterns
     .blit_more_bytes 8
 draw_landscape_patterns_end
 
+* Write the landscape character deltas.
 draw_landscape_characters
-    mov  @player_y, r0         ; Pick the memory bank of the shifted landscape.
-    srl  r0, 2
-    andi r0, >0001             ; First or second character quadrant on the y axis?
-    sla  r0, 1
+    mov  @player_x, r0         ; Compute the current quadrant ordinates,
+    srl  r0, 2                 ; expressed as multiples of 4 pixels.
 
-    mov  @player_x, r1
+    mov  @player_y, r1
     srl  r1, 2
-    andi r1, >0001             ; First or second character quadrant on the x axis?
 
-    a    r1, r0                ; Compute the character quadrant 0..3.
-    c    r0, @previous_landscape_character_quadrant ; Same quadrant as last time?
-    jeq  draw_landscape_characters_end ; Then don't redraw the characters.
-    mov  r0, @previous_landscape_character_quadrant
+    mov  r0, r2                ; Compute the deltas from the previous quadrant
+    mov  r1, r3                ; ordinates to the current quadrant ordinates.
 
-    sla  r0, 1
-    ai   r0, landscape_characters_banks ; The landscape characters memory banks.
+    s    @previous_quadrant_x, r2
+    s    @previous_quadrant_y, r3
 
-    mov  @player_y, r3         ; Compute the address of the first visible row.
-    ai   r3, -player_base_y
-    srl  r3, 3
-    andi r3, >01ff
-    sla  r3, 1
-    ai   r3, >6000
+    a    r3, r2                ; Compute the delta as an index:
+    sla  r3, 1                 ; index = 3 * dy + dx + 4, but leaving out
+    a    r3, r2                ; an index for (0, 0).
+    jeq  draw_landscape_characters_end ; Skip if the combined delta is 0.
+    jgt  !                     ;   0 1 2 (with "0" moving left/up, etc)
+    inc  r2                    ;   3   4
+!   ai   r2, 3                 ;   5 6 7
 
-    mov  @player_x, r4         ; Compute the character offset in the rows.
-    ai   r4, -player_base_x
-    srl  r4, 3
+    mov  r0, @previous_quadrant_x ; Save the current quadrant ordinates.
+    mov  r1, @previous_quadrant_y
+
+    mov  r1, r3                ; Save the ordinates for computing the character
+    mov  r0, r4                ; row and column later on.
+
+    andi r0, >0001             ; Compute the current quadrant ordinates inside
+    andi r1, >0001             ; the character.
+
+    sla  r0, 3                 ; Combine the quadrant ordinates with the
+    sla  r1, 4                 ; index.
+    soc  r1, r0
+    soc  r2, r0                ; The index is now 0..31.
+
+    sla  r0, 1                 ; Compute the landscape delta memory bank.
+    ai   r0, landscape_characters_banks
+
+    ai   r3, -player_base_y/4  ; Compute the address of the first visible row
+    andi r3, >03fe             ; index (a list of words).
+    ai   r3, module_start
+
+    ai   r4, -player_base_x/4  ; Compute the character offset in the rows.
+    srl  r4, 1
     andi r4, >03ff
 
     li   r5, 32
