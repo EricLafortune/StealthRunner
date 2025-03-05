@@ -199,7 +199,7 @@ initialize_turret_loop_end
 * LOCAL r0-r15
     .defm update_objects
 
-    .switch_bank @code_bank    ; The motion deltas are in the code bank.
+    .switch_bank @data_bank    ; The motion deltas are in the data bank.
 
 * Update the stone_counter.
 update_stone_counter
@@ -246,7 +246,7 @@ disable_emp                    ; Then disable it.
     jmp  update_emp_end
 
 update_emp_position
-    .switch_bank @code_bank    ; The motion deltas are in the code bank.
+    .switch_bank @data_bank    ; The motion deltas are in the data bank.
 
     mov  @emp_direction, r4    ; Compute the delta entry adress.
     sla  r4, 3

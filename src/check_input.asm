@@ -34,8 +34,8 @@
 * LOCAL r0-r15
     .defm check_input
 
-    .switch_bank @code_bank    ; The player deltas and frame counts are in the
-                               ; code bank.
+    .switch_bank @data_bank    ; The player deltas and frame counts are in the
+                               ; data bank.
 
 * LOCAL r6: Player speed (-1 for dying, 0 for standing,...)
 * LOCAL r7: Player direction (0..15).

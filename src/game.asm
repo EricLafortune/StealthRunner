@@ -69,6 +69,18 @@ program_start
     limi 0
     lwpi workspace
 
+* Copy the main game code to expansion RAM.
+    .switch_bank @code_bank    ; The main code is in the code bank.
+    .copy_memory module_memory, expansion_code_end, low_expansion_memory
+
+* Continue running the code from expansion RAM, so we can switch between
+* module memory banks more easily.
+    b    @expansion_code
+
+expansion_code_start
+    xorg $ - module_memory + low_expansion_memory
+expansion_code
+
 * Cache some I/O addresses in registers.
 ;   .spchrd_in_register r9     ; Cache the speech read address.
 ;   .spchwt_in_register r10    ; Cache the speech write address.
@@ -76,11 +88,9 @@ program_start
     .vdpwa_in_register  r14    ; Cache the VDP address write address.
     .vdpwd_in_register  r15    ; Cache the VDP data write address.
 
-* Copy the main game code to expansion RAM.
-    .copy_memory module_memory, expansion_code_end, low_expansion_memory
-
 * Copy the video player code to scratchpad RAM, for better performance.
 play_intro_video
+    .switch_bank @data_bank    ; The player code is in the data bank.
     .copy_memory video_code_start, video_code_end, scratchpad
 
 * Play the intro video.
@@ -100,19 +110,12 @@ key_press_loop
     ci   r0, >ff00
     jeq  key_press_loop
 
-* Continue running the code from expansion RAM, so we can switch between
-* module memory banks more easily.
-    b    @expansion_code
-
-expansion_code_start
-    xorg $ - module_memory + low_expansion_memory
-expansion_code
-
 * Copy the VDP blitting code to scratchpad RAM, for better performance.
+    .switch_bank @data_bank    ; The blitting code is in the data bank.
     .copy_memory blit_code_start, blit_code_end, scratchpad
 
 play_game
-    .switch_bank @code_bank    ; The graphics are in the code bank.
+    .switch_bank @data_bank    ; The graphics are in the data bank.
     .initialize_game_graphics
 
 * Initialize the player and the objects from the world data.
@@ -205,9 +208,19 @@ wait_for_vsync
     aorg
 expansion_code_end
 
+    .ifgt  $, >8000
+    .error 'Program code too large for first memory bank.'
+    .endif
+
+    .print 'Unused bytes in main code bank:', >8000 - $
+    .next_bank
+
+* Banks with scratchpad code, data for the intro video, graphics, levels,...
+;data
 
 * Video player subroutine, run from scratchpad RAM, for speed and to be able to
 * switch between memory banks.
+    xorg module_memory
 video_code_start
     xorg scratchpad
 
@@ -220,6 +233,7 @@ video_code_start
     .endif
 
     aorg
+    xorg $ - module_memory_size
 video_code_end
 
 * Blitting subroutines, run from scratchpad RAM, for speed and to be able to
@@ -232,6 +246,47 @@ blit_code_start
     ; Also, a tiny speech subroutine that has to be run from scratchpad RAM.
     .speech_read_status_byte_subroutine
 
+* Global variables in scratchpad RAM, for speed.
+    dorg $
+
+* Quadsprite counter.
+vdp_quadsprite_counter data 0
+
+* Video frame counter.
+frame_timestamp data 0 ; Counter for the current frame
+                       ; (used for caching and even/odd tests).
+
+* Sound variables.
+current_tone0 data 0 ; The start address of the currently playing tone 0.
+current_tone1 data 0 ; The start address of the currently playing tone 1.
+current_tone2 data 0 ; The start address of the currently playing tone 2.
+current_noise data 0 ; The start address of the currently playing noise.
+
+* Speech variables.
+current_speech        data 0; The address of the speech data currently being spoken.
+current_speech_length data 0; The address of the speech data currently being spoken.
+
+* Player variables. The coordinates are those of the top-left corner of the
+* screen in the world. The player is centered on the screen, with his base
+* at (128,112) expressed in pixels.
+player_x           data 0 ; X ordinate, expressed in pixels.
+player_y           data 0 ; Y ordinate, expressed in pixels.
+player_fx          data 0 ; Fractional x ordinate (fixed point 16.16 bits).
+player_fy          data 0 ; Fractional y ordinate (fixed point 16.16 bits).
+player_speed       data 0 ; Speed (-1 for dying, 0 for standing,...)
+player_direction   data 0 ; Direction (0..15).
+
+* Player display variables.
+player_animation_bank          data 0 ; Animation memory bank (>6000, >6002,...).
+previous_player_animation_bank data 0
+player_frame                   data 0 ; Animation frame (0..n-1).
+previous_player_frame          data 0
+
+* Landscape display variables.
+previous_landscape_patterns_offset data 0 ; Most recently drawn landscape patterns source offset.
+previous_quadrant_x                data 0 ; Most recently drawn landscape quadrant ordinates,
+previous_quadrant_y                data 0 ; expressed as multiples of 4 pixels.
+
     .print 'Unused bytes in scratchpad after blitting code:', workspace - $
 
     .ifgt  $, workspace
@@ -239,6 +294,7 @@ blit_code_start
     .endif
 
     aorg
+    xorg $ - module_memory_size
 blit_code_end
 
     copy "direction_data.asm"
@@ -246,15 +302,9 @@ blit_code_end
     copy "motion_data.asm"
     copy "graphics_data.asm"
     copy "sound_data.asm"
-
-    .ifgt  $, >8000
-    .error 'Program code too large for first memory bank.'
-    .endif
-
-    .print 'Unused bytes in main code bank:', >8000 - $
-
-* Banks with preprocessed data for the intro video, graphics, levels,...
+    aorg
     .next_bank
+
 ;intro_video
     bcopy "../out/intro.tms"
     .next_bank
@@ -327,44 +377,9 @@ cpu_quadsprite_numbers    bss 64 * 2   ; The CPU ROM quadsprite number (0..1023,
 vdp_quadsprite_timestamps bss 64 * 2   ; The timestamp of the most recent frame for each VDP quadsprite number (0..63).
 sprite_cache_queue        bss 32 * 2   ; The queue with CPU quadsprite numbers (shifted left 1 bit) to be written to VDP memory.
 
-vdp_quadsprite_counter data 0
-
-* Video frame variable.
-frame_timestamp data 0 ; Counter for the current frame
-                       ; (used for caching and even/odd tests).
-
-* Sound variables.
-current_tone0 data 0 ; The start address of the currently playing tone 0.
-current_tone1 data 0 ; The start address of the currently playing tone 1.
-current_tone2 data 0 ; The start address of the currently playing tone 2.
-current_noise data 0 ; The start address of the currently playing noise.
-
-* Speech variables.
-current_speech        data 0; The address of the speech data currently being spoken.
-current_speech_length data 0; The address of the speech data currently being spoken.
-
-* Player variables. The coordinates are those of the top-left corner of the
-* screen in the world. The player is centered on the screen, with his base
-* at (128,112) expressed in pixels.
-player_x           data 0 ; X ordinate, expressed in pixels.
-player_y           data 0 ; Y ordinate, expressed in pixels.
-player_fx          data 0 ; Fractional x ordinate (fixed point 16.16 bits).
-player_fy          data 0 ; Fractional y ordinate (fixed point 16.16 bits).
-player_speed       data 0 ; Speed (-1 for dying, 0 for standing,...)
-player_direction   data 0 ; Direction (0..15).
-
+* Mouse variables.
 mouse_x data 0 ; Mouse x ordinate around player.
 mouse_y data 0 ; Mouse y ordinate around player.
-
-player_animation_bank          data 0 ; Animation memory bank (>6000, >6002,...).
-previous_player_animation_bank data 0
-player_frame                   data 0 ; Animation frame (0..n-1).
-previous_player_frame          data 0
-
-* Derived landscape display variables.
-previous_landscape_patterns_offset data 0 ; Most recently drawn landscape patterns source offset.
-previous_quadrant_x                data 0 ; Most recently drawn landscape quadrant ordinates,
-previous_quadrant_y                data 0 ; expressed as multiples of 4 pixels.
 
 * Stone variables.
 stone_count data 0 ; Number of stones available.
@@ -408,6 +423,7 @@ grenade_counter data 0 ; Counter in the life time of the grenade.
     dorg >6000
 
 code_bank                        bss 2 * 1
+data_bank                        bss 2 * 1
 intro_video_bank                 bss 2 * 3
 dying_player_animation_banks     bss 2 * 16
 standing_player_animation_banks  bss 2 * 9 * 16

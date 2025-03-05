@@ -45,7 +45,7 @@
 
 * Write the landscape patterns.
 draw_landscape_patterns
-    .switch_bank @code_bank    ; The patterns are in the code bank.
+    .switch_bank @data_bank    ; The patterns are in the data bank.
 
     .vdpwa game_pattern_descriptor_table + 8 | vdp_write_bit
 
@@ -119,8 +119,9 @@ draw_landscape_characters
     soc  r1, r0
     soc  r2, r0                ; The index is now 0..31.
 
-    sla  r0, 1                 ; Compute the landscape delta memory bank.
-    ai   r0, landscape_characters_banks
+    sla  r0, 1                 ; Switch to the right landscape delta memory
+    ai   r0, landscape_characters_banks ; bank.
+    .switch_bank *r0, *r0
 
     ai   r3, -player_base_y/4  ; Compute the address of the first visible row
     andi r3, >03fe             ; index (a list of words).

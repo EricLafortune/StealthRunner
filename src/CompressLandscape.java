@@ -205,7 +205,7 @@ public class CompressLandscape
             }
             System.out.println();
         }
-        
+
         // Compress and write out the patterns.
         ByteArrayOutputStream offsetOutputStream =
             new ByteArrayOutputStream(height);

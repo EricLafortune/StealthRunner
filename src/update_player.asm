@@ -77,7 +77,7 @@
     sla  r6, 3
     ai   r6, delta_still
 
-    .switch_bank @code_bank    ; The motion deltas are in the code bank.
+    .switch_bank @data_bank    ; The motion deltas are in the data bank.
 
     .update_ordinate r6, r2, r3 ; Adjust the coordinates.
     .update_ordinate r6, r4, r5

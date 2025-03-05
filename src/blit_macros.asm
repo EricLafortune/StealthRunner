@@ -19,9 +19,9 @@
 * Macros to call the subroutines to blit to VDP memory (see blit.asm).
 
 * Macro: blit a sequence of bytes from CPU memory to VDP memory.
-* IN #1:    Constant source address in CPU memory.
-* IN #2:    Constant destination address in VDP memory.
-* IN #3:    Constant number of bytes.
+* IN #1:    the constant source address in CPU memory.
+* IN #2:    the constant destination address in VDP memory.
+* IN #3:    the constant number of bytes.
 * LOCAL r0
 * LOCAL r1
 * LOCAL r2
@@ -32,9 +32,9 @@
     .endm
 
 * Macro: blit a sequence of bytes from CPU memory to VDP memory.
-* IN r0:    Source address in CPU memory.
-* IN #1:    Constant destination address in VDP memory.
-* IN #2:    Constant number of bytes.
+* IN r0:    the source address in CPU memory.
+* IN #1:    the constant destination address in VDP memory.
+* IN #2:    the constant number of bytes.
 * LOCAL r1
 * LOCAL r2
 * LOCAL r11
@@ -44,11 +44,11 @@
     .blit_more_bytes #2
     .endm
 
-* Macro: blit a sequence of bytes from CPU memory to * VDP memory,
+* Macro: blit a sequence of bytes from CPU memory to VDP memory,
 * starting at the current VDP address.
-* IN r0:    Source address in CPU memory.
-* IN vdpwa: Destination address in the VDP.
-* IN #1:    Constant number of bytes.
+* IN r0:    the source address in CPU memory.
+* IN vdpwa: the destination address in the VDP.
+* IN #1:    the constant number of bytes.
 * LOCAL r0
 * LOCAL r1
 * LOCAL r2
@@ -89,49 +89,61 @@
     .endif
     .endm
 
-* Macro: blit a graphics blob (a sequence of spans, where a span is a
-* list of bytes) from CPU memory to VDP memory.
-* IN r0:   Source memory bank address: >6000, >6002,..., >7ffe.
-* IN r1:   Source address in CPU memory.
-* IN #1:   Destination address in VDP memory.
+* Macro: blit an opaque graphics blob (a sequence of spans, where a span
+* is a delta, a length, and a list of bytes) from CPU memory to VDP memory.
+* IN r0:   the source address of a pointer to the first span in CPU memory.
+* IN #1:   the destination address in VDP memory.
 * LOCAL r2
 * LOCAL r3
-* LOCAL r10
 * LOCAL r11
+* LOCAL r12
     .defm blit_blob
-    bl   @blit_blob
-    data #1 | vdp_write_bit
+    li   r3, #1 | vdp_write_bit ; Set the VDP destination address.
+
+    mov  *r0, r0                ; Get the pointer to the first span.
+    ai   r0, module_memory      ; Add the base memory offset.
+
+    bl   @blit_blob             ; Blit the blob as a sequence of spans
+                                ; with gaps inbetween.
     .endm
 
-* Macro: blit an opaque graphics blob (a sequence of spans, where a
-* span is a list of bytes) from CPU memory to VDP memory.
-* IN r1:   Source memory bank address: >6000, >6002,..., >7ffe.
-* IN r0:   Source address in CPU memory.
-* IN #1:   Destination address in VDP memory.
+* Macro: blit an opaque graphics blob (a sequence of spans, where a span
+* is a delta, a length, and a list of bytes) from CPU memory to VDP memory.
+* IN r0:   the source address of a pointer to the first span in CPU memory.
+* IN #1:   the destination address in VDP memory.
+* LOCAL r1
 * LOCAL r2
-* LOCAL r10
 * LOCAL r11
+* LOCAL r12
     .defm blit_opaque_blob
-    bl   @blit_opaque_blob
-    data #1 | vdp_write_bit
+    .li_swapped r1, #1 | vdp_write_bit ; Write the VDP destination address.
+    .vdpwa r1
+
+    mov  *r0, r0                ; Get the pointer to the first span.
+    ai   r0, module_memory      ; Add the base memory offset.
+
+    bl   @blit_opaque_blob      ; Blit the blob as an uninterrupted stream
+                                ; of bytes.
     .endm
 
-* Macro: blit a list of clipped graphics blobs (a sequence of spans,
-* where a span is a list of bytes) from CPU memory to VDP memory.
-* IN r0:   Source memory bank address: >6000, >6002,...,>7ffe.
-* IN r3:   Source address of the first span pointer in CPU memory.
-* IN r4:   Destination clip start.
-* IN r5:   Destination clip length.
-* IN r6:   Span sequence count.
-* IN #1:   Destination address in VDP memory.
+* Macro: blit a list of clipped graphics blobs (a list of pointers, each
+* pointing to a sequence of spans, where a span is a start offset word, a
+* length byte, and a list of data bytes) from CPU memory to VDP memory.
+* IN r3:   the source address of the first span pointer in CPU memory.
+* IN r4:   the destination clip start.
+* IN r5:   the destination clip length.
+* IN r6:   the span sequence count.
+* IN #1:   the destination address in VDP memory.
+* LOCAL r0
 * LOCAL r1
 * LOCAL r2
 * LOCAL r7
 * LOCAL r8
 * LOCAL r9
-* LOCAL r10
 * LOCAL r11
+* LOCAL r12
     .defm blit_clipped_blobs
+    li   r7, #1 | vdp_write_bit ; Set the VDP destination address.
+
     bl   @blit_clipped_blobs
-    data #1 | vdp_write_bit
     .endm

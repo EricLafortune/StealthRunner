@@ -20,9 +20,9 @@
 * You can should run them from scratchpad RAM for maximum performance.
 
 * Subroutine: blit a sequence of bytes from CPU memory to VDP memory.
-* IN r0:   Source address in CPU memory.
-* IN r1:   Destination address in VDP memory (including write bit).
-* IN r2:   Number of bytes.
+* IN r0:   the source address in CPU memory.
+* IN r1:   the destination address in VDP memory (including write bit).
+* IN r2:   the number of bytes.
 * LOCAL r11
 blit_bytes
     .vdpwa r1                   ; Write the VDP address.
@@ -30,9 +30,9 @@ blit_bytes
 
 * Subroutine: blit a sequence of bytes from CPU memory to VDP memory,
 * starting at the current VDP address.
-* IN r0:    Source address in CPU memory.
-* IN vdpwa: Destination address in the VDP.
-* IN r2:    Number of bytes.
+* IN r0:    the source address in CPU memory.
+* IN vdpwa: the destination address in the VDP.
+* IN r2:    the number of bytes.
 * LOCAL r1
 * LOCAL r11
 blit_more_bytes
@@ -62,22 +62,16 @@ unrolled_blit_end
     rt
 
 * Subroutine: blit a graphics blob (a sequence of spans, where a span is a
-* list of bytes) from CPU memory to VDP memory.
-* IN r0:   Source memory bank address: >6000, >6002,..., >7ffe.
-* IN r1:   Source address in CPU memory.
-* IN data: Destination address in VDP memory (including write bit).
+* a delta byte, a length byte, and a list of data bytes) from CPU memory to
+* VDP memory.
+* IN r0: the source address of the first span in CPU memory.
+* IN r3: the destination address in VDP memory (including write bit).
+* LOCAL r1
 * LOCAL r2
-* LOCAL r3
-* LOCAL r10
 * LOCAL r11
+* LOCAL r12
 blit_blob
-    mov  *r11+, r3              ; Get the VDP destination address.
-    mov  r11, r10               ; Save the return address.
-
-    movb *r0, *r0               ; Switch to the specified bank.
-
-    mov  *r1, r0                ; Get the pointer to the span.
-    ai   r0, >6000              ; Add the base memory offset.
+    mov  r11, r12               ; Save the return address.
 
     li   r11, blob_span_loop    ; Shortcut return address for the subroutine.
 
@@ -99,24 +93,16 @@ blob_span_loop
                                 ; which will return to our loop.
 
 
-* Subroutine: blit an opaque graphics blob (a sequence of spans, where a
-* span is a list of bytes) from CPU memory to VDP memory.
-* IN  r1:   Source memory bank address: >6000, >6002,..., >7ffe.
-* IN  r0:   Source address in CPU memory.
-* IN: data: Destination address in VDP memory (including write bit).
+* Subroutine: blit an opaque graphics blob (a sequence of spans, where a span
+* is a delta, a length, and a list of bytes) from CPU memory to VDP memory.
+* IN r0:    the source address of the first span in CPU memory.
+* IN vdpwa: the destination address in the VDP.
+* LOCAL r1
 * LOCAL r2
-* LOCAL r10
 * LOCAL r11
+* LOCAL r12
 blit_opaque_blob
-    mov  *r11+, r2              ; Get the VDP destination address.
-    mov  r11, r10               ; Save the return address.
-
-    movb *r0, *r0               ; Switch to the specified bank.
-
-    mov  *r1, r0                ; Get the pointer to the span.
-    ai   r0, >6000              ; Add the base memory offset.
-
-    .vdpwa r2                   ; Write the VDP address.
+    mov  r11, r12               ; Save the return address.
 
     li   r11, opaque_blob_span_loop ; Shortcut return address for the subroutine.
 
@@ -144,44 +130,42 @@ start_foreground_span
                                 ; which will return to our loop.
 
 
-* Subroutine: blit a list of clipped graphics blobs (a sequence of spans,
-* where a span is a list of bytes) from CPU memory to VDP memory.
-* IN r0:   Source memory bank address: >6000, >6002,...,>7ffe.
-* IN r3:   Source address of the first span pointer in CPU memory.
-* IN r4:   Destination clip start.
-* IN r5:   Destination clip length.
-* IN r6:   Span sequence count.
-* IN data: Destination address in VDP memory (including write bit).
+* Subroutine: blit a list of clipped graphics blobs (a list of pointers, each
+* pointing to a sequence of spans, where a span is a start offset word, a
+* length byte, and a list of data bytes) from CPU memory to VDP memory.
+* IN r3:   the source address of the first span pointer in CPU memory.
+* IN r4:   the destination clip start.
+* IN r5:   the destination clip length.
+* IN r6:   the span sequence count.
+* IN r7:   the destination address in VDP memory (including write bit).
+* LOCAL r0
 * LOCAL r1
 * LOCAL r2
 * LOCAL r7
 * LOCAL r8
 * LOCAL r9
-* LOCAL r10
 * LOCAL r11
+* LOCAL r12
 blit_clipped_blobs
-    mov  *r11+, r7              ; Get the VDP destination address.
-    mov  r11, r10               ; Save the return address.
-
-    movb *r0, *r0               ; Switch to the specified bank.
+    mov  r11, r12               ; Save the return address.
 
     a    r4, r5                 ; Convert the clip length to the clip end.
 
 * Write all blobs.
-* LOCAL r0: The current span source address (destination, length, data).
-* LOCAL r7: The current clip destination address in VDP memory.
-* LOCAL r8: The current span source address (start, length, data).
+* LOCAL r0: the current span source address (destination, length, data).
+* LOCAL r7: the current clip destination address in VDP memory.
+* LOCAL r8: the current span header address (start, length, data).
 clipped_blobs_loop
     mov  *r3+, r8              ; Get the pointer to the span.
-    ai   r8, >6000             ; Add the base memory offset.
+    ai   r8, module_memory     ; Add the base memory offset.
 
-    li   r11, clipped_blob_span_loop ; Shortcut return address for the subroutine.
-
+    li   r11, clipped_blob_span_loop ; Shortcut return address for the
+                                     ; subroutine.
 * Write all spans of the blob.
-* LOCAL r0: The clipped span source address (data).
-* LOCAL r1: The clipped destination address in VDP memory.
-* LOCAL r2: The clipped span length.
-* LOCAL r9: The clipped span start.
+* LOCAL r0: the clipped span source address (data).
+* LOCAL r1: the clipped destination address in VDP memory.
+* LOCAL r2: the clipped span length.
+* LOCAL r9: the clipped span start.
 clipped_blob_span_loop
     movb *r8+, r9               ; Get the unclipped span start.
     swpb r9
@@ -193,11 +177,14 @@ clipped_blob_span_loop
     movb *r8+, r2               ; Get the span length.
     srl  r2, 8
 
-    mov  r8, r0                 ; Get a copy of the current span address.
-    a    r2, r8                 ; Update the current span address with the
-                                ; span's unclipped length.
+    mov  r8, r0                 ; Copy the span data address (after the header),
+                                ; so we can clip it.
 
-    a    r9, r2                 ; Convert the span length to the span end.
+    a    r2, r8                 ; Compute the next span header address,
+                                ; by adding the unclipped span length.
+
+    a    r9, r2                 ; Convert the span length to the span end,
+                                ; so we can clip it.
 
     c    r2, r4                 ; Does the span end before the clip starts?
     jle  clipped_blob_span_loop ; Then continue with the next span.
@@ -221,8 +208,8 @@ clipped_blob_span_loop
     s    r9, r2                 ; Revert the span end to the span length.
                                 ; The length is larger than 0 at this point.
 
-    jmp  blit_bytes             ; Shortcut conditional jump to the subroutine,
-                                ; which will return to our loop.
+    jmp  blit_bytes             ; Shortcut to the subroutine, which will
+                                ; return to our loop.
 
 end_clipped_span_sequence
     s    r4, r7                 ; Update the destination start.
@@ -232,5 +219,4 @@ end_clipped_span_sequence
     jne  clipped_blobs_loop
 
 end_blit
-    movb @code_bank, @code_bank ; Switch back to the main bank and return.
-    b    *r10
+    b    *r12                   ; Return to the caller.

@@ -30,7 +30,6 @@
 * IN    r14: Optionally, the VDPWD constant.
 * IN    r15: Optionally, the VDPWA constant.
 play_video
-    li   r0, module_bank_selection + module_bank_increment ; Set the first animation bank.
 
 * Switch to the current bank and update the number.
 bank_loop

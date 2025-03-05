@@ -43,35 +43,41 @@ player_base_y equ player_screen_offset_y * 8 + 64 ; expressed in pixels.
     jeq  dont_draw_player_full ; Then only draw the player delta.
 
 draw_player_full               ; Otherwise draw the player fully.
-    sla  r1, 1                 ; Compute the address of the pattern blob.
-    ai   r1, module_memory + 2
+    mov  r0, @previous_player_animation_bank ; Remember the new bank.
+    mov  r1, @previous_player_frame          ; Remember the new frame.
+
+    .switch_bank *r0           ; Switch to the bank with the current animation.
+
+    mov  r1, r0                ; Compute the address of the pattern blob.
+    sla  r0, 1
+    ai   r0, module_memory + 2
                                ; Write the patterns.
     .blit_opaque_blob game_pattern_descriptor_table + 64
 
-    mov  @player_animation_bank, r0
-    li   r1, module_memory     ; Set the address of the character blob.
+    li   r0, module_memory     ; Set the address of the character blob.
                                ; Write the characters.
     .blit_blob game_screen_image_table + (player_screen_offset_y * 32) + player_screen_offset_x
 
-    jmp  draw_player_save_frame
+    jmp  draw_player_update_frame
 
 dont_draw_player_full
     c    r1, @previous_player_frame ; Same animation frame?
     jeq  draw_player_update_frame   ; Then don't redraw the player at all.
 
-draw_player_delta
-    sla  r1, 1                 ; Compute the address of the pattern blob.
-    ai   r1, >6002
+draw_player_delta                   ; We're in the same animation bank.
+    mov  r1, @previous_player_frame ; Remember the new frame.
+
+    .switch_bank *r0           ; Switch to the bank with the current animation.
+
+    mov  r1, r0                ; Compute the address of the pattern blob.
+    sla  r0, 1
+    ai   r0, module_memory + 2
                                ; Write the patterns.
     .blit_blob game_pattern_descriptor_table + 64
 
-draw_player_save_frame         ; Remember the animation frame that we've drawn.
-    mov  @player_animation_bank, @previous_player_animation_bank
-    mov  @player_frame, @previous_player_frame
-
 * Increment the player animation frame.
 draw_player_update_frame
-    .switch_bank @code_bank    ; The player frame counts are in the code bank.
+    .switch_bank @data_bank    ; The frame counts and sounds are in the data bank.
 
     mov  @player_frame, r0     ; Increment the player animation frame number.
     inc  r0
@@ -87,8 +93,6 @@ draw_player_update_frame
 
 * Play footstep sound effects.
 draw_player_footsteps
-    .switch_bank @code_bank    ; The sounds are in the code bank.
-
     .play_noise_type_frame sound_walking, sound_walking_frames, player_speed, r0
 
 draw_player_end
