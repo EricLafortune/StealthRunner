@@ -62,6 +62,7 @@ draw_grenade
 
 !   li   r1, grenade_sprite    ; Otherwise draw the flying grenade.
     bl   @draw_small_supersprite
+
 draw_grenade_end
 
 * Draw the bullet, if any (supersprite, high priority).
@@ -76,6 +77,7 @@ draw_bullet
     li   r1, bullet_sprite
 
     bl   @draw_small_supersprite
+
 draw_bullet_end
 
 * Draw the object lists of all surrounding horizontal strips.
@@ -96,8 +98,8 @@ draw_drone_loop
     mov  *r8+, r1              ; Get the direction.
     jlt  draw_drone_loop       ; Is it inactive?
 
-    ab   r1, r1                ; Compute the drone sprite number.
-    src  r1, 12
+    ab   r1, r1                ; Compute the drone sprite number:
+    src  r1, 12                ;   >780f -> >f00f -> >00ff -> number.
     ai   r1, drone_sprites
 
     s    @player_x, r2         ; Get the coordinates in screen space.
@@ -106,6 +108,7 @@ draw_drone_loop
     bl   @draw_supersprite
 
     jmp  draw_drone_loop
+
 draw_drone_loop_end
 
 * Draw the turrets (supersprites, high priority).
@@ -119,8 +122,8 @@ draw_turret_loop
     mov  *r8+, r1              ; Get the direction.
     jlt  draw_turret_loop      ; Is it inactive?
 
-    ab   r1, r1                ; Compute the turret sprite number.
-    src  r1, 12
+    ab   r1, r1                ; Compute the turret sprite number:
+    src  r1, 12                ;   >780f -> >f00f -> >00ff -> number.
     ai   r1, turret_sprites
 
     s    @player_x, r2         ; Get the coordinates in screen space.
@@ -129,6 +132,7 @@ draw_turret_loop
     bl   @draw_supersprite
 
     jmp  draw_turret_loop
+
 draw_turret_loop_end
 
 * Draw the launchers (supersprites, high priority).
@@ -142,8 +146,8 @@ draw_launcher_loop
     mov  *r8+, r1              ; Get the explosion state.
     jlt  draw_launcher_loop    ; Is it inactive?
 
-    srl  r1, 11                ; Compute the launcher sprite number.
-    ai   r1, launcher_sprites
+    srl  r1, 11                ; Compute the launcher sprite number:
+    ai   r1, launcher_sprites  ;   >7800 -> >000f -> number.
 !
     s    @player_x, r2         ; Get the coordinates in screen space.
     s    @player_y, r3
@@ -151,6 +155,7 @@ draw_launcher_loop
     bl   @draw_supersprite
 
     jmp  draw_launcher_loop
+
 draw_launcher_loop_end
 
 * Draw the mines (supersprites, low priority).
@@ -166,7 +171,7 @@ draw_mine_loop
 
     jeq  !                     ; Is it exploding?
     srl  r1, 11                ; Compute the explosion sprite number.
-    ai   r1, explosion_sprites
+    ai   r1, explosion_sprites ;   >7800 -> >000f -> number.
 
     s    @player_x, r2         ; Get the coordinates in screen space.
     s    @player_y, r3
@@ -213,6 +218,7 @@ draw_target_loop
     bl   @draw_small_supersprite
 
     jmp  draw_target_loop
+
 draw_target_loop_end
 
 * Draw the batteries (supersprites, low priority).
@@ -233,6 +239,7 @@ draw_battery_loop
     bl   @draw_small_supersprite
 
     jmp  draw_battery_loop
+
 draw_battery_loop_end
 
 * Draw the stones (supersprites, low priority).
@@ -253,6 +260,7 @@ draw_stone_loop
     bl   @draw_small_supersprite
 
     jmp  draw_stone_loop
+
 draw_stone_loop_end
 
 * Draw the bushes (supersprite, low priority).
@@ -273,6 +281,7 @@ draw_bush_loop
     bl   @draw_supersprite
 
     jmp  draw_bush_loop
+
 draw_bush_loop_end
 
 * Draw the trees (supersprite, low priority).
@@ -293,6 +302,7 @@ draw_tree_loop
     bl   @draw_supersprite
 
     jmp  draw_tree_loop
+
 draw_tree_loop_end
 
 * Repeat for the next strip, if any.
@@ -314,6 +324,7 @@ draw_emp
     ai   r1, emp_sprites
 
     bl   @draw_small_supersprite
+
 draw_emp_end
 
 * Draw the stone counter, if any (supersprite, low priority).
@@ -331,6 +342,7 @@ draw_stone_counter
     clr  r3
 
     bl   @draw_small_supersprite
+
 draw_stone_counter_end
 
 * Draw the charge meter, if any (supersprite, low priority).
@@ -348,6 +360,7 @@ draw_charge
     clr  r3
 
     bl   @draw_small_supersprite
+
 draw_charge_end
 
 * End the list of sprites.
