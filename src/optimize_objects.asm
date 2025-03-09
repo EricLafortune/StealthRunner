@@ -28,6 +28,12 @@
 *               (>0000, >0100,...), relative to the base address with object data.
     .defm first_object_strip
 
+    ; Lower bound:
+    ;   y_min =  player_y - supersprite_center_y - supersprite_height/2
+    ; therefore:
+    ;   strip = (player_y - supersprite_center_y - supersprite_height/2)  /
+    ;           object_strip_pixel_height
+    ; and multiply by the strip size.
     mov  @player_y, #1
     ai   #1, -supersprite_center_y-(supersprite_height/2)
     srl  #1, object_strip_pixel_height_shift
@@ -36,16 +42,37 @@
     .endm
 
 * Macro: compute the offset of the last relevant (nearby, visible) horizontal
-* strip with object data.
+* strip with object data (inclusive).
 * IN  player_y: the current y ordinate of the player.
 * OUT #1:       the destination register for the strip offset
 *               (>0000, >0100,...), relative to the base address with object data.
     .defm last_object_strip
 
+    ; Upper bound:
+    ;   y_max =  player_y + display_pixel_height - supersprite_center_y + supersprite_height/2
+    ; therefore:
+    ;   strip = (player_y + display_pixel_height - supersprite_center_y + supersprite_height/2)  /
+    ;           object_strip_pixel_height
+    ; and multiply by the strip size.
     mov  @player_y, #1
     ai   #1, display_pixel_height-supersprite_center_y+(supersprite_height/2)
     srl  #1, object_strip_pixel_height_shift
     sla  #1, object_strip_size_shift
+
+    .endm
+
+* Macro: checks whether an object is inside the given strip.
+* IN #1: the register containing the y ordinate of the object.
+* IN #2: the register containing strip offset.
+    .defm check_object_strip
+
+    ; Computation:
+    ;   strip = y_ordinate  /
+    ;           object_strip_pixel_height_shift
+    ; and multiply by the strip size.
+    srl  #1, object_strip_pixel_height_shift
+    sla  #1, object_strip_size_shift
+    c    #1, #2
 
     .endm
 

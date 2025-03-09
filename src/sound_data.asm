@@ -218,7 +218,7 @@ sound_walk                     ; 31 frames.
     byte 0                     ; Frame 5.
     byte 0                     ; Frame 6.
     byte 0                     ; Frame 7.
-    .noise_attenuation 4       ; Frame 8.
+    .noise_attenuation 8       ; Frame 8.
     byte 0                     ; Frame 9.
     byte 0                     ; Frame 10.
     byte 0                     ; Frame 11.
@@ -234,7 +234,7 @@ sound_walk                     ; 31 frames.
     byte 0                     ; Frame 21.
     byte 0                     ; Frame 22.
     byte 0                     ; Frame 23.
-    .noise_attenuation 4       ; Frame 24.
+    .noise_attenuation 8       ; Frame 24.
     byte 0                     ; Frame 25.
     byte 0                     ; Frame 26.
     byte 0                     ; Frame 27.
@@ -275,7 +275,7 @@ sound_walk_backward            ; 36 frames.
     byte 0                     ; Frame 5.
     byte 0                     ; Frame 6.
     byte 0                     ; Frame 7.
-    .noise_attenuation 4       ; Frame 8.
+    .noise_attenuation 8       ; Frame 8.
     byte 0                     ; Frame 9.
     byte 0                     ; Frame 10.
     byte 0                     ; Frame 11.
@@ -293,7 +293,7 @@ sound_walk_backward            ; 36 frames.
     byte 0                     ; Frame 23.
     byte 0                     ; Frame 24.
     byte 0                     ; Frame 25.
-    .noise_attenuation 4       ; Frame 26.
+    .noise_attenuation 8       ; Frame 26.
     byte 0                     ; Frame 27.
     byte 0                     ; Frame 28.
     byte 0                     ; Frame 29.
