@@ -21,6 +21,7 @@
 * Subroutine: kill the player.
 * LOCAL r0
 kill_player
+    .ifndef immortal
     mov  @player_speed, r0     ; Is he already dead?
     jlt  !
 
@@ -32,6 +33,7 @@ kill_player
     mov  r0, @player_animation_bank
 
     clr  @player_frame         ; Reset the player animation frame.
+    .endif
 
     .start_speech speech_argh
 !
