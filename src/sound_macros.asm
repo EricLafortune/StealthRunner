@@ -29,6 +29,7 @@
 * IN #2: the constant address of the addresses of tone0 frame commands.
 * IN #3: the register or address with the sound type number (0, 1,...)
 * IN #4: the register or address with the frame number (0, 1,...)
+* LOCAL r0
 * LOCAL r1
 * LOCAL #3
 * LOCAL #4
@@ -46,6 +47,7 @@
 * IN #1: the constant address of the tone0 setup command.
 * IN #2: the constant address of the tone0 frame commands.
 * IN #3: the register or address with the frame number (0, 1,...)
+* LOCAL r0
 * LOCAL r1
     .defm play_tone0_frame
     .play_sound_frame current_tone0, 2, >9f00, #1, #2, #3
@@ -72,6 +74,7 @@
 * IN #2: the constant address of the addresses of noise frame commands.
 * IN #3: the register or address with the sound type number (0, 1,...)
 * IN #4: the register or address with the frame number (0, 1,...)
+* LOCAL r0
 * LOCAL r1
 * LOCAL #3
 * LOCAL #4
@@ -89,6 +92,7 @@
 * IN #1: the constant address of the noise setup command.
 * IN #2: the constant address of the noise frame commands.
 * IN #3: the register or address with the frame number (0, 1,...)
+* LOCAL r0
 * LOCAL r1
     .defm play_noise_frame
     .play_sound_frame current_noise, 1, >ff00, #1, #2, #3
