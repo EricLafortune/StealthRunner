@@ -16,11 +16,11 @@ OUTPUT_RPK=$OUTPUT_DIR/StealthRunner.rpk
 
 mkdir -p $OUTPUT_DIR \
 && xas99.py \
+     $INPUT \
      --register-symbols \
      --binary \
      --output $OUTPUT_ROM \
      "$@" \
-     $INPUT \
 && rm -f "$OUTPUT_RPK" \
 && zip \
      --quiet \
