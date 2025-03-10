@@ -24,8 +24,6 @@ exploding equ >0800
 
 * One-time macro: initialize the objects in the world.
 * IN r0: a pointer to the initial values.
-* OUT charge_count
-* OUT charge_frame
 * OUT emp_x
 * OUT emp_y
 * OUT emp_direction
@@ -49,12 +47,12 @@ exploding equ >0800
 * LOCAL r2
     .defm initialize_objects
 
-    clr  @charge_count
-    seto @stone_frame
-    seto @charge_frame
+    clr  @stone_count
+    clr  @emp_count
     seto @emp_x
     seto @bullet_x
     seto @grenade_x
+    seto @hud_counter
 
 * Initialize the object lists of all horizontal strips.
     clr  r1
@@ -175,8 +173,6 @@ initialize_turret_loop_end
 
 
 * One-time macro: update the objects in the world.
-* IN OUT stone_frame
-* IN OUT charge_frame
 * IN OUT emp_x
 * IN OUT emp_y
 * IN OUT emp_direction
@@ -199,34 +195,8 @@ initialize_turret_loop_end
 * LOCAL r0-r15
     .defm update_objects
 
-    .switch_bank @data_bank    ; The motion deltas are in the data bank.
-
-* Update the stone_counter.
-update_stone_counter
-    mov  @stone_frame, r3
-    jlt  update_stone_counter_end ; Is it inactive?
-
-    mov  r3, r2
-    ai   r3, >0800
-    mov  r3, @stone_frame
-
-    srl  r2, 11
-    .play_tone0_frame sound_emp, sound_emp_frames, r2
-update_stone_counter_end
-
-* Update the charge.
-update_charge
-    mov  @charge_frame, r3
-    jlt  update_charge_end     ; Is it inactive?
-
-    mov  r3, r2
-    ai   r3, >0800
-    mov  r3, @charge_frame
-
-    srl  r2, 11
-    .play_tone0_frame sound_emp, sound_emp_frames, r2
-
-update_charge_end
+    .switch_bank @data_bank    ; The motion deltas and sounds are in the data
+                               ; bank.
 
 * Update the EMP state and position.
 update_emp
@@ -234,21 +204,17 @@ update_emp
     jlt  update_emp_end        ; Is it inactive?
     mov  @emp_y, r1
 
-    .dist @player_x, r0, r2, 128+10 ; Is the EMP far from the player?
-    jgt  disable_emp
+    mov  @emp_counter, r2      ; In which phase is it?
+    ci   r2, 32                ; Is it flying?
+    jl   update_emp_position
 
-    .dist @player_y, r1, r3, 96+20
-    jlt  update_emp_position
-
-disable_emp                    ; Then disable it.
-    seto @emp_x
+disable_emp
+    seto @emp_x                ; Then disable it.
 
     .stop_tone0 sound_emp      ; Stop the EMP sound.
     jmp  update_emp_end
 
 update_emp_position
-    .switch_bank @data_bank    ; The motion deltas are in the data bank.
-
     mov  @emp_direction, r4    ; Compute the delta entry adress.
     sla  r4, 3
     ai   r4, delta_forward_fast
@@ -259,9 +225,11 @@ update_emp_position
     mov  r0, @emp_x            ; Save them.
     mov  r1, @emp_y
 
-    a    r2, r3                ; Distance range roughly 0..255.
-    srl  r3, 4                 ; Sound frame range roughly 0..15.
-    .play_tone0_frame sound_emp, sound_emp_frames, r3
+update_emp_sound
+    .play_tone0_frame sound_emp, sound_emp_frames, r2
+
+update_emp_counter
+    inc  @emp_counter
 
 update_emp_end
 
@@ -315,8 +283,17 @@ check_stone_player
     .dist @player_y, r1, 40
     jgt  update_stone_loop
 
-    inc  @stone_count          ; Then increment the number of available stones.
-    clr  @stone_frame
+    mov  @stone_count, r1      ; Then increment the number of available stones.
+    inc  r1
+    mov  r1, @stone_count
+
+    ci   r1, 6                 ; Set the supersprite.
+    jle  !
+    li   r1, 6
+!   ai   r1, stone_counter_sprites-1
+    mov  r1, @hud_sprite
+    clr  @hud_counter
+
     seto @-2(r8)               ; Disable the stone.
     jmp  update_stone_loop
 
@@ -338,8 +315,17 @@ check_battery_player
     .dist @player_y, r1, 40
     jgt  update_battery_loop
 
-    inc  @charge_count         ; Then increment the number of available EMPs.
-    clr  @charge_frame
+    mov  @emp_count, r1        ; Then increment the number of available EMPs.
+    inc  r1
+    mov  r1, @emp_count
+
+    ci   r1, 6                 ; Set the supersprite.
+    jle  !
+    li   r1, 6
+!   ai   r1, charge_sprites
+    mov  r1, @hud_sprite
+    clr  @hud_counter
+
     seto @-2(r8)               ; Disable the battery.
     jmp  update_battery_loop
 
@@ -379,12 +365,12 @@ check_mine_emp
     jgt  update_mine_loop
 
 update_mine_explosion
+    mov  r2, r3                ; Compute the sound frame of the explosion.
+    srl  r3, 11
+    .play_noise_frame sound_explosion, sound_explosion_frames, r3
+
     ai   r2, exploding         ; Let the mine explode, automatically
     mov  r2,@-2(r8)            ; disabling it at the end.
-    jlt  update_mine_loop
-
-    srl  r2, 11                ; Compute the sound frame of the explosion.
-    .play_noise_frame sound_explosion, sound_explosion_frames, r2
     jmp  update_mine_loop
 
 update_mine_loop_end
@@ -426,8 +412,8 @@ update_drone_direction
     mov  r0, r6                ; Save a copy of the absolute position.
     mov  r1, r7
 
-    mov  @player_x, r0         ; Compute the direction vector, pointing from  
-    mov  @player_y, r1         ; the drone to the player.                    
+    mov  @player_x, r0         ; Compute the direction vector, pointing from
+    mov  @player_y, r1         ; the drone to the player.
 
     s    r6, r0
     s    r7, r1
@@ -437,7 +423,7 @@ update_drone_direction
 
 update_drone_position
     mov  r2, r3                ; Compute the delta entry adress.
-    sla  r3, 3                 
+    sla  r3, 3
     ai   r3, delta_forward_slow
 
     .update_ordinate r3, r6, @-6(r8) ; Adjust the coordinates.
@@ -464,12 +450,13 @@ check_drone_emp
     jgt  update_drone_loop
 
 update_drone_explosion
+    mov  r2, r3                ; Compute the sound frame of the explosion.
+    srl  r3, 11
+    .play_noise_frame sound_explosion, sound_explosion_frames, r3
+
     ai   r2, exploding         ; Let the drone explode, automatically
     mov  r2, @-2(r8)           ; disabling it at the end.
-    jlt  update_drone_loop0
 
-    srl  r2, 11                ; Compute the sound frame of the explosion.
-    .play_noise_frame sound_explosion, sound_explosion_frames, r2
 update_drone_loop0
     b    @update_drone_loop
 
@@ -490,44 +477,44 @@ update_turret_loop
     jhe  update_turret_explosion
 
 check_turret_player
-    .dist @player_x, r0, r3, 128+16 ; Is it far away?
+    .dist @player_x, r0, r4, 128+16 ; Is it far away?
     jgt  update_turret_loop    ; Then continue with the next turret.
-    .dist @player_y, r1, r4, 96+16
+    .dist @player_y, r1, r5, 96+16
     jgt  update_turret_loop
 
-    mov  @player_speed, r5     ; Is the player moving (not dead, not standing)?
-    jlt  check_turret_emp
-    jeq  check_turret_player_near
-    srl  r5, 1                 ; Is the player running?
-    jnc  update_turret_direction ; Then let the turret track the player.
+    mov  @player_speed, r3     ; What is the player doing?
+    jlt  check_turret_emp      ; Is the player dead?
+    jeq  check_turret_player_near ; Is the player standing?
+    srl  r3, 1                 ; Is the player running?
+    jnc  check_turret_player_hit ; Then let the turret track the player.
 
 check_turret_player_near
-    ci   r3, 96                ; Is the turret somewhat near?
+    ci   r4, 96                ; Is the turret somewhat near?
     jgt  check_turret_emp      ; Otherwise leave it unchanged.
-    ci   r4, 64
+    ci   r5, 64
     jgt  check_turret_emp
 
 check_turret_player_hit
-    ci   r3, 40                ; Is the turret very near?
+    ci   r4, 40                ; Is the turret very near?
     jgt  update_turret_direction ; Then let the turret explode.
-    ci   r4, 20
+    ci   r5, 20
     jlt  update_turret_explosion
 
 update_turret_direction
-    mov  r0, r4                ; Save a copy of the absolute position.
-    mov  r1, r5
+    mov  r0, r6                ; Save a copy of the absolute position.
+    mov  r1, r7
 
     mov  @player_x, r0         ; Compute the direction vector, pointing from
     mov  @player_y, r1         ; the turret to the player.
 
-    s    r4, r0
-    s    r5, r1
+    s    r6, r0
+    s    r7, r1
 
     bl   @adjust_projected_direction ; Update the direction (clobbers r3).
     mov  r2, @-2(r8)           ; Save it.
 
-    mov  r4, r0                ; Restore the absolute position.
-    mov  r5, r1
+    mov  r6, r0                ; Restore the absolute position.
+    mov  r7, r1
 
 fire_turret_bullet
     mov  @bullet_x, r3         ; Don't we have a bullet flying?
@@ -538,6 +525,7 @@ fire_turret_bullet
     clr  @bullet_fx
     clr  @bullet_fy
     mov  r2, @bullet_direction
+    clr  @bullet_counter
 
 check_turret_emp
     .dist @emp_x, r0, 20       ; Is it close to the EMP?
@@ -546,12 +534,12 @@ check_turret_emp
     jgt  update_turret_loop
 
 update_turret_explosion
+    mov  r2, r3                ; Compute the sound frame of the explosion.
+    srl  r3, 11
+    .play_noise_frame sound_explosion, sound_explosion_frames, r3
+
     ai   r2, exploding         ; Let the turret explode, automatically
     mov  r2, @-2(r8)           ; disabling it at the end.
-    jlt  update_turret_loop
-
-    srl  r2, 11                ; Compute the sound frame of the explosion.
-    .play_noise_frame sound_explosion, sound_explosion_frames, r2
     jmp  update_turret_loop
 
 update_turret_loop_end
@@ -590,7 +578,6 @@ fire_launcher_grenade
     mov  r1, @grenade_y
     clr  @grenade_fx
     clr  @grenade_fy
-    clr  @grenade_counter
 
     mov  @player_x, r3         ; Compute the direction vector, pointing from
     mov  @player_y, r4         ; the launcher to the player.
@@ -611,6 +598,8 @@ fire_launcher_grenade
     movb r5, @grenade_dfx
     movb r6, @grenade_dfy
 
+    clr  @grenade_counter
+
 check_launcher_emp
     .dist @emp_x, r0, 20       ; Is it close to the EMP?
     jgt  update_launcher_loop
@@ -618,12 +607,12 @@ check_launcher_emp
     jgt  update_launcher_loop
 
 update_launcher_explosion
+    mov  r2, r3                ; Compute the sound frame of the explosion.
+    srl  r3, 11
+    .play_noise_frame sound_explosion, sound_explosion_frames, r3
+
     ai   r2, exploding         ; Let the launcher explode, automatically
     mov  r2,@-2(r8)            ; disabling it at the end.
-    jlt  update_launcher_loop
-
-    srl  r2, 11                ; Compute the sound frame of the explosion.
-    .play_noise_frame sound_explosion, sound_explosion_frames, r2
     jmp  update_launcher_loop
 
 update_launcher_loop_end
@@ -639,23 +628,9 @@ update_launcher_loop_end
     jlt  update_bullet_end     ; Is it inactive?
     mov  @bullet_y, r1
 
-    .dist @player_x, r0, r2, 128+10 ; Is the bullet far from the player?
-    jgt  disable_bullet        ; Then disable the bullet.
-    .dist @player_y, r1, r3, 96+10
-    jgt  disable_bullet
-
-    ci   r2, 40                ; Is it very near?
-    jgt  update_bullet_position
-    ci   r3, 20
-    jgt  update_bullet_position
-
-    bl   @kill_player          ; Then kill the player.
-
-disable_bullet                 ; Disable the bullet.
-    seto @bullet_x
-
-    .stop_noise sound_bullet   ; Stop the bullet noise.
-    jmp  update_bullet_end
+    mov  @bullet_counter, r2   ; In which phase is it?
+    ci   r2, 32                ; Is it flying?
+    jhe  disable_bullet
 
 update_bullet_position
     mov  @bullet_direction, r4 ; Compute the delta entry adress.
@@ -668,9 +643,25 @@ update_bullet_position
     mov  r0, @bullet_x         ; Save them.
     mov  r1, @bullet_y
 
-    a    r2, r3                ; Distance range roughly 0..255.
-    srl  r3, 4                 ; Sound frame range roughly 0..15.
-    .play_noise_frame sound_bullet, sound_bullet_frames, r3
+check_bullet_player
+    .dist @player_x, r0, 40    ; Is the bullet near the player?
+    jgt  update_bullet_sound
+    .dist @player_y, r1, 20
+    jgt  update_bullet_sound
+
+    bl   @kill_player          ; Then kill the player.
+
+disable_bullet
+    seto @bullet_x             ; Disable the bullet.
+
+    .stop_noise sound_bullet   ; Stop the bullet noise.
+    jmp  update_bullet_end
+
+update_bullet_sound
+    .play_noise_frame sound_bullet, sound_bullet_frames, r2 ; (clobbers r0, r1)
+
+update_bullet_counter
+    inc  @bullet_counter
 
 update_bullet_end
 
@@ -678,28 +669,15 @@ update_bullet_end
     mov  @grenade_x, r0
     jlt  update_grenade_end    ; Is it inactive?
     mov  @grenade_y, r1
-    mov  @grenade_counter, r2
 
-    ci   r2, 32
+    mov  @grenade_counter, r2  ; In which phase is it?
+    ci   r2, 32                ; Is it flying?
     jl   update_grenade_position
-    ci   r2, 36
-    jhe  disable_grenade
+    ci   r2, 36                ; Is it exploding?
+    jl   check_grenade_player
 
-update_grenade_explosion
-    .dist @player_x, r0, 40    ; Is the grenade near the player?
-    jgt  !
-    .dist @player_y, r1, 20
-    jgt  !
-
-    bl   @kill_player          ; Then kill the player.
-!
-    ai   r2, -32               ; Compute the sound frame of the explosion.
-    .play_noise_frame sound_short_explosion, sound_short_explosion_frames, r2
-    jmp  update_grenade_counter
-
-disable_grenade                ; Disable the grenade.
-    seto @grenade_x
-
+disable_grenade
+    seto @grenade_x            ; Disable the grenade.
     jmp  update_grenade_end
 
 update_grenade_position
@@ -719,8 +697,21 @@ update_grenade_position
 
     mov  r0, @grenade_x        ; Save them.
     mov  r1, @grenade_y
-soundlabel
+
     .play_tone0_frame sound_grenade, sound_grenade_frames, r2
+    jmp  update_grenade_counter
+
+check_grenade_player
+    .dist @player_x, r0, 40    ; Is the grenade near the player?
+    jgt  update_grenade_explosion
+    .dist @player_y, r1, 20
+    jgt  update_grenade_explosion
+
+    bl   @kill_player          ; Then kill the player.
+
+update_grenade_explosion
+    ai   r2, -32               ; Compute the sound frame of the explosion.
+    .play_noise_frame sound_short_explosion, sound_short_explosion_frames, r2
 
 update_grenade_counter
     inc  @grenade_counter

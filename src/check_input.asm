@@ -170,7 +170,7 @@ update_player_animation_bank
     mov  r6, @player_animation_bank
 
 check_launch_emp
-    mov  @charge_count, r0     ; Is an EMP available?
+    mov  @emp_count, r0        ; Is an EMP available?
     jeq  check_input_end
     mov  @emp_x, r0            ; Is the EMP inactive?
     jgt  check_input_end
@@ -180,12 +180,13 @@ check_launch_emp
     .test_keyboard 0, 2        ; Launching an EMP with 'Enter'?
     jeq  check_input_end
 !
-    dec  @charge_count
+    dec  @emp_count
     mov  @player_x, @emp_x     ; Fire the EMP from the player.
     mov  @player_y, @emp_y
     mov  @player_fx, @emp_fx
     mov  @player_fy, @emp_fy
     mov  r7, @emp_direction
+    clr  @emp_counter
 
 check_input_end
 

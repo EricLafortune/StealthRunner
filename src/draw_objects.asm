@@ -327,41 +327,29 @@ draw_emp
 
 draw_emp_end
 
-* Draw the stone counter, if any (supersprite, low priority).
-draw_stone_counter
-    mov  @stone_frame, r1
-    jlt  draw_stone_counter_end ; Is it inactive?
+* Draw the HUD, if any (supersprite, low priority).
+draw_hud
+    mov  @hud_counter, r8
+    jlt  draw_hud_end          ; Is it inactive?
 
-    mov  @stone_count, r1      ; Set the supersprite.
-    ci   r1, 6
-    jle  !
-    li   r1, 6
-!   ai   r1, stone_counter_sprites-1
-
-    clr  r2                    ; Set the coordinates in screen space.
+    mov  @hud_sprite, r1       ; Draw the HUD sprite.
+    clr  r2
     clr  r3
 
-    bl   @draw_small_supersprite
+    bl   @draw_supersprite_unchecked
 
-draw_stone_counter_end
+    mov  r0, r2                ; Save the sprite cache queue address.
+    .switch_bank @data_bank    ; The sounds are in the data bank.
+    .play_tone1_frame sound_pickup, sound_pickup_frames, r8
+    mov  r2, r0                ; Restore the sprite cache queue address.
 
-* Draw the charge meter, if any (supersprite, low priority).
-draw_charge
-    mov  @charge_frame, r1
-    jlt  draw_charge_end       ; Is it inactive?
+    inc  r8                    ; Update the HUD lifetime counter.
+    ci   r8, 16
+    jl   !
+    seto r8
+!   mov  r8, @hud_counter
 
-    mov  @charge_count, r1     ; Set the supersprite.
-    ci   r1, 6
-    jle  !
-    li   r1, 6
-!   ai   r1, charge_sprites
-
-    clr  r2                    ; Set the coordinates in screen space.
-    clr  r3
-
-    bl   @draw_small_supersprite
-
-draw_charge_end
+draw_hud_end
 
 * End the list of sprites.
     li   r1, sprite_attribute_table_terminator * 256

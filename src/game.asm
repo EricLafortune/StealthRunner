@@ -257,6 +257,7 @@ frame_timestamp data 0 ; Counter for the current frame
                        ; (used for caching and even/odd tests).
 
 * Sound variables.
+current_tones
 current_tone0 data 0 ; The start address of the currently playing tone 0.
 current_tone1 data 0 ; The start address of the currently playing tone 1.
 current_tone2 data 0 ; The start address of the currently playing tone 2.
@@ -297,6 +298,7 @@ previous_quadrant_y                data 0 ; expressed as multiples of 4 pixels.
     xorg $ - module_memory_size
 blit_code_end
 
+;data
     copy "direction_data.asm"
     copy "parabola_data.asm"
     copy "motion_data.asm"
@@ -381,13 +383,9 @@ sprite_cache_queue        bss 32 * 2   ; The queue with CPU quadsprite numbers (
 mouse_x data 0 ; Mouse x ordinate around player.
 mouse_y data 0 ; Mouse y ordinate around player.
 
-* Stone variables.
-stone_count data 0 ; Number of stones available.
-stone_frame data 0 ; Frame of the stone counter.
-
-* Battery charge variables.
-charge_count data 0 ; Number of EMPs available.
-charge_frame data 0 ; Frame of the charge meter.
+* HUD variables.
+hud_sprite  data 0 ; Supersprite number to be shown in the HUD.
+hud_counter data 0 ; Counter for the display time of the HUD.
 
 * Target variables. The coordinates are those of the top-left corner of a
 * virtual screen in the world, compatible with the player coordinates.
@@ -395,11 +393,22 @@ latest_target_x data 0 ; X ordinate, expressed in pixels.
 latest_target_y data 0 ; Y ordinate, expressed in pixels.
 
 * Emp variables.
+stone_count     data 0 ; Number of stones available.
+stone_x         data 0 ; X ordinate, expressed in pixels.
+stone_y         data 0 ; Y ordinate, expressed in pixels.
+stone_fx        data 0 ; Fractional x ordinate (fixed point 16.16 bits).
+stone_fy        data 0 ; Fractional y ordinate (fixed point 16.16 bits).
+stone_direction data 0 ; Direction (0..15).
+stone_counter   data 0 ; Counter for the life time of the stone.
+
+* Emp variables.
+emp_count     data 0 ; Number of EMPs available.
 emp_x         data 0 ; X ordinate, expressed in pixels.
 emp_y         data 0 ; Y ordinate, expressed in pixels.
 emp_fx        data 0 ; Fractional x ordinate (fixed point 16.16 bits).
 emp_fy        data 0 ; Fractional y ordinate (fixed point 16.16 bits).
 emp_direction data 0 ; Direction (0..15).
+emp_counter   data 0 ; Counter for the life time of the EMP.
 
 * Bullet variables.
 bullet_x         data 0 ; X ordinate, expressed in pixels.
@@ -407,6 +416,7 @@ bullet_y         data 0 ; Y ordinate, expressed in pixels.
 bullet_fx        data 0 ; Fractional x ordinate (fixed point 16.16 bits).
 bullet_fy        data 0 ; Fractional y ordinate (fixed point 16.16 bits).
 bullet_direction data 0 ; Direction (0..15).
+bullet_counter   data 0 ; Counter for the life time of the bullet.
 
 * Grenade variables.
 grenade_x       data 0 ; X ordinate, expressed in pixels.
@@ -417,7 +427,7 @@ grenade_dx      data 0 ; X speed, expressed in pixels per frame.
 grenade_dy      data 0 ; Y speed, expressed in pixels per frame.
 grenade_dfx     data 0 ; Fractional x speed (fixed point 16.16 bits).
 grenade_dfy     data 0 ; Fractional y speed (fixed point 16.16 bits).
-grenade_counter data 0 ; Counter in the life time of the grenade.
+grenade_counter data 0 ; Counter for the life time of the grenade.
 
 * The memory bank addresses: >6000, >6002,.... (multiples of 2).
     dorg >6000

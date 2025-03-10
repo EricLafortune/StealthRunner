@@ -53,6 +53,7 @@ initialize_quadsprites
     seto *r0+
     dec  r1
     jne  -!
+rt
     rt
 
 
@@ -73,8 +74,6 @@ initialize_quadsprites
 * LOCAL  r13:   the memory bank address.
 * IN     vdpwa: the destination address in the VDP sprite descriptor table.
 draw_supersprite
-    mov   r11, r12             ; Save the return address.
-
     .switch_bank @sprite_bounds_bank
 
     mov  r1, r4                ; Compute the address of the supersprite bounds
@@ -82,14 +81,17 @@ draw_supersprite
     ai   r4, >6000
 
     c    r2, *r4+              ; Is the supersprite off-screen horizontally?
-    jlt  draw_supersprite_end
+    jlt  rt
     c    r2, *r4+
-    jgt  draw_supersprite_end
+    jgt  rt
 
     c    r3, *r4+              ; Is the supersprite off-screen vertically?
-    jlt  draw_supersprite_end
+    jlt  rt
     c    r3, *r4
-    jgt  draw_supersprite_end
+    jgt  rt
+
+draw_supersprite_unchecked
+    mov   r11, r12             ; Save the return address.
 
     .switch_bank @sprite_index_bank
 
@@ -184,6 +186,7 @@ draw_small_supersprite
     c    r3, *r4
     jgt  draw_quadsprite_end
 
+draw_small_supersprite_unchecked
     .switch_bank @sprite_index_bank
 
     sla  r1, 1                 ; Compute the address in the supersprite index

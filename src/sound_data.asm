@@ -54,23 +54,39 @@ sound_short_explosion_frames   ; 4 frames.
 sound_bullet
     .noise_frequency white_noise, 0
 
-sound_bullet_frames               ; 16 frames.
-    .noise_attenuation 0          ; Frame 0.
-    .noise_attenuation 1          ; Frame 1.
-    .noise_attenuation 2          ; Frame 2.
-    .noise_attenuation 3          ; Frame 3.
-    .noise_attenuation 4          ; Frame 4.
-    .noise_attenuation 5          ; Frame 5.
-    .noise_attenuation 6          ; Frame 6.
-    .noise_attenuation 7          ; Frame 7.
-    .noise_attenuation 8          ; Frame 8.
-    .noise_attenuation 9          ; Frame 9.
-    .noise_attenuation 10         ; Frame 10.
-    .noise_attenuation 11         ; Frame 11.
-    .noise_attenuation 12         ; Frame 12.
-    .noise_attenuation 13         ; Frame 13.
-    .noise_attenuation 14         ; Frame 14.
-    byte 0                        ; Frame 15.
+sound_bullet_frames            ; 32 frames.
+    .noise_attenuation 0       ; Frame 0.
+    .noise_attenuation 0       ; Frame 1.
+    .noise_attenuation 1       ; Frame 2.
+    .noise_attenuation 1       ; Frame 3.
+    .noise_attenuation 2       ; Frame 4.
+    .noise_attenuation 2       ; Frame 5.
+    .noise_attenuation 3       ; Frame 6.
+    .noise_attenuation 3       ; Frame 7.
+    .noise_attenuation 4       ; Frame 8.
+    .noise_attenuation 4       ; Frame 9.
+    .noise_attenuation 5       ; Frame 10.
+    .noise_attenuation 5       ; Frame 11.
+    .noise_attenuation 6       ; Frame 12.
+    .noise_attenuation 6       ; Frame 13.
+    .noise_attenuation 7       ; Frame 14.
+    .noise_attenuation 7       ; Frame 15.
+    .noise_attenuation 8       ; Frame 16.
+    .noise_attenuation 8       ; Frame 17.
+    .noise_attenuation 9       ; Frame 18.
+    .noise_attenuation 9       ; Frame 19.
+    .noise_attenuation 10      ; Frame 20.
+    .noise_attenuation 10      ; Frame 21.
+    .noise_attenuation 11      ; Frame 22.
+    .noise_attenuation 11      ; Frame 23.
+    .noise_attenuation 12      ; Frame 24.
+    .noise_attenuation 12      ; Frame 25.
+    .noise_attenuation 13      ; Frame 26.
+    .noise_attenuation 13      ; Frame 27.
+    .noise_attenuation 14      ; Frame 28.
+    .noise_attenuation 14      ; Frame 29.
+    .noise_attenuation 14      ; Frame 30.
+    byte 0                     ; Frame 31.
 
 * The grenade being launched.
 sound_grenade
@@ -148,27 +164,65 @@ sound_drone_frames             ; 32 frames.
     .noise_attenuation 13      ; Frame 30.
     byte 0                     ; Frame 31.
 
+* Picking up an object.
+sound_pickup
+    .tone_frequency 1, 120
+
+sound_pickup_frames            ; 16 frames.
+    .tone_attenuation 1, 0     ; Frame 0.
+    .tone_attenuation 1, 1     ; Frame 1.
+    .tone_attenuation 1, 2     ; Frame 2.
+    .tone_attenuation 1, 3     ; Frame 3.
+    .tone_attenuation 1, 4     ; Frame 4.
+    .tone_attenuation 1, 5     ; Frame 5.
+    .tone_attenuation 1, 6     ; Frame 6.
+    .tone_attenuation 1, 7     ; Frame 7.
+    .tone_attenuation 1, 8     ; Frame 8.
+    .tone_attenuation 1, 9     ; Frame 9.
+    .tone_attenuation 1, 10    ; Frame 10.
+    .tone_attenuation 1, 11    ; Frame 11.
+    .tone_attenuation 1, 12    ; Frame 12.
+    .tone_attenuation 1, 13    ; Frame 13.
+    .tone_attenuation 1, 14    ; Frame 14.
+    byte 0                     ; Frame 15.
+
 * The EMP disappearing in the distance.
 sound_emp
     .tone_frequency 0, 100
 
-sound_emp_frames               ; 16 frames.
+sound_emp_frames               ; 31 frames.
     .tone_attenuation 0, 0     ; Frame 0.
     .tone_attenuation 0, 1     ; Frame 1.
-    .tone_attenuation 0, 4     ; Frame 2.
-    .tone_attenuation 0, 3     ; Frame 3.
-    .tone_attenuation 0, 6     ; Frame 4.
-    .tone_attenuation 0, 5     ; Frame 5.
-    .tone_attenuation 0, 8     ; Frame 6.
-    .tone_attenuation 0, 7     ; Frame 7.
-    .tone_attenuation 0, 10    ; Frame 8.
-    .tone_attenuation 0, 9     ; Frame 9.
-    .tone_attenuation 0, 12    ; Frame 10.
-    .tone_attenuation 0, 11    ; Frame 11.
-    .tone_attenuation 0, 14    ; Frame 12.
-    .tone_attenuation 0, 13    ; Frame 13.
-    .tone_attenuation 0, 14    ; Frame 14.
-    byte 0                     ; Frame 15.
+    .tone_attenuation 0, 1     ; Frame 2.
+    .tone_attenuation 0, 0     ; Frame 3.
+    .tone_attenuation 0, 2     ; Frame 4.
+    .tone_attenuation 0, 3     ; Frame 5.
+    .tone_attenuation 0, 3     ; Frame 6.
+    .tone_attenuation 0, 2     ; Frame 7.
+    .tone_attenuation 0, 4     ; Frame 8.
+    .tone_attenuation 0, 5     ; Frame 9.
+    .tone_attenuation 0, 5     ; Frame 10.
+    .tone_attenuation 0, 4     ; Frame 11.
+    .tone_attenuation 0, 6     ; Frame 12.
+    .tone_attenuation 0, 7     ; Frame 13.
+    .tone_attenuation 0, 7     ; Frame 14.
+    .tone_attenuation 0, 6     ; Frame 15.
+    .tone_attenuation 0, 8     ; Frame 16.
+    .tone_attenuation 0, 9     ; Frame 17.
+    .tone_attenuation 0, 9     ; Frame 18.
+    .tone_attenuation 0, 8     ; Frame 19.
+    .tone_attenuation 0, 10    ; Frame 20.
+    .tone_attenuation 0, 11    ; Frame 21.
+    .tone_attenuation 0, 11    ; Frame 22.
+    .tone_attenuation 0, 10    ; Frame 23.
+    .tone_attenuation 0, 12    ; Frame 24.
+    .tone_attenuation 0, 13    ; Frame 25.
+    .tone_attenuation 0, 13    ; Frame 26.
+    .tone_attenuation 0, 12    ; Frame 27.
+    .tone_attenuation 0, 14    ; Frame 28.
+    .tone_attenuation 0, 14    ; Frame 29.
+    .tone_attenuation 0, 14    ; Frame 30.
+    byte 0                     ; Frame 31.
 
 * The player walking and running.
 sound_walking
