@@ -43,29 +43,29 @@
 
     li   r0, sprite_cache_queue
 
-* Draw the grenade, if any (supersprite, high priority).
-draw_grenade
-    mov  @grenade_x, r2
-    jlt  draw_grenade_end       ; Is it inactive?
-    mov  @grenade_y, r3
+* Draw the launcher shell, if any (supersprite, high priority).
+draw_shell
+    mov  @shell_x, r2
+    jlt  draw_shell_end        ; Is it inactive?
+    mov  @shell_y, r3
 
     s    @player_x, r2         ; Get the coordinates in screen space.
     s    @player_y, r3
 
-    mov  @grenade_counter, r1  ; Is it exploding?
+    mov  @shell_counter, r1    ; Is it exploding?
     ai   r1, -32
     jlt  !
     ai   r1, explosion_sprites ; Then compute the explosion sprite number.
 
-    bl   @draw_supersprite     ; And draw it.
-    jmp  draw_grenade_end
+    bl   @draw_supersprite     ; And draw the exploding shell.
+    jmp  draw_shell_end
 
-!   li   r1, grenade_sprite    ; Otherwise draw the flying grenade.
+!   li   r1, shell_sprite      ; Otherwise draw the flying shell.
     bl   @draw_small_supersprite
 
-draw_grenade_end
+draw_shell_end
 
-* Draw the bullet, if any (supersprite, high priority).
+* Draw the turret bullet, if any (supersprite, high priority).
 draw_bullet
     mov  @bullet_x, r2
     jlt  draw_bullet_end       ; Is it inactive?
@@ -74,8 +74,7 @@ draw_bullet
     s    @player_x, r2         ; Get the coordinates in screen space.
     s    @player_y, r3
 
-    li   r1, bullet_sprite
-
+    li   r1, bullet_sprite     ; Draw the bullet.
     bl   @draw_small_supersprite
 
 draw_bullet_end
@@ -105,7 +104,7 @@ draw_drone_loop
     s    @player_x, r2         ; Get the coordinates in screen space.
     s    @player_y, r3
 
-    bl   @draw_supersprite
+    bl   @draw_supersprite     ; Draw the dronw.
 
     jmp  draw_drone_loop
 
@@ -311,7 +310,21 @@ draw_tree_loop_end
     b    @draw_object_strip_loop
 !
 
-* Draw the Electro-Magnetic Pulse, if any (supersprite, low priority).
+* Draw the thrown stone, if any (supersprite, low priority).
+draw_stone
+    mov  @stone_x, r2
+    jlt  draw_stone_end        ; Is it inactive?
+    mov  @stone_y, r3
+
+    s    @player_x, r2         ; Get the coordinates in screen space.
+    s    @player_y, r3
+
+    li   r1, stone_sprite      ; Draw the flying or lying stone.
+    bl   @draw_small_supersprite
+
+draw_stone_end
+
+* Draw the fired EMP, if any (supersprite, low priority).
 draw_emp
     mov  @emp_x, r2
     jlt  draw_emp_end          ; Is it inactive?
@@ -320,12 +333,34 @@ draw_emp
     s    @player_x, r2         ; Get the coordinates in screen space.
     s    @player_y, r3
 
-    mov  @emp_direction, r1
+    mov  @emp_direction, r1    ; Draw the EMP.
     ai   r1, emp_sprites
 
     bl   @draw_small_supersprite
 
 draw_emp_end
+
+* Draw the thrown grenade, if any (supersprite, low priority).
+draw_grenade
+    mov  @grenade_x, r2
+    jlt  draw_grenade_end      ; Is it inactive?
+    mov  @grenade_y, r3
+
+    s    @player_x, r2         ; Get the coordinates in screen space.
+    s    @player_y, r3
+
+    mov  @grenade_counter, r1  ; Is it exploding?
+    ai   r1, -32
+    jlt  !
+    ai   r1, explosion_sprites ; Then compute the explosion sprite number.
+
+    bl   @draw_supersprite     ; And draw the exploding grenade.
+    jmp  draw_grenade_end
+!
+    li   r1, grenade_sprite    ; Otherwise draw the flying grenade.
+    bl   @draw_small_supersprite
+
+draw_grenade_end
 
 * Draw the HUD, if any (supersprite, low priority).
 draw_hud

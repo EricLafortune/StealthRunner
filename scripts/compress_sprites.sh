@@ -18,19 +18,37 @@ INPUT_FRAMES=${1:-
   $INPUT_DIR/Target/*.png
 
   -name stone_sprite
-  -color 14
-  $INPUT_DIR/Sphere/*.png
+  -color 6
+  $INPUT_DIR/StoneCounters/01.png
 
-  -name bullet_sprite
-  -color 11
-  -shifty 19
-  $INPUT_DIR/Sphere/*.png
+  -name emp_sprites
+  -color 3
+  -shifty 16
+  $INPUT_DIR/Emp/*.png
   -shifty 48
 
   -name grenade_sprite
-  -color 9
+  -color 14
+  -shiftx 67
+  -shifty 43
+  $INPUT_DIR/GrenadeCounters/01.png
+  -shiftx 64
+  -shifty 48
+
+  -name bullet_sprite
+  -color 11
+  -shiftx 67
   -shifty 44
-  $INPUT_DIR/Sphere/*.png
+  $INPUT_DIR/StoneCounters/01.png
+  -shiftx 64
+  -shifty 48
+
+  -name shell_sprite
+  -color 9
+  -shiftx 67
+  -shifty 44
+  $INPUT_DIR/Sphere/00.png
+  -shiftx 64
   -shifty 48
 
   -name bush_sprite
@@ -44,12 +62,6 @@ INPUT_FRAMES=${1:-
   -color 12
   -shifty 4
   $INPUT_DIR/Explosion/08.png
-  -shifty 48
-
-  -name emp_sprites
-  -color 3
-  -shifty 16
-  $INPUT_DIR/Emp/*.png
   -shifty 48
 
   -name battery_sprite
@@ -99,12 +111,17 @@ INPUT_FRAMES=${1:-
   -shifty 25
 
   -name stone_counter_sprites
-  -color 14
+  -color 6
   $INPUT_DIR/StoneCounters/*.png
 
   -name charge_sprites
   -color 2
-  $INPUT_DIR/Charge/*.png
+  $INPUT_DIR/ChargeCounters/*.png
+
+  -name grenade_counter_sprites
+  -color 14
+  $INPUT_DIR/StoneCounters/00.png
+  $INPUT_DIR/GrenadeCounters/0[1-6].png
 }
 OUTPUT_NAMES=${2:-$OUTPUT_DIR/sprite_names.asm}
 OUTPUT_BOUNDS=${3:-$OUTPUT_DIR/sprite_bounds.dat}

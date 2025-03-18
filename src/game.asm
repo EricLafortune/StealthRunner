@@ -392,7 +392,10 @@ hud_counter data 0 ; Counter for the display time of the HUD.
 latest_target_x data 0 ; X ordinate, expressed in pixels.
 latest_target_y data 0 ; Y ordinate, expressed in pixels.
 
-* Emp variables.
+* Weapons.
+weapon          data 0 ; The base address of the current weapon (stone_count or emp_count).
+
+* Thrown stone variables.
 stone_count     data 0 ; Number of stones available.
 stone_x         data 0 ; X ordinate, expressed in pixels.
 stone_y         data 0 ; Y ordinate, expressed in pixels.
@@ -401,7 +404,7 @@ stone_fy        data 0 ; Fractional y ordinate (fixed point 16.16 bits).
 stone_direction data 0 ; Direction (0..15).
 stone_counter   data 0 ; Counter for the life time of the stone.
 
-* Emp variables.
+* Fired EMP variables.
 emp_count     data 0 ; Number of EMPs available.
 emp_x         data 0 ; X ordinate, expressed in pixels.
 emp_y         data 0 ; Y ordinate, expressed in pixels.
@@ -410,7 +413,16 @@ emp_fy        data 0 ; Fractional y ordinate (fixed point 16.16 bits).
 emp_direction data 0 ; Direction (0..15).
 emp_counter   data 0 ; Counter for the life time of the EMP.
 
-* Bullet variables.
+* Thrown grenade variables.
+grenade_count     data 0 ; Number of grenades available.
+grenade_x         data 0 ; X ordinate, expressed in pixels.
+grenade_y         data 0 ; Y ordinate, expressed in pixels.
+grenade_fx        data 0 ; Fractional x ordinate (fixed point 16.16 bits).
+grenade_fy        data 0 ; Fractional y ordinate (fixed point 16.16 bits).
+grenade_direction data 0 ; Direction (0..15).
+grenade_counter   data 0 ; Counter for the life time of the grenade.
+
+* Turret bullet variables.
 bullet_x         data 0 ; X ordinate, expressed in pixels.
 bullet_y         data 0 ; Y ordinate, expressed in pixels.
 bullet_fx        data 0 ; Fractional x ordinate (fixed point 16.16 bits).
@@ -418,16 +430,16 @@ bullet_fy        data 0 ; Fractional y ordinate (fixed point 16.16 bits).
 bullet_direction data 0 ; Direction (0..15).
 bullet_counter   data 0 ; Counter for the life time of the bullet.
 
-* Grenade variables.
-grenade_x       data 0 ; X ordinate, expressed in pixels.
-grenade_y       data 0 ; Y ordinate, expressed in pixels.
-grenade_fx      data 0 ; Fractional x ordinate (fixed point 16.16 bits).
-grenade_fy      data 0 ; Fractional y ordinate (fixed point 16.16 bits).
-grenade_dx      data 0 ; X speed, expressed in pixels per frame.
-grenade_dy      data 0 ; Y speed, expressed in pixels per frame.
-grenade_dfx     data 0 ; Fractional x speed (fixed point 16.16 bits).
-grenade_dfy     data 0 ; Fractional y speed (fixed point 16.16 bits).
-grenade_counter data 0 ; Counter for the life time of the grenade.
+* Launched shell variables.
+shell_x       data 0 ; X ordinate, expressed in pixels.
+shell_y       data 0 ; Y ordinate, expressed in pixels.
+shell_fx      data 0 ; Fractional x ordinate (fixed point 16.16 bits).
+shell_fy      data 0 ; Fractional y ordinate (fixed point 16.16 bits).
+shell_dx      data 0 ; X speed, expressed in pixels per frame.
+shell_dy      data 0 ; Y speed, expressed in pixels per frame.
+shell_dfx     data 0 ; Fractional x speed (fixed point 16.16 bits).
+shell_dfy     data 0 ; Fractional y speed (fixed point 16.16 bits).
+shell_counter data 0 ; Counter for the life time of the shell.
 
 * The memory bank addresses: >6000, >6002,.... (multiples of 2).
     dorg >6000
@@ -443,7 +455,7 @@ landscape_mask_bank              bss 2 * 1
 sprite_bounds_bank               bss 2 * 1
 sprite_index_bank                bss 2 * 1
 sprite_positions_banks           bss 2 * 4
-sprite_patterns_banks            bss 2 * 1
+sprite_patterns_banks            bss 2 * 2
 speech_data_bank                 bss 2 * 1
 
     .ifne  module_start + (($ & >00fe) * >1000), module_end + >1fff & >e000

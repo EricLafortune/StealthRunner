@@ -23,10 +23,29 @@
 * IN OUT player_direction
 * IN OUT player_speed
 * IN OUT player_frame
+* IN OUT stone_count
+* IN OUT stone_x
+* IN OUT stone_y
+* IN OUT stone_fx
+* IN OUT stone_fy
+* IN OUT stone_direction
+* IN OUT stone_counter
+* IN OUT emp_count
 * IN OUT emp_x
 * IN OUT emp_y
 * IN OUT emp_fx
 * IN OUT emp_fy
+* IN OUT emp_direction
+* IN OUT grenade_count
+* IN OUT grenade_x
+* IN OUT grenade_y
+* IN OUT grenade_fx
+* IN OUT grenade_fy
+* IN OUT grenade_direction
+* IN OUT grenade_counter
+* IN OUT weapon
+* IN OUT hud_sprite
+* IN OUT hud_counter
 * IN     player_x
 * IN     player_y
 * IN     player_fx
@@ -112,7 +131,7 @@ check_mouse
     mov  r4, r0                ; Are they not (0,0)?
     jne  !
     mov  r5, r5
-    jeq  check_launch_emp
+    jeq  check_change_weapon
 !
     mov  r5, r1                ; Then update the direction.
     mov  r7, r2
@@ -122,7 +141,7 @@ check_mouse
     jne  !
     mov  r4, @mouse_x          ; Then just update the moved mouse
     mov  r5, @mouse_y          ; coordinates for now.
-    jmp  check_launch_emp
+    jmp  check_change_weapon
 !
     mov  r2, r7                ; Otherwise update the direction and reset the
     sla  r2, 3                 ; mouse coordinates to the new direction on a
@@ -140,7 +159,7 @@ check_turn_left
 
 check_turn_right
     .test_keyboard 2, 6        ; Pushing right with 'E'?
-    jeq  check_launch_emp
+    jeq  check_change_weapon
 
     dec  r7                    ; Then turn right.
     andi r7, player_direction_count-1
@@ -169,24 +188,70 @@ update_player_animation_bank
     ai   r6, standing_player_animation_banks
     mov  r6, @player_animation_bank
 
-check_launch_emp
-    mov  @emp_count, r0        ; Is an EMP available?
+check_change_weapon
+    .test_keyboard 1, 7        ; Changing weapons with 'X'?
+    jeq  check_launch_weapon
+
+    mov  @hud_counter, r0      ; Have we already changed it last time?
+    ci   r0, 15
+    jeq  dont_change_weapon
+
+    mov  @weapon, r0           ; What's the current weapon?
+    ci   r0, emp_count
+    jl   change_weapon_to_emp
+    jeq  change_weapon_to_grenade
+
+change_weapon_to_stone
+    li   r0, stone_count       ; Switch to stones.
+    li   r1, stone_counter_sprites
+    jmp  change_weapon
+
+change_weapon_to_emp
+    li   r0, emp_count         ; Switch to EMPs.
+    li   r1, charge_sprites
+    jmp  change_weapon
+
+change_weapon_to_grenade
+    li   r0, grenade_count     ; Switch to grenades.
+    li   r1, grenade_counter_sprites
+
+change_weapon
+    mov  r0, @weapon           ; Remember the new weapon.
+    mov  *r0, r2               ; Show the weapon in the HUD.
+    ci   r2, 6                 ; Show a maximum count of 6.
+    jle  !
+    li   r2, 6
+!   a    r2, r1
+    mov  r1, @hud_sprite
+
+dont_change_weapon
+    li   r0, 14                ; Reset the (short) HUD lifetime.
+    mov  r0, @hud_counter
+
+check_launch_weapon
+    .test_keyboard 6, 0        ; Launching a weapon with 'Fire1'?
+    jne  launch_weapon
+    .test_keyboard 0, 2        ; Launching a weapon with 'Enter'?
     jeq  check_input_end
-    mov  @emp_x, r0            ; Is the EMP inactive?
+
+launch_weapon
+    mov  @weapon, r1
+    mov  @2(r1), r0            ; Isn't the weapon active?
     jgt  check_input_end
-    clr   r12                  ; Works if joystick column is still set.
-    .test_keyboard_row 0       ; Launching an EMP with 'Fire1'?
-    jne  !
-    .test_keyboard 0, 2        ; Launching an EMP with 'Enter'?
-    jeq  check_input_end
-!
-    dec  @emp_count
-    mov  @player_x, @emp_x     ; Fire the EMP from the player.
-    mov  @player_y, @emp_y
-    mov  @player_fx, @emp_fx
-    mov  @player_fy, @emp_fy
-    mov  r7, @emp_direction
-    clr  @emp_counter
+    mov  *r1, r0               ; Is the weapon available?
+    dec  r0
+    jlt  check_input_end
+    mov  r0, *r1+              ; Launch the weapon.
+    mov  @player_x, *r1+       ; Copy the player position.
+    mov  @player_y, *r1+
+    mov  @player_fx, *r1+
+    mov  @player_fy, *r1+
+    mov  @player_speed, r6     ; Should the launch speed be fast?
+    ci   r6, run
+    jne  !                     ; We'll incorporate the delta in the direction.
+    ai   r7, 1 << player_direction_shift
+!   mov  r7, *r1+              ; Copy the player direction.
+    clr  *r1                   ; Reset the liftetime counter.
 
 check_input_end
 

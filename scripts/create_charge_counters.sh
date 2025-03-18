@@ -1,9 +1,9 @@
 #!/bin/bash
 #
-# This script creates an animation of battery charge bars using ImageMagick
+# This script creates a series of battery charge bar HUDs using ImageMagick
 # scripts.
 
-OUTPUT_DIR=out/animations/bw/Charge
+OUTPUT_DIR=out/animations/bw/ChargeCounters
 
 mkdir -p $OUTPUT_DIR
 

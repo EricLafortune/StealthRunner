@@ -24,9 +24,27 @@ exploding equ >0800
 
 * One-time macro: initialize the objects in the world.
 * IN r0: a pointer to the initial values.
+* OUT stone_count
+* OUT stone_x
+* OUT stone_y
+* OUT stone_fx
+* OUT stone_fy
+* OUT stone_direction
+* OUT stone_counter
+* OUT emp_count
 * OUT emp_x
 * OUT emp_y
+* OUT emp_fx
+* OUT emp_fy
 * OUT emp_direction
+* OUT grenade_count
+* OUT grenade_x
+* OUT grenade_y
+* OUT grenade_fx
+* OUT grenade_fy
+* OUT grenade_direction
+* OUT grenade_counter
+* OUT weapon
 * OUT targets
 * OUT stones
 * OUT batteries
@@ -47,9 +65,29 @@ exploding equ >0800
 * LOCAL r2
     .defm initialize_objects
 
+    li   r1, stone_count
+    mov  r1, @weapon
+    .ifdef initial_stones
+    li   r1, initial_stones
+    mov  r1, @stone_count
+    .else
     clr  @stone_count
+    .endif
+    .ifdef initial_emps
+    li   r1, initial_emps
+    mov  r1, @emp_count
+    .else
     clr  @emp_count
+    .endif
+    .ifdef initial_grenades
+    li   r1, initial_grenades
+    mov  r1, @grenade_count
+    .else
+    clr  @grenade_count
+    .endif
+    seto @stone_x
     seto @emp_x
+    seto @grenade_x
     seto @bullet_x
     seto @grenade_x
     seto @hud_counter
@@ -122,7 +160,7 @@ initialize_mine_loop
     mov  *r0+, *r2+            ; Copy the x ordinate.
     jlt  initialize_mine_loop_end ; Is it the last mine?
     mov  *r0+, *r2+            ; Copy the y ordinate.
-    clr  *r2+                  ; Initialize the explosion.
+    clr  *r2+                  ; Initialize the explosion state.
     jmp  initialize_mine_loop
 initialize_mine_loop_end
 
@@ -148,7 +186,7 @@ initialize_launcher_loop
     mov  *r0+, *r2+            ; Copy the x ordinate.
     jlt  initialize_launcher_loop_end ; Is it the last launcher?
     mov  *r0+, *r2+            ; Copy the y ordinate.
-    clr  *r2+                  ; Initialize the explosion.
+    clr  *r2+                  ; Initialize the explosion state.
     jmp  initialize_launcher_loop
 initialize_launcher_loop_end
 
@@ -173,9 +211,18 @@ initialize_turret_loop_end
 
 
 * One-time macro: update the objects in the world.
+* IN OUT stone_x
+* IN OUT stone_y
+* IN OUT stone_fx
+* IN OUT stone_fy
+* IN OUT stone_direction
+* IN OUT stone_counter
 * IN OUT emp_x
 * IN OUT emp_y
+* IN OUT emp_fx
+* IN OUT emp_fy
 * IN OUT emp_direction
+* IN OUT weapon
 * IN OUT stones
 * IN OUT batteries
 * IN OUT mines
@@ -198,43 +245,7 @@ initialize_turret_loop_end
     .switch_bank @data_bank    ; The motion deltas and sounds are in the data
                                ; bank.
 
-* Update the EMP state and position.
-update_emp
-    mov  @emp_x, r0
-    jlt  update_emp_end        ; Is it inactive?
-    mov  @emp_y, r1
-
-    mov  @emp_counter, r2      ; In which phase is it?
-    ci   r2, 32                ; Is it flying?
-    jl   update_emp_position
-
-disable_emp
-    seto @emp_x                ; Then disable it.
-
-    .stop_tone0 sound_emp      ; Stop the EMP sound.
-    jmp  update_emp_end
-
-update_emp_position
-    mov  @emp_direction, r4    ; Compute the delta entry adress.
-    sla  r4, 3
-    ai   r4, delta_forward_fast
-
-    .update_ordinate r4, r0, @emp_fx ; Adjust the coordinates.
-    .update_ordinate r4, r1, @emp_fy
-
-    mov  r0, @emp_x            ; Save them.
-    mov  r1, @emp_y
-
-update_emp_sound
-    .play_tone0_frame sound_emp, sound_emp_frames, r2
-
-update_emp_counter
-    inc  @emp_counter
-
-update_emp_end
-
-
-* Update the object lists of all surrounding horizontal strips.
+* Update the object lists of all visible horizontal strips.
     .first_object_strip r9
     .last_object_strip r10
 
@@ -290,7 +301,7 @@ check_stone_player
     ci   r1, 6                 ; Set the supersprite.
     jle  !
     li   r1, 6
-!   ai   r1, stone_counter_sprites-1
+!   ai   r1, stone_counter_sprites
     mov  r1, @hud_sprite
     clr  @hud_counter
 
@@ -390,6 +401,21 @@ update_drone_loop
     ci   r2, exploding         ; Is the drone already exploding?
     jhe  update_drone_explosion
 
+check_drone_stone
+    .dist @stone_x, r0, r4, 128+16 ; Is it close to the thrown stone?
+    jgt  check_drone_player
+    .dist @stone_y, r1, r5, 96+16
+    jgt  check_drone_player
+
+update_drone_stone_direction
+    mov  r0, r6                ; Save a copy of the absolute position.
+    mov  r1, r7
+
+    mov  @stone_x, r0          ; Target the stone.
+    mov  @stone_y, r1
+
+    jmp  update_drone_direction ; We're ignoring the player entirely.
+
 check_drone_player
     .dist @player_x, r0, r4, 128+16 ; Is it far away?
     jgt  update_drone_loop     ; Then continue with the next drone.
@@ -398,9 +424,9 @@ check_drone_player
 
 check_drone_player_hit
     ci   r4, 40                ; Is the drone very near the player?
-    jgt  update_drone_direction
+    jgt  update_drone_player_direction
     ci   r5, 20
-    jgt  update_drone_direction
+    jgt  update_drone_player_direction
 
     bl   @kill_player          ; Then kill the player.
     jmp  update_drone_explosion ; And let the drone explode.
@@ -408,15 +434,16 @@ check_drone_player_hit
 update_drone_loop_end0         ; Bridging a long jump.
     jmp  update_drone_loop_end
 
-update_drone_direction
+update_drone_player_direction
     mov  r0, r6                ; Save a copy of the absolute position.
     mov  r1, r7
 
-    mov  @player_x, r0         ; Compute the direction vector, pointing from
-    mov  @player_y, r1         ; the drone to the player.
+    mov  @player_x, r0         ; Target the player.
+    mov  @player_y, r1
 
-    s    r6, r0
-    s    r7, r1
+update_drone_direction
+    s    r6, r0                ; Compute the direction vector, pointing from
+    s    r7, r1                ; the turret to the player or the stone.
 
     bl   @adjust_projected_direction ; Update the direction (clobbers r3).
     mov  r2, @-2(r8)           ; Save it.
@@ -445,9 +472,9 @@ update_drone_sound
 
 check_drone_emp
     .dist @emp_x, r6, 20       ; Is it close to the EMP?
-    jgt  update_drone_loop     ; Then let the drone explode.
+    jgt  update_drone_loop0    ; Then let the drone explode.
     .dist @emp_y, r7, 32
-    jgt  update_drone_loop
+    jgt  update_drone_loop0
 
 update_drone_explosion
     mov  r2, r3                ; Compute the sound frame of the explosion.
@@ -468,13 +495,31 @@ update_drone_loop_end
 
 update_turret_loop
     mov  *r8+, r0              ; Get the x ordinate.
-    jlt  update_turret_loop_end ; Is it the last turret?
+    jlt  update_turret_loop_end0 ; Is it the last turret?
     mov  *r8+, r1              ; Get the y ordinate.
     mov  *r8+, r2              ; Get the direction.
     jlt  update_turret_loop    ; Is it inactive?
 
     ci   r2, exploding         ; Is the turret already exploding?
     jhe  update_turret_explosion
+
+check_turret_stone
+    .dist @stone_x, r0, r4, 128+16 ; Is it close to the thrown stone?
+    jgt  check_turret_player
+    .dist @stone_y, r1, r5, 96+16
+    jgt  check_turret_player
+
+update_turret_stone_direction
+    mov  r0, r6                ; Save a copy of the absolute position.
+    mov  r1, r7
+
+    mov  @stone_x, r0          ; Target the stone.
+    mov  @stone_y, r1
+
+    jmp  update_turret_direction ; We're ignoring the player entirely.
+
+update_turret_loop_end0
+    jmp  update_turret_loop_end
 
 check_turret_player
     .dist @player_x, r0, r4, 128+16 ; Is it far away?
@@ -496,19 +541,20 @@ check_turret_player_near
 
 check_turret_player_hit
     ci   r4, 40                ; Is the turret very near?
-    jgt  update_turret_direction ; Then let the turret explode.
+    jgt  update_turret_player_direction
     ci   r5, 20
-    jlt  update_turret_explosion
+    jlt  update_turret_explosion ; Then let the turret explode.
 
-update_turret_direction
+update_turret_player_direction
     mov  r0, r6                ; Save a copy of the absolute position.
     mov  r1, r7
 
-    mov  @player_x, r0         ; Compute the direction vector, pointing from
-    mov  @player_y, r1         ; the turret to the player.
+    mov  @player_x, r0         ; Target the player.
+    mov  @player_y, r1
 
-    s    r6, r0
-    s    r7, r1
+update_turret_direction
+    s    r6, r0                ; Compute the direction vector, pointing from
+    s    r7, r1                ; the turret to the player or the stone.
 
     bl   @adjust_projected_direction ; Update the direction (clobbers r3).
     mov  r2, @-2(r8)           ; Save it.
@@ -540,11 +586,11 @@ update_turret_explosion
 
     ai   r2, exploding         ; Let the turret explode, automatically
     mov  r2, @-2(r8)           ; disabling it at the end.
-    jmp  update_turret_loop
+    b    @update_turret_loop
 
 update_turret_loop_end
 
-* Update the grenade launcher states.
+* Update the shell launcher states.
     li   r8, launchers
     a    r9, r8
 
@@ -558,6 +604,18 @@ update_launcher_loop
     ci   r2, exploding         ; Is the launcher already exploding?
     jhe  update_launcher_explosion
 
+check_launcher_stone
+    .dist @stone_x, r0, r4, 128+16 ; Is it close to the thrown stone?
+    jgt  check_launcher_player
+    .dist @stone_y, r1, r5, 96+16
+    jgt  check_launcher_player
+
+fire_launcher_stone_shell
+    mov  @stone_x, r3          ; Target the stone.
+    mov  @stone_y, r4
+
+    jmp  fire_launcher_shell   ; We're ignoring the player entirely.
+
 check_launcher_player
     .dist @player_x, r0, r3, 128+20 ; Is it very far?
     jgt  update_launcher_loop  ; Then continue with the next launcher.
@@ -566,24 +624,25 @@ check_launcher_player
 
 check_launcher_player_hit
     ci   r3, 40                ; Is it very near?
-    jgt  fire_launcher_grenade ; Then let the launcher explode.
+    jgt  fire_launcher_player_shell
     ci   r4, 20
-    jlt  update_launcher_explosion
+    jlt  update_launcher_explosion ; Then let the launcher explode.
 
-fire_launcher_grenade
-    mov  @grenade_x, r2        ; Don't we have a grenade flying?
+fire_launcher_player_shell
+    mov  @player_x, r3         ; Otherwise target the player.
+    mov  @player_y, r4
+
+fire_launcher_shell
+    mov  @shell_x, r2          ; Don't we have a shell flying?
     jgt  check_launcher_emp
 
-    mov  r0, @grenade_x        ; Then fire a new grenade.
-    mov  r1, @grenade_y
-    clr  @grenade_fx
-    clr  @grenade_fy
+    mov  r0, @shell_x          ; Then fire a new shell.
+    mov  r1, @shell_y
+    clr  @shell_fx
+    clr  @shell_fy
 
-    mov  @player_x, r3         ; Compute the direction vector, pointing from
-    mov  @player_y, r4         ; the launcher to the player.
-
-    s    r0, r3
-    s    r1, r4
+    s    r0, r3                ; Compute the direction vector, pointing from
+    s    r1, r4                ; the turret to the player or the stone.
 
     mov  r3, r5                ; Save a copy of the direction vector.
     mov  r4, r6
@@ -593,12 +652,12 @@ fire_launcher_grenade
     sla  r5, 11                ; Also compute the fractional part, by shifting
     sla  r6, 11                ; the computed bits in the other direction.
 
-    mov  r3, @grenade_dx       ; Save the resulting fixed-point speed.
-    mov  r4, @grenade_dy
-    movb r5, @grenade_dfx
-    movb r6, @grenade_dfy
+    mov  r3, @shell_dx         ; Save the resulting fixed-point speed.
+    mov  r4, @shell_dy
+    movb r5, @shell_dfx
+    movb r6, @shell_dfy
 
-    clr  @grenade_counter
+    clr  @shell_counter
 
 check_launcher_emp
     .dist @emp_x, r0, 20       ; Is it close to the EMP?
@@ -622,6 +681,231 @@ update_launcher_loop_end
     jh   !
     b    @update_object_strip_loop
 !
+
+
+* Update the thrown stone state and position, if any.
+    mov  @stone_x, r0
+    jlt  update_stone_end      ; Is it inactive?
+    mov  @stone_y, r1
+
+    mov  @stone_counter, r2    ; In which phase is it?
+    ci   r2, 32                ; Is it flying?
+    jl   update_stone_position
+    ci   r2, 36                ; Is it landing?
+    jl   update_stone_landing
+    ci   r2, 100               ; Is it still lying there?
+    jl   update_stone_counter
+
+disable_stone
+    seto @stone_x              ; Disable the stone.
+    jmp  update_stone_end
+
+update_stone_position
+    mov  @stone_direction, r4  ; Compute the delta entry adress.
+    sla  r4, 3
+    ai   r4, delta_forward_fast
+
+    .update_ordinate r4, r0, @stone_fx ; Adjust the coordinates.
+    .update_ordinate r4, r1, @stone_fy
+
+    mov  r2, r3
+    sla  r3, 1                 ; Add a parabolic curve to the y ordinate.
+    s    @low_parabolic_delta(r3), r1
+
+    mov  r0, @stone_x          ; Save them.
+    mov  r1, @stone_y
+
+    .play_tone0_frame sound_stone, sound_stone_frames, r2
+
+    jmp  update_stone_counter
+
+update_stone_landing
+    ai   r2, -32               ; Compute the sound frame of the landing.
+    .play_noise_frame sound_stone_landing, sound_stone_landing_frames, r2
+
+update_stone_counter
+    inc  @stone_counter
+
+update_stone_end
+
+* Update the fired EMP state and position, if any.
+update_emp
+    mov  @emp_x, r0
+    jlt  update_emp_end        ; Is it inactive?
+    mov  @emp_y, r1
+
+    mov  @emp_counter, r2      ; In which phase is it?
+    ci   r2, 32                ; Is it flying?
+    jl   update_emp_position
+
+disable_emp
+    seto @emp_x                ; Then disable it.
+
+    .stop_tone0 sound_emp      ; Stop the EMP sound.
+    jmp  update_emp_end
+
+update_emp_position
+    mov  @emp_direction, r4    ; Compute the delta entry adress.
+    sla  r4, 3
+    ai   r4, delta_forward_fast
+
+    .update_ordinate r4, r0, @emp_fx ; Adjust the coordinates.
+    .update_ordinate r4, r1, @emp_fy
+
+    mov  r0, @emp_x            ; Save them.
+    mov  r1, @emp_y
+
+update_emp_sound
+    .play_tone0_frame sound_emp, sound_emp_frames, r2
+
+update_emp_counter
+    inc  @emp_counter
+
+update_emp_end
+
+* Update the thrown grenade state and position, if any.
+    mov  @grenade_x, r0
+    jlt  update_grenade_end0   ; Is it inactive?
+    mov  @grenade_y, r1
+
+    mov  @grenade_counter, r2  ; In which phase is it?
+    ci   r2, 32                ; Is it flying?
+    jl   update_grenade_position
+    jeq  check_grenade_objects ; Is it landing and exploding?
+    ci   r2, 40                ; Is it exploding?
+    jhe  disable_grenade
+    b    @update_grenade_explosion
+
+disable_grenade
+    seto @grenade_x            ; Disable the grenade.
+update_grenade_end0
+    b    @update_grenade_end
+
+update_grenade_position
+    mov  @grenade_direction, r4 ; Compute the delta entry adress.
+    sla  r4, 3
+    ai   r4, delta_forward_fast
+
+    .update_ordinate r4, r0, @grenade_fx ; Adjust the coordinates.
+    .update_ordinate r4, r1, @grenade_fy
+
+    mov  r2, r3
+    sla  r3, 1                 ; Add a parabolic curve to the y ordinate.
+    s    @low_parabolic_delta(r3), r1
+
+    mov  r0, @grenade_x        ; Save them.
+    mov  r1, @grenade_y
+
+    .play_tone0_frame sound_grenade, sound_grenade_frames, r2
+
+    b    @update_grenade_counter
+
+check_grenade_objects
+
+    .object_strip r1, -32, r9  ; Check the object lists of all horizontal
+    .object_strip r1, 32, r10  ; strips surrounding the exploding grenade.
+
+check_grenade_objects_strip_loop
+
+    li   r8, mines             ; Check all nearby mines.
+    a    r9, r8
+
+check_grenade_mine_loop
+    mov  *r8+, r3              ; Get the x ordinate.
+    jlt  check_grenade_mine_loop_end ; Is it the last mine?
+    mov  *r8+, r4              ; Get the y ordinate.
+    mov  *r8+, r5              ; Get the explosion state.
+    jne  check_grenade_mine_loop ; Is it inactive?
+
+    .dist r0, r3, 24           ; Is it close to the landing grenade?
+    jgt  check_grenade_mine_loop
+    .dist r1, r4, 24
+    jgt  check_grenade_mine_loop
+
+    ai   r5, exploding         ; Let the mine explode.
+    mov  r5, @-2(r8)
+    jmp  check_grenade_mine_loop
+
+check_grenade_mine_loop_end
+
+    li   r8, drones            ; Check all nearby drones.
+    a    r9, r8
+
+check_grenade_drone_loop
+    mov  *r8+, r3              ; Get the x ordinate.
+    jlt  check_grenade_drone_loop_end ; Is it the last drone?
+    mov  *r8+, r4              ; Get the y ordinate.
+    ai   r8, 4                 ; Skip the fractional coordinates.
+    mov  *r8+, r5              ; Get the direction.
+    jne  check_grenade_drone_loop ; Is it inactive?
+
+    .dist r0, r3, 32           ; Is it close to the landing grenade?
+    jgt  check_grenade_drone_loop
+    .dist r1, r4, 32
+    jgt  check_grenade_drone_loop
+
+    ai   r5, exploding         ; Let the drone explode.
+    mov  r5, @-2(r8)
+    jmp  check_grenade_drone_loop
+
+check_grenade_drone_loop_end
+
+    li   r8, turrets           ; Check all nearby turrets.
+    a    r9, r8
+
+check_grenade_turret_loop
+    mov  *r8+, r3              ; Get the x ordinate.
+    jlt  check_grenade_turret_loop_end ; Is it the last turret?
+    mov  *r8+, r4              ; Get the y ordinate.
+    mov  *r8+, r5              ; Get the direction.
+    jlt  check_grenade_turret_loop ; Is it inactive?
+
+    .dist r0, r3, 32           ; Is it close to the landing grenade?
+    jgt  check_grenade_turret_loop
+    .dist r1, r4, 32
+    jgt  check_grenade_turret_loop
+
+    ai   r5, exploding         ; Let the turret explode.
+    mov  r5, @-2(r8)
+    jmp  check_grenade_turret_loop
+
+check_grenade_turret_loop_end
+
+    li   r8, launchers         ; Check all nearby launchers.
+    a    r9, r8
+
+check_grenade_launcher_loop
+    mov  *r8+, r3              ; Get the x ordinate.
+    jlt  check_grenade_launcher_loop_end ; Is it the last launcher?
+    mov  *r8+, r4              ; Get the y ordinate.
+    mov  *r8+, r5              ; Get the explosion state.
+    jne  check_grenade_launcher_loop ; Is it inactive?
+
+    .dist r0, r3, 32           ; Is it close to the landing grenade?
+    jgt  check_grenade_launcher_loop
+    .dist r1, r4, 32
+    jgt  check_grenade_launcher_loop
+
+    ai   r5, exploding         ; Let the launcher explode.
+    mov  r5, @-2(r8)
+    jmp  check_grenade_launcher_loop
+
+check_grenade_launcher_loop_end
+
+    .next_object_strip r9, r10 ; Repeat for the next strip, if any.
+    jle  check_grenade_objects_strip_loop
+
+                               ; Continue after having checked the landed
+                               ; grenade against all nearby objects.
+update_grenade_explosion
+    ai   r2, -32               ; Compute the sound frame of the explosion.
+    .play_noise_frame sound_medium_explosion, sound_medium_explosion_frames, r2
+
+update_grenade_counter
+    inc  @grenade_counter
+
+update_grenade_end
+
 
 * Update the bullet state and position.
     mov  @bullet_x, r0
@@ -665,57 +949,57 @@ update_bullet_counter
 
 update_bullet_end
 
-* Update the grenade state and position.
-    mov  @grenade_x, r0
-    jlt  update_grenade_end    ; Is it inactive?
-    mov  @grenade_y, r1
+* Update the shell state and position.
+    mov  @shell_x, r0
+    jlt  update_shell_end      ; Is it inactive?
+    mov  @shell_y, r1
 
-    mov  @grenade_counter, r2  ; In which phase is it?
+    mov  @shell_counter, r2    ; In which phase is it?
     ci   r2, 32                ; Is it flying?
-    jl   update_grenade_position
+    jl   update_shell_position
     ci   r2, 36                ; Is it exploding?
-    jl   check_grenade_player
+    jl   check_shell_player
 
-disable_grenade
-    seto @grenade_x            ; Disable the grenade.
-    jmp  update_grenade_end
+disable_shell
+    seto @shell_x              ; Disable the shell.
+    jmp  update_shell_end
 
-update_grenade_position
-    a    @grenade_dx, r0       ; Adjust the coordinates.
-    a    @grenade_dy, r1
+update_shell_position
+    a    @shell_dx, r0       ; Adjust the coordinates.
+    a    @shell_dy, r1
 
-    a    @grenade_dfx, @grenade_fx
+    a    @shell_dfx, @shell_fx
     jnc  !
     inc  r0
-!   a    @grenade_dfy, @grenade_fy
+!   a    @shell_dfy, @shell_fy
     jnc  !
     inc  r1
 !
     mov  r2, r3
     sla  r3, 1                 ; Add a parabolic curve to the y ordinate.
-    s    @parabolic_delta(r3), r1
+    s    @high_parabolic_delta(r3), r1
 
-    mov  r0, @grenade_x        ; Save them.
-    mov  r1, @grenade_y
+    mov  r0, @shell_x        ; Save them.
+    mov  r1, @shell_y
 
-    .play_tone0_frame sound_grenade, sound_grenade_frames, r2
-    jmp  update_grenade_counter
+    .play_tone0_frame sound_shell, sound_shell_frames, r2
+    jmp  update_shell_counter
 
-check_grenade_player
-    .dist @player_x, r0, 40    ; Is the grenade near the player?
-    jgt  update_grenade_explosion
+check_shell_player
+    .dist @player_x, r0, 40    ; Is the shell near the player?
+    jgt  update_shell_explosion
     .dist @player_y, r1, 20
-    jgt  update_grenade_explosion
+    jgt  update_shell_explosion
 
     bl   @kill_player          ; Then kill the player.
 
-update_grenade_explosion
+update_shell_explosion
     ai   r2, -32               ; Compute the sound frame of the explosion.
     .play_noise_frame sound_short_explosion, sound_short_explosion_frames, r2
 
-update_grenade_counter
-    inc  @grenade_counter
+update_shell_counter
+    inc  @shell_counter
 
-update_grenade_end
+update_shell_end
 
     .endm

@@ -29,7 +29,7 @@ convert \
   -gravity Center \
   -fill green \
   -draw 'text 0,-35 "Version 0.1"' \
-  -draw 'text 0,80 "Copyright © 2024 Eric Lafortune"' \
+  -draw 'text 0,80 "Copyright © 2024-2025 Eric Lafortune"' \
   +dither \
   -remap images/palette.gif \
   $ANIMATION_DIR/039.png
@@ -54,22 +54,24 @@ convert \
   -draw 'stroke-linecap round line 50,94 50,90' \
   -draw 'stroke-linecap round arc 20,90 80,150 315,320' \
   -draw 'stroke-linecap round line 24,120 20,120' \
-  -draw 'stroke-linecap round line 50,131 50,135' \
+  -draw 'stroke-linecap round line 50,130 50,134' \
   -draw 'stroke-linecap round line 76,120 80,120' \
   -strokewidth 1 \
   -stroke grey \
   -fill grey \
   -draw 'roundrectangle 13,140 38,155 4,4' \
+  -draw 'roundrectangle 43,146 57,161 4,4' \
   -draw 'roundrectangle 62,140 87,155 4,4' \
   -stroke black \
   -fill black \
   -draw 'text -99,4   "Q"' \
   -draw 'text -77,-3  "W"' \
   -draw 'text -55,4   "E"' \
-  -draw 'text -104,24 "A"' \
-  -draw 'text -77,36  "S"' \
-  -draw 'text -50,24  "D"' \
+  -draw 'text -104,25 "A"' \
+  -draw 'text -77,35  "S"' \
+  -draw 'text -50,25  "D"' \
   -draw 'text -103,52 "Shift"' \
+  -draw 'text -77,59  "X"' \
   -draw 'text -53,52  "Enter"' \
   +dither \
   -remap images/palette.gif \

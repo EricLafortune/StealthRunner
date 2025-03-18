@@ -24,8 +24,8 @@
 * Macro: compute the offset of the first relevant (nearby, visible) horizontal
 * strip with object data.
 * IN  player_y: the current y ordinate of the player.
-* OUT #1:       the destination register for the strip offset
-*               (>0000, >0100,...), relative to the base address with object data.
+* OUT #1:       the destination register for the strip offset (>0000,
+*               >0100,...), relative to the base address with object data.
     .defm first_object_strip
 
     ; Lower bound:
@@ -34,18 +34,15 @@
     ;   strip = (player_y - supersprite_center_y - supersprite_height/2)  /
     ;           object_strip_pixel_height
     ; and multiply by the strip size.
-    mov  @player_y, #1
-    ai   #1, -supersprite_center_y-(supersprite_height/2)
-    srl  #1, object_strip_pixel_height_shift
-    sla  #1, object_strip_size_shift
+    .object_strip @player_y, -supersprite_center_y-(supersprite_height/2), #1
 
     .endm
 
 * Macro: compute the offset of the last relevant (nearby, visible) horizontal
 * strip with object data (inclusive).
 * IN  player_y: the current y ordinate of the player.
-* OUT #1:       the destination register for the strip offset
-*               (>0000, >0100,...), relative to the base address with object data.
+* OUT #1:       the destination register for the strip offset (>0000,
+*               >0100,...), relative to the base address with object data.
     .defm last_object_strip
 
     ; Upper bound:
@@ -54,14 +51,25 @@
     ;   strip = (player_y + display_pixel_height - supersprite_center_y + supersprite_height/2)  /
     ;           object_strip_pixel_height
     ; and multiply by the strip size.
-    mov  @player_y, #1
-    ai   #1, display_pixel_height-supersprite_center_y+(supersprite_height/2)
-    srl  #1, object_strip_pixel_height_shift
-    sla  #1, object_strip_size_shift
+    .object_strip @player_y, display_pixel_height-supersprite_center_y+(supersprite_height/2), #1
 
     .endm
 
-* Macro: checks whether an object is inside the given strip.
+* Macro: compute the offset of the specified horizontal strip with object data.
+* IN  #1: the source address or register containing a y ordinate in the strip.
+* IN  #2: a constant delta to be added to the y ordinate.
+* OUT #3: the destination register for the strip offset (>0000, >0100,...),
+*         relative to the base address with object data.
+    .defm object_strip
+
+    mov  #1, #3
+    ai   #3, #2
+    srl  #3, object_strip_pixel_height_shift
+    sla  #3, object_strip_size_shift
+
+    .endm
+
+* Macro: check whether an object is inside the given strip.
 * IN #1: the register containing the y ordinate of the object.
 * IN #2: the register containing strip offset.
     .defm check_object_strip

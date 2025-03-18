@@ -25,6 +25,7 @@
 *
 * Data entries: delta_x, fraction_delta_x, delta_y, fraction_delta_y
 
+* Player motion.
 delta_still
     data >0000, >0000, >0000, >0000 ;   0.0 degrees.
     data >0000, >0000, >0000, >0000 ;  22.5 degrees.
@@ -183,6 +184,7 @@ delta_strafe_right
     data >ffff, >4afb, >ffff, >8000 ; 315.0 degrees.
     data >ffff, >137d, >ffff, >baba ; 337.5 degrees.
 
+* Launched object motion.
 delta_forward_fast
     data >0000, >0000, >0002, >d414 ;   0.0 degrees.
     data >0001, >87de, >0002, >9cf6 ;  22.5 degrees.
@@ -200,6 +202,26 @@ delta_forward_fast
     data >fffc, >4df3, >0001, >1518 ; 292.5 degrees.
     data >fffd, >2bec, >0002, >0000 ; 315.0 degrees.
     data >fffe, >7822, >0002, >9cf6 ; 337.5 degrees.
+
+delta_forward_very_fast
+    data >0000, >0000, >0004, >3e1e ;   0.0 degrees.
+    data >0002, >4bcd, >0003, >eb71 ;  22.5 degrees.
+    data >0004, >3e1e, >0003, >0000 ;  45.0 degrees.
+    data >0005, >8b14, >0001, >9fa3 ;  67.5 degrees.
+    data >0006, >0000, >0000, >0000 ;  90.0 degrees.
+    data >0005, >8b14, >fffe, >605d ; 112.5 degrees.
+    data >0004, >3e1e, >fffd, >0000 ; 135.0 degrees.
+    data >0002, >4bcd, >fffc, >148f ; 157.5 degrees.
+    data >0000, >0000, >fffb, >c1e2 ; 180.0 degrees.
+    data >fffd, >b433, >fffc, >148f ; 202.5 degrees.
+    data >fffb, >c1e2, >fffd, >0000 ; 225.0 degrees.
+    data >fffa, >74ec, >fffe, >605d ; 247.5 degrees.
+    data >fffa, >0000, >0000, >0000 ; 270.0 degrees.
+    data >fffa, >74ec, >0001, >9fa3 ; 292.5 degrees.
+    data >fffb, >c1e2, >0003, >0000 ; 315.0 degrees.
+    data >fffd, >b433, >0003, >eb71 ; 337.5 degrees.
+
+* Mouse circle deltas.
 delta_forward_far
     data >0000, >0000, >0016, >a09e ;   0.0 degrees.
     data >000c, >3ef1, >0014, >e7af ;  22.5 degrees.

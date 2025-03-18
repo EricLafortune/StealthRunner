@@ -6,8 +6,10 @@
 # We're packaging the output as an RPK for Mame,
 # using the ROM naming convention for FinalGROM 99.
 #
-# Useful xas99 option for debugging:
+# Useful xas99 options for debugging:
 #   --listing-file out/romc.lst --symbol-table
+# Also:
+#   -D immortal initial_stones=50  initial_emps=50 initial_grenades=50
 
 INPUT=src/game.asm
 OUTPUT_DIR=out
