@@ -58,7 +58,7 @@ go_backward
     data stand             ; Walk strafe right.
     data walk_strafe_right ; Run strafe right.
 
-strafe_forward_left
+strafe_left
     data walk_strafe_left  ; Stand.
     data walk_strafe_left  ; Walk.
     data run_strafe_left   ; Run.
@@ -69,7 +69,7 @@ strafe_forward_left
     data walk              ; Walk strafe right.
     data run               ; Run strafe right.
 
-strafe_forward_right
+strafe_right
     data walk_strafe_right ; Stand.
     data walk_strafe_right ; Walk.
     data run_strafe_right  ; Run.

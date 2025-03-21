@@ -24,7 +24,7 @@ open-world action game for the TI-99/4A home computer.
 ![Drone](screenshots/drone.png)
 ![Turret](screenshots/turret.png)
    
-You can also see a [video](https://youtu.be/e1ln8T1XRmM) on Youtube.
+You can also see a [video](https://youtu.be/e1ln8T1XRmM) on YouTube.
 
 ## Requirements
 
@@ -42,7 +42,7 @@ or:
 
 You can download the [latest
 binary](https://github.com/EricLafortune/StealthRunner/releases/latest) from
-Github.
+GitHub.
 
 ## Building
 
@@ -97,33 +97,38 @@ With the computer or emulator running, at the TI-99/4A home screen:
 The game then starts. The goal of the game is to find and reach the target
 cross in the world, evading or destroying enemy devices. You may encounter:
 
-|                                |                                             |
-|--------------------------------|---------------------------------------------|
-| ![Target](images/target.png)   | The target to reach.                        |
-| ![Battery](images/battery.png) | Battery charge for Electro-Magnetic Pulses. |
-| ![Mine](images/mine.png)       | Enemy mine.                                 |
-| ![Drone](images/drone.png)     | Enemy drone.                                |
-| ![Turret](images/turret.png)   | Enemy gun turret.                           |
+|                                  |                                             |
+|----------------------------------|---------------------------------------------|
+| ![Target](images/target.png)     | The target to reach.                        |
+| ![Stone](images/stone.png)       | Stone.                                      |
+| ![Battery](images/battery.png)   | Battery charge for Electro-Magnetic Pulses. |
+| ![Grenade](images/grenade.png)   | Grenade.                                    |
+| ![Mine](images/mine.png)         | Enemy mine.                                 |
+| ![Drone](images/drone.png)       | Enemy drone.                                |
+| ![Turret](images/turret.png)     | Enemy gun turret.                           |
+| ![Launcher](images/launcher.png) | Enemy shell launcher.                       |
 
 You can control your avatar with the keyboard and optionally a Mechatronic
-mouse (recommended):
+mouse:
 
-|                                  |                                      |
-|----------------------------------|--------------------------------------|
-| <kbd>Q</kbd>                     | Turn left.                           |
-| <kbd>E</kbd>                     | Turn right.                          |
-| <kbd>W</kbd>                     | Move forward.                        |
-| <kbd>S</kbd>                     | Move backward.                       |
-| <kbd>A</kbd>                     | Strafe left forward.                 |
-| <kbd>D</kbd>                     | Strafe right forward.                |
-| <kbd>Shift</kbd>                 | Speed up from walking to running.    |
-| <kbd>Enter</kbd>                 | Fire an Electro-Magnetic Pulse.      |
-| Mouse                            | Turn.                                |
-| Mouse button                     | Fire an Electro-Magnetic Pulse.      |
-| <kbd>6</kbd> = <kbd>Proc'd</kbd> | Pause/unpause the game.              |
-| <kbd>8</kbd> = <kbd>Redo</kbd>   | Restart the game.                    |
-| <kbd>9</kbd> = <kbd>Back</kbd>   | Return to the game title screen.     |
-| <kbd>=</kbd> = <kbd>Quit</kbd>   | Return to the computer title screen. |
+|                                  |                                                                   |
+|----------------------------------|-------------------------------------------------------------------|
+| <kbd>Q</kbd>                     | Turn left.                                                        |
+| <kbd>E</kbd>                     | Turn right.                                                       |
+| <kbd>W</kbd>                     | Move forward.                                                     |
+| <kbd>S</kbd>                     | Move backward.                                                    |
+| <kbd>A</kbd>                     | Strafe left.                                                      |
+| <kbd>D</kbd>                     | Strafe right.                                                     |
+| <kbd>Shift</kbd>                 | Speed up from walking to running.                                 |
+| <kbd>X</kbd>                     | Swap the current weapon (stone, Electro-Magnetic Pulse, grenade). |
+| <kbd>Enter</kbd>                 | Fire the current weapon.                                          |
+| Mouse                            | Turn.                                                             |
+| Mouse button 1                   | Fire the current weapon.                                          |
+| Mouse button 2                   | Swap the current weapon.                                          |
+| <kbd>6</kbd> = <kbd>Proc'd</kbd> | Pause/unpause the game.                                           |
+| <kbd>8</kbd> = <kbd>Redo</kbd>   | Restart the game.                                                 |
+| <kbd>9</kbd> = <kbd>Back</kbd>   | Return to the game title screen.                                  |
+| <kbd>=</kbd> = <kbd>Quit</kbd>   | Return to the computer title screen.                              |
     
 When you die or reach the target cross, you can quit the level with
 <kbd>Redo</kbd>, <kbd>Back</kbd>, or <kbd>Quit</kbd>.
@@ -182,7 +187,7 @@ run from the computer's 256 bytes of 16-bit scratchpad RAM. The game
 interleaves all computations between even and odd frames at 60 NTSC video
 frames per second, resulting in updates at 30 frames per second.
         
-The source code contains a collection of [include files](../src/include) that
+The source code contains a collection of [include files](src/include) that
 can be generally useful for game development. They provide convenient and
 efficient support for graphics, sound, speech, and keyboard/mouse input.
 

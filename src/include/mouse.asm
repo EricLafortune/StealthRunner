@@ -48,6 +48,22 @@
     jne  -!
     .endm
 
+* Macro: test mouse button 1. Must be called after read_mouse.
+* OUT: equal status bit: 0 if pressed, 1 if not pressed.
+* LOCAL r12
+    .defm test_mouse_button1
+    clr  r12
+    tb   3
+    .endm
+
+* Macro: test mouse button 1. Must be called after read_mouse.
+* OUT: equal status bit: 0 if pressed, 1 if not pressed.
+* LOCAL r12
+    .defm test_mouse_button2
+    clr  r12
+    tb   7
+    .endm
+
 * Local macro: toggle the mouse axis to read between the x axis and the y axis.
 * LOCAL r0
 * LOCAL r12
@@ -74,6 +90,7 @@
                                ; Read the bits from joystick left/right/down.
     li   r12, cru_read_keyboard_row1
     stcr #1, 3
+
     .endm
 
 * Local macro: decode 3 motion bits.

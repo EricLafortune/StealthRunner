@@ -86,11 +86,13 @@ convert \
   -gravity Center \
   -stroke grey \
   -fill grey \
-  -draw 'roundrectangle 190,90 230,150 15,30' \
+  -draw 'roundrectangle 185,85 235,155 15,40' \
   -stroke black \
   -fill black \
-  -draw 'line 190,106 230,106' \
-  -draw 'text 83,2  "fire"' \
+  -draw 'line 185,106 235,106' \
+  -draw 'line 210,85  210,106' \
+  -draw 'text 73,2  "fire"' \
+  -draw 'text 95,2  "swp"' \
   -draw 'text 83,26 "turn"' \
   +dither \
   -remap images/palette.gif \

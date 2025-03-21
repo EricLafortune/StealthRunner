@@ -18,6 +18,17 @@
 
 * Macros to update the direction and speed of the player.
 
+* Macro: initialize the input, checking whether a mouse is present.
+* OUT: mouse_present
+* LOCAL r0-r15
+    .defm initialize_input
+
+    clr r3                     ; Check whether the mouse buffer contains any
+    .read_mouse r3, r3         ; deltas.
+    mov r3, @mouse_present
+
+    .endm
+
 * One-time macro: update the direction and speed of the player, and launch
 * EMPs, based on the keyboard/mouse input.
 * IN OUT player_direction
@@ -46,6 +57,9 @@
 * IN OUT weapon
 * IN OUT hud_sprite
 * IN OUT hud_counter
+* IN OUT mouse_x
+* IN OUT mouse_y
+* IN     mouse_present
 * IN     player_x
 * IN     player_y
 * IN     player_fx
@@ -61,13 +75,16 @@
     mov  @player_speed, r6     ; Get the current speed and direction.
     mov  @player_direction, r7
 
+    seto r8                    ; No mouse buttons pressed.
+    seto r9
+
 check_strafe_left
     .test_keyboard 5, 5        ; Strafing forward left with 'A'?
     jeq  check_strafe_right
 
     mov  r6, r1                ; Strafe forward left.
     sla  r1, 1
-    mov  @strafe_forward_left(r1), r1
+    mov  @strafe_left(r1), r1
     jlt  check_speed_up
     mov  r1, r6
     b    @change_speed
@@ -78,7 +95,7 @@ check_strafe_right
 
     mov  r6, r1                ; Strafe forward right.
     sla  r1, 1
-    mov  @strafe_forward_right(r1), r1
+    mov  @strafe_right(r1), r1
     jlt  check_speed_up
     mov  r1, r6
     b    @change_speed
@@ -92,7 +109,7 @@ check_forward
     mov  @go_forward(r1), r1
     jlt  check_speed_up
     mov  r1, r6
-    jmp  change_speed
+    b   @change_speed
 
 check_backward
     .test_keyboard_row 5       ; Walking backward with 'S'?
@@ -125,19 +142,30 @@ check_speed_up
     jmp  change_speed
 
 check_mouse
+    mov  @mouse_present, r0    ; Is a mouse present at all?
+    jeq  check_turn_left       ; Then skip the mouse code, which seems to break
+                               ; the (immediately?) following keyboard checks.
+
     mov  @mouse_x, r4          ; Get the current mouse coodinates.
     mov  @mouse_y, r5
     .read_mouse r4, r5
-    mov  r4, r0                ; Are they not (0,0)?
+
+    .test_mouse_button1        ; Test and remember mouse button 1.
+    stst r8
+
+    .test_mouse_button2        ; Test and remember mouse button 2.
+    stst r9
+
+    mov  r4, r0                ; Are the coordinates not (0,0)?
     jne  !
     mov  r5, r5
-    jeq  check_change_weapon
+    jeq  check_turn_left
 !
     mov  r5, r1                ; Then update the direction.
     mov  r7, r2
     bl   @adjust_projected_direction
 
-    c    r7, r2                ; Has the direction reamined unchanged?
+    c    r7, r2                ; Has the direction remained unchanged?
     jne  !
     mov  r4, @mouse_x          ; Then just update the moved mouse
     mov  r5, @mouse_y          ; coordinates for now.
@@ -189,9 +217,12 @@ update_player_animation_bank
     mov  r6, @player_animation_bank
 
 check_change_weapon
+    sla  r9, 3                 ; Changing weapons with mouse button 2?
+    jnc  change_weapon
     .test_keyboard 1, 7        ; Changing weapons with 'X'?
     jeq  check_launch_weapon
 
+change_weapon
     mov  @hud_counter, r0      ; Have we already changed it last time?
     ci   r0, 15
     jeq  dont_change_weapon
@@ -204,18 +235,18 @@ check_change_weapon
 change_weapon_to_stone
     li   r0, stone_count       ; Switch to stones.
     li   r1, stone_counter_sprites
-    jmp  change_weapon
+    jmp  change_weapon_hud
 
 change_weapon_to_emp
     li   r0, emp_count         ; Switch to EMPs.
     li   r1, charge_sprites
-    jmp  change_weapon
+    jmp  change_weapon_hud
 
 change_weapon_to_grenade
     li   r0, grenade_count     ; Switch to grenades.
     li   r1, grenade_counter_sprites
 
-change_weapon
+change_weapon_hud
     mov  r0, @weapon           ; Remember the new weapon.
     mov  *r0, r2               ; Show the weapon in the HUD.
     ci   r2, 6                 ; Show a maximum count of 6.
@@ -229,8 +260,8 @@ dont_change_weapon
     mov  r0, @hud_counter
 
 check_launch_weapon
-    .test_keyboard 6, 0        ; Launching a weapon with 'Fire1'?
-    jne  launch_weapon
+    sla  r8, 3                 ; Launching a weapon with mouse button 1?
+    jnc  launch_weapon
     .test_keyboard 0, 2        ; Launching a weapon with 'Enter'?
     jeq  check_input_end
 

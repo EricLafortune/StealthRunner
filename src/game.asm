@@ -88,6 +88,9 @@ expansion_code
     .vdpwa_in_register  r14    ; Cache the VDP address write address.
     .vdpwd_in_register  r15    ; Cache the VDP data write address.
 
+* Initialize the input, checking whether a mouse is present.
+    .initialize_input
+
 * Copy the video player code to scratchpad RAM, for better performance.
 play_intro_video
     .switch_bank @data_bank    ; The player code is in the data bank.
@@ -380,8 +383,9 @@ vdp_quadsprite_timestamps bss 64 * 2   ; The timestamp of the most recent frame 
 sprite_cache_queue        bss 32 * 2   ; The queue with CPU quadsprite numbers (shifted left 1 bit) to be written to VDP memory.
 
 * Mouse variables.
-mouse_x data 0 ; Mouse x ordinate around player.
-mouse_y data 0 ; Mouse y ordinate around player.
+mouse_present data 0 ; Mouse present or not (>0000).
+mouse_x       data 0 ; Mouse x ordinate around player.
+mouse_y       data 0 ; Mouse y ordinate around player.
 
 * HUD variables.
 hud_sprite  data 0 ; Supersprite number to be shown in the HUD.
