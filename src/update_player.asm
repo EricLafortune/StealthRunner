@@ -84,27 +84,61 @@
 
     .switch_bank @landscape_mask_bank ; Check the new position.
 
+check_full_player_move
     mov  r2, r0                ; Scale the x ordinate to a char ordinate.
     ai   r0, -player_base_x
     srl  r0, 3
-    mov  r4, r6                ; Scale the y ordinate to a char ordinate.
-    ai   r6, -player_base_y
-    srl  r6, 3
-    sla  r6, 3                 ; Compute the y offset of the mask span.
-    ai   r6, module_memory
-    c    r0, *r6+              ; Is the x ordinate smaller than the first mask span start?
-    jl   dont_update_player_position
-    c    r0, *r6+              ; Is the x ordinate larger than the first mask span end?
+    mov  r4, r1                ; Scale the y ordinate to a char ordinate.
+    ai   r1, -player_base_y
+    andi r1, >fff8             ; Compute the y offset of the mask span.
+    ai   r1, module_memory
+    mov  r1, r7                ; Save a copy of the landscape mask address.
+    c    r0, *r1+              ; Is the x ordinate smaller than the first mask span start?
+    jl   check_vertical_player_move
+    c    r0, *r1+              ; Is the x ordinate larger than the first mask span end?
     jl   update_player_position
-    c    r0, *r6+              ; Is the x ordinate smaller than the second mask span start?
+    c    r0, *r1+              ; Is the x ordinate smaller than the second mask span start?
+    jl   check_vertical_player_move
+    c    r0, *r1               ; Is the x ordinate larger than the second mask span end?
+    jl   update_player_position
+
+check_vertical_player_move
+    mov  @player_x, r6         ; Get the unchanged x ordinate.
+    ai   r6, -player_base_x    ; Scale it to a char ordinate.
+    srl  r6, 3
+    c    r6, *r7+              ; Is the x ordinate smaller than the first mask span start?
+    jl   check_horizontal_player_move
+    c    r6, *r7+              ; Is the x ordinate larger than the first mask span end?
+    jl   update_player_y_ordinate
+    c    r6, *r7+              ; Is the x ordinate smaller than the second mask span start?
+    jl   check_horizontal_player_move
+    c    r6, *r7               ; Is the x ordinate larger than the second mask span end?
+    jl   update_player_y_ordinate
+
+check_horizontal_player_move
+    mov  @player_y, r1         ; Get the unchanged y ordinate.
+    ai   r1, -player_base_y    ; Scale the y ordinate to a char ordinate.
+    andi r1, >fff8             ; Compute the y offset of the mask span.
+    ai   r1, module_memory
+    c    r0, *r1+              ; Is the x ordinate smaller than the first mask span start?
     jl   dont_update_player_position
-    c    r0, *r6+              ; Is the x ordinate larger than the second mask span end?
+    c    r0, *r1+              ; Is the x ordinate larger than the first mask span end?
+    jl   update_player_x_ordinate
+    c    r0, *r1+              ; Is the x ordinate smaller than the second mask span start?
+    jl   dont_update_player_position
+    c    r0, *r1               ; Is the x ordinate larger than the second mask span end?
     jhe  dont_update_player_position
+
+update_player_x_ordinate
+    mov  r2, @player_x         ; Update the x ordinate.
+    mov  r3, @player_fx
+    jmp  dont_update_player_position
 
 update_player_position
     mov  r2, @player_x         ; Update the x ordinate.
     mov  r3, @player_fx
 
+update_player_y_ordinate
     mov  r4, @player_y         ; Update the y ordinate.
     mov  r5, @player_fy
 

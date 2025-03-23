@@ -124,7 +124,7 @@ public class CompressLandscapeMask
     {
         for (; x < landscapeWidth; x++)
         {
-            if (mask(x, y) == 0)
+            if (!masked(x, y))
             {
                 break;
             }
@@ -138,7 +138,7 @@ public class CompressLandscapeMask
     {
         for (; x < landscapeWidth; x++)
         {
-            if (mask(x, y) != 0)
+            if (masked(x, y))
             {
                 break;
             }
@@ -148,7 +148,7 @@ public class CompressLandscapeMask
     }
 
 
-    private int mask(int x, int y)
+    private boolean masked(int x, int y)
     {
         // Check the player mask on the landscape.
         for (int playerY = 0; playerY < player.getHeight(); playerY++)
@@ -156,15 +156,15 @@ public class CompressLandscapeMask
             for (int playerX = 0; playerX < player.getWidth(); playerX++)
             {
                 if (playerPixel(playerX, playerY) &&
-                    landscapeCharacter(playerShiftX + x + playerX,
-                                       playerShiftY + y + playerY))
+                    landscapeCharacters(playerShiftX + x + playerX,
+                                        playerShiftY + y + playerY))
                 {
-                    return 1;
+                    return true;
                 }
             }
         }
 
-        return 0;
+        return false;
     }
 
 
@@ -174,9 +174,22 @@ public class CompressLandscapeMask
     }
 
 
+    private boolean landscapeCharacters(int x, int y)
+    {
+        // The mask has to be valid for all positions inside a char.
+        // The positions are rounded down to the top-left corner at run-time,
+        // so they may actually be shifted down and to the right, letting the
+        // player mask cover more of the landscape.
+        return landscapeCharacter(x,     y)     ||
+               landscapeCharacter(x + 1, y)     ||
+               landscapeCharacter(x,     y + 1) ||
+               landscapeCharacter(x + 1, y + 1);
+    }
+
+
     private boolean landscapeCharacter(int x, int y)
     {
-        return landscapePixel(x, 2 * y) |
+        return landscapePixel(x, 2 * y) ||
                landscapePixel(x, 2 * y + 1);
     }
 
