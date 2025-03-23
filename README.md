@@ -97,38 +97,38 @@ With the computer or emulator running, at the TI-99/4A home screen:
 The game then starts. The goal of the game is to find and reach the target
 cross in the world, evading or destroying enemy devices. You may encounter:
 
-|                                  |                                             |
-|----------------------------------|---------------------------------------------|
-| ![Target](images/target.png)     | The target to reach.                        |
-| ![Stone](images/stone.png)       | Stone.                                      |
-| ![Battery](images/battery.png)   | Battery charge for Electro-Magnetic Pulses. |
-| ![Grenade](images/grenade.png)   | Grenade.                                    |
-| ![Mine](images/mine.png)         | Enemy mine.                                 |
-| ![Drone](images/drone.png)       | Enemy drone.                                |
-| ![Turret](images/turret.png)     | Enemy gun turret.                           |
-| ![Launcher](images/launcher.png) | Enemy shell launcher.                       |
+|                                  |                                            |
+|----------------------------------|--------------------------------------------|
+| ![Target](images/target.png)     | The target to reach.                       |
+| ![Stone](images/stone.png)       | Stone.                                     |
+| ![Battery](images/battery.png)   | Battery charge for electromagnetic pulses. |
+| ![Grenade](images/grenade.png)   | Grenade.                                   |
+| ![Mine](images/mine.png)         | Enemy mine.                                |
+| ![Drone](images/drone.png)       | Enemy drone.                               |
+| ![Turret](images/turret.png)     | Enemy gun turret.                          |
+| ![Launcher](images/launcher.png) | Enemy shell launcher.                      |
 
 You can control your avatar with the keyboard and optionally a Mechatronic
 mouse:
 
-|                                  |                                                                   |
-|----------------------------------|-------------------------------------------------------------------|
-| <kbd>Q</kbd>                     | Turn left.                                                        |
-| <kbd>E</kbd>                     | Turn right.                                                       |
-| <kbd>W</kbd>                     | Move forward.                                                     |
-| <kbd>S</kbd>                     | Move backward.                                                    |
-| <kbd>A</kbd>                     | Strafe left.                                                      |
-| <kbd>D</kbd>                     | Strafe right.                                                     |
-| <kbd>Shift</kbd>                 | Speed up from walking to running.                                 |
-| <kbd>X</kbd>                     | Swap the current weapon (stone, Electro-Magnetic Pulse, grenade). |
-| <kbd>Enter</kbd>                 | Fire the current weapon.                                          |
-| Mouse                            | Turn.                                                             |
-| Mouse button 1                   | Fire the current weapon.                                          |
-| Mouse button 2                   | Swap the current weapon.                                          |
-| <kbd>6</kbd> = <kbd>Proc'd</kbd> | Pause/unpause the game.                                           |
-| <kbd>8</kbd> = <kbd>Redo</kbd>   | Restart the game.                                                 |
-| <kbd>9</kbd> = <kbd>Back</kbd>   | Return to the game title screen.                                  |
-| <kbd>=</kbd> = <kbd>Quit</kbd>   | Return to the computer title screen.                              |
+|                                  |                                                                  |
+|----------------------------------|------------------------------------------------------------------|
+| <kbd>Q</kbd>                     | Turn left.                                                       |
+| <kbd>E</kbd>                     | Turn right.                                                      |
+| <kbd>W</kbd>                     | Move forward.                                                    |
+| <kbd>S</kbd>                     | Move backward.                                                   |
+| <kbd>A</kbd>                     | Strafe left.                                                     |
+| <kbd>D</kbd>                     | Strafe right.                                                    |
+| <kbd>Shift</kbd>                 | Speed up from walking to running.                                |
+| <kbd>X</kbd>                     | Swap the current weapon (stone, electromagnetic pulse, grenade). |
+| <kbd>Enter</kbd>                 | Fire the current weapon.                                         |
+| Mouse                            | Turn.                                                            |
+| Mouse button 1                   | Fire the current weapon.                                         |
+| Mouse button 2                   | Swap the current weapon.                                         |
+| <kbd>6</kbd> = <kbd>Proc'd</kbd> | Pause/unpause the game.                                          |
+| <kbd>8</kbd> = <kbd>Redo</kbd>   | Restart the game.                                                |
+| <kbd>9</kbd> = <kbd>Back</kbd>   | Return to the game title screen.                                 |
+| <kbd>=</kbd> = <kbd>Quit</kbd>   | Return to the computer title screen.                             |
     
 When you die or reach the target cross, you can quit the level with
 <kbd>Redo</kbd>, <kbd>Back</kbd>, or <kbd>Quit</kbd>.
