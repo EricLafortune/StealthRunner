@@ -17,49 +17,7 @@
 * 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 
 * Subroutines to blit to VDP memory.
-* You can should run them from scratchpad RAM for maximum performance.
-
-* Subroutine: blit a sequence of bytes from CPU memory to VDP memory.
-* IN r0:   the source address in CPU memory.
-* IN r1:   the destination address in VDP memory (including write bit).
-* IN r2:   the number of bytes.
-* LOCAL r11
-blit_bytes
-    .vdpwa r1                   ; Write the VDP address.
-;    a    r2, r1                 ; Update the VDP address as a return value.
-
-* Subroutine: blit a sequence of bytes from CPU memory to VDP memory,
-* starting at the current VDP address.
-* IN r0:    the source address in CPU memory.
-* IN vdpwa: the destination address in the VDP.
-* IN r2:    the number of bytes.
-* LOCAL r1
-* LOCAL r11
-blit_more_bytes
-    dec  r2                    ; Adjust the byte count from [1...] to [0...].
-
-    mov  r2, r1                ; Compute the branch offset into the unrolled loop.
-    andi r1, >0007             ; Mask to [0..7].
-    inv  r1                    ; Invert to [-1..-8].
-    sla  r1, 1                 ; Scale to [-2..-16] (words).
-
-    srl  r2, 3                 ; Adjust the number of byte sequences [0...].
-
-    b @unrolled_blit_end(r1)
-
-unrolled_blit_loop
-    .vdpwd *r0+
-    .vdpwd *r0+
-    .vdpwd *r0+
-    .vdpwd *r0+
-    .vdpwd *r0+
-    .vdpwd *r0+
-    .vdpwd *r0+
-    .vdpwd *r0+
-unrolled_blit_end
-    dec  r2
-    joc  unrolled_blit_loop     ; Stop when the counter goes negative.
-    rt
+* You should run them from scratchpad RAM for maximum performance.
 
 * Subroutine: blit a graphics blob (a sequence of spans, where a span is a
 * a delta byte, a length byte, and a list of data bytes) from CPU memory to
@@ -89,8 +47,49 @@ blob_span_loop
 
     a    r2, r3                 ; Update the VDP address for the next span.
 
-    jmp  blit_bytes             ; Shortcut jump to the subroutine,
+                                ; Fall-through to the blitting subroutine,
                                 ; which will return to our loop.
+
+* Subroutine: blit a sequence of bytes from CPU memory to VDP memory.
+* IN r0:   the source address in CPU memory.
+* IN r1:   the destination address in VDP memory (including write bit).
+* IN r2:   the number of bytes.
+* LOCAL r11
+blit_bytes
+    .vdpwa r1                   ; Write the VDP address.
+
+* Subroutine: blit a sequence of bytes from CPU memory to VDP memory,
+* starting at the current VDP address.
+* IN r0:    the source address in CPU memory.
+* IN vdpwa: the destination address in the VDP.
+* IN r2:    the number of bytes.
+* LOCAL r1
+* LOCAL r11
+blit_more_bytes
+    dec  r2                    ; Adjust the byte count from [1...] to [0...].
+
+    mov  r2, r1                ; Compute the branch offset into the unrolled loop.
+    andi r1, >0007             ; Mask to [0..7].
+    inv  r1                    ; Invert to [-1..-8].
+    sla  r1, 1                 ; Scale to [-2..-16] (words).
+
+    srl  r2, 3                 ; Adjust the number of byte sequences [0...].
+
+    b @unrolled_blit_end(r1)   ; Branch into the instruction sequence, counting
+                               ; back from the end, one word per instruction.
+unrolled_blit_loop
+    .vdpwd *r0+
+    .vdpwd *r0+
+    .vdpwd *r0+
+    .vdpwd *r0+
+    .vdpwd *r0+
+    .vdpwd *r0+
+    .vdpwd *r0+
+    .vdpwd *r0+
+unrolled_blit_end
+    dec  r2
+    joc  unrolled_blit_loop    ; Stop when the counter goes negative.
+    rt
 
 
 * Subroutine: blit an opaque graphics blob (a sequence of spans, where a span
