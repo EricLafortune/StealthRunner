@@ -21,7 +21,7 @@
 * Locations of the various graphics tables in VDP memory.
 game_pattern_descriptor_table equ >0000 ; Size >0800.
 game_screen_image_table       equ >1000 ; Size >0300.
-game_color_table              equ >1400 ; Size >0020.
+game_color_table              equ >1800 ; Size >0020.
 game_sprite_descriptor_table  equ >0800 ; Size >0800.
 game_sprite_attribute_table   equ >1300 ; Size >0080.
 

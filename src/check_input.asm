@@ -227,33 +227,23 @@ change_weapon
     ci   r0, 15
     jeq  dont_change_weapon
 
-    mov  @weapon, r0           ; What's the current weapon?
-    ci   r0, emp_count
-    jl   change_weapon_to_emp
-    jeq  change_weapon_to_grenade
-
-change_weapon_to_stone
-    li   r0, stone_count       ; Switch to stones.
-    li   r1, stone_counter_sprites
-    jmp  change_weapon_hud
-
-change_weapon_to_emp
-    li   r0, emp_count         ; Switch to EMPs.
-    li   r1, charge_sprites
-    jmp  change_weapon_hud
-
-change_weapon_to_grenade
-    li   r0, grenade_count     ; Switch to grenades.
-    li   r1, grenade_counter_sprites
-
-change_weapon_hud
-    mov  r0, @weapon           ; Remember the new weapon.
-    mov  *r0, r2               ; Show the weapon in the HUD.
-    ci   r2, 6                 ; Show a maximum count of 6.
+    mov  @weapon, r1           ; Switch to the next weapon.
+    inc  r1
+    ci   r1, grenade           ; Wrap around?
     jle  !
-    li   r2, 6
-!   a    r2, r1
-    mov  r1, @hud_sprite
+    clr  r1
+!   mov  r1, @weapon           ; Remember the new weapon.
+
+    sla  r1, 1                 ; Get the number of available weapons.
+    mov  @weapon_counts(r1), r0
+
+    ci   r0, 7                 ; Compute and set the HUD supersprite,
+    jle  !                     ; based on the (clamped) count...
+    li   r0, 7
+!   sla  r1, 2                 ; ...and the type.
+    a    r1, r0
+    ai   r0, collectible_counter_sprites
+    mov  r0, @hud_sprite
 
 dont_change_weapon
     li   r0, 14                ; Reset the (short) HUD lifetime.
@@ -267,22 +257,32 @@ check_launch_weapon
 
 launch_weapon
     mov  @weapon, r1
-    mov  @2(r1), r0            ; Isn't the weapon active?
+
+    sla  r1, 1                 ; Is the weapon available?
+    mov  @weapon_counts(r1), r0
+    jeq  check_input_end
+
+    mov  r1, r2
+    sla  r2, 3                 ; Isn't the weapon active?
+    ai   r2, weapon_states
+    mov  *r2, r3
     jgt  check_input_end
-    mov  *r1, r0               ; Is the weapon available?
-    dec  r0
-    jlt  check_input_end
-    mov  r0, *r1+              ; Launch the weapon.
-    mov  @player_x, *r1+       ; Copy the player position.
-    mov  @player_y, *r1+
-    mov  @player_fx, *r1+
-    mov  @player_fy, *r1+
-    mov  @player_speed, r6     ; Should the launch speed be fast?
-    ci   r6, run
+
+    dec  r0                    ; Update the weapon count.
+    mov  r0, @weapon_counts(r1)
+
+    mov  @player_x, *r2+       ; Copy the player position.
+    mov  @player_y, *r2+
+    mov  @player_fx, *r2+
+    mov  @player_fy, *r2+
+
+    mov  @player_speed, r6     ; Copy the player direction.
+    ci   r6, run               ; Should the launch speed be fast?
     jne  !                     ; We'll incorporate the delta in the direction.
     ai   r7, 1 << player_direction_shift
-!   mov  r7, *r1+              ; Copy the player direction.
-    clr  *r1                   ; Reset the liftetime counter.
+!   mov  r7, *r2+
+
+    clr  *r2                   ; Reset the weapon liftetime counter.
 
 check_input_end
 

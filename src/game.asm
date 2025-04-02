@@ -352,14 +352,12 @@ module_end
 * Reserve space for the first strip of object lists.
 strip_object_lists
 targets                   bss >0010 ; X ordinate, y ordinate.
-bushes                    bss >0010 ; X ordinate, y ordinate.
-trees                     bss >0020 ; X ordinate, y ordinate.
-stones                    bss >0020 ; X ordinate, y ordinate.
-batteries                 bss >0020 ; X ordinate, y ordinate.
-mines                     bss >0020 ; X ordinate, y ordinate, explosion.
-drones                    bss >0020 ; X ordinate, y ordinate, fractional x ordinate, fractional y ordinate, direction (0..15 = 4 bits).
-launchers                 bss >0020 ; X ordinate, y ordinate, explosion.
-turrets                   bss >0020 ; X ordinate, y ordinate, direction (0..15 = 4 bits).
+mines                     bss >0040 ; X ordinate, y ordinate, explosion.
+drones                    bss >0040 ; X ordinate, y ordinate, fractional x ordinate, fractional y ordinate, direction (0..15 = 4 bits).
+launchers                 bss >0040 ; X ordinate, y ordinate, explosion.
+turrets                   bss >0040 ; X ordinate, y ordinate, direction (0..15 = 4 bits).
+collectibles              bss >0070 ; X ordinate, y ordinate, type.
+background_objects        bss >0080 ; X ordinate, y ordinate, type.
 strip_object_lists_end
 
 world_character_height    equ 256 ; Number of characters vertically in the world.
@@ -369,8 +367,12 @@ object_strip_pixel_height       equ 128 ; Number of pixels vertically per strip.
 object_strip_pixel_height_shift equ 7 ; The corresponding bit shift.
 
 object_strip_size         equ strip_object_lists_end - strip_object_lists    ; 256 bytes of data per strip.
-object_strip_size_shift   equ 8                                              ; The corresponding bit shift.
+object_strip_size_shift   equ 9                                              ; The corresponding bit shift.
 object_strip_count        equ world_pixel_height / object_strip_pixel_height ; 16 strips.
+
+    .ifne object_strip_size, 512
+    .error 'Incorrect strip size.'
+    .endif
 
 * Reserve space for the remaining strips of object lists.
                           bss (object_strip_count - 1) * object_strip_size
@@ -397,36 +399,50 @@ latest_target_x data 0 ; X ordinate, expressed in pixels.
 latest_target_y data 0 ; Y ordinate, expressed in pixels.
 
 * Weapons.
-weapon          data 0 ; The base address of the current weapon (stone_count or emp_count).
+weapon  data 0 ; The selected weapon type (0, 1, or 2).
+
+stone   equ 0
+emp     equ 1
+grenade equ 2
+
+weapon_counts
+stone_count   data 0 ; Number of stones available.
+emp_count     data 0 ; Number of EMPs available.
+grenade_count data 0 ; Number of grenades available.
 
 * Thrown stone variables.
-stone_count     data 0 ; Number of stones available.
+weapon_states
+stone_state
 stone_x         data 0 ; X ordinate, expressed in pixels.
 stone_y         data 0 ; Y ordinate, expressed in pixels.
 stone_fx        data 0 ; Fractional x ordinate (fixed point 16.16 bits).
 stone_fy        data 0 ; Fractional y ordinate (fixed point 16.16 bits).
 stone_direction data 0 ; Direction (0..15).
 stone_counter   data 0 ; Counter for the life time of the stone.
+                bss  4 ; Filler to a data block of 8 words.
 
 * Fired EMP variables.
-emp_count     data 0 ; Number of EMPs available.
+emp_state
 emp_x         data 0 ; X ordinate, expressed in pixels.
 emp_y         data 0 ; Y ordinate, expressed in pixels.
 emp_fx        data 0 ; Fractional x ordinate (fixed point 16.16 bits).
 emp_fy        data 0 ; Fractional y ordinate (fixed point 16.16 bits).
 emp_direction data 0 ; Direction (0..15).
 emp_counter   data 0 ; Counter for the life time of the EMP.
+              bss  4 ; Filler to a data block of 8 words.
 
 * Thrown grenade variables.
-grenade_count     data 0 ; Number of grenades available.
+grenade_state
 grenade_x         data 0 ; X ordinate, expressed in pixels.
 grenade_y         data 0 ; Y ordinate, expressed in pixels.
 grenade_fx        data 0 ; Fractional x ordinate (fixed point 16.16 bits).
 grenade_fy        data 0 ; Fractional y ordinate (fixed point 16.16 bits).
 grenade_direction data 0 ; Direction (0..15).
 grenade_counter   data 0 ; Counter for the life time of the grenade.
+                  bss  4 ; Filler to a data block of 8 words.
 
 * Turret bullet variables.
+bullet_state
 bullet_x         data 0 ; X ordinate, expressed in pixels.
 bullet_y         data 0 ; Y ordinate, expressed in pixels.
 bullet_fx        data 0 ; Fractional x ordinate (fixed point 16.16 bits).
@@ -435,6 +451,7 @@ bullet_direction data 0 ; Direction (0..15).
 bullet_counter   data 0 ; Counter for the life time of the bullet.
 
 * Launched shell variables.
+shell_state
 shell_x       data 0 ; X ordinate, expressed in pixels.
 shell_y       data 0 ; Y ordinate, expressed in pixels.
 shell_fx      data 0 ; Fractional x ordinate (fixed point 16.16 bits).

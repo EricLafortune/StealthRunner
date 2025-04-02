@@ -21,15 +21,16 @@ public class CompressLandscapeMask
     private static final int MAX_WIDTH  = 0x1fff;
     private static final int MAX_HEIGHT = 512;
 
-    private static final int EMPTY     = 0;
-    private static final int LANDSCAPE = 3;
+    private static final int EMPTY     = 0x000000;
+    private static final int LANDSCAPE = 0x5edc78;
 
-    private final Raster landscape;
-    private final int    landscapeWidth;
-    private final int    landscapeHeight;
-    private final Raster player;
-    private final int    playerShiftX;
-    private final int    playerShiftY;
+
+    private final BufferedImage landscape;
+    private final int           landscapeWidth;
+    private final int           landscapeHeight;
+    private final Raster        player;
+    private final int           playerShiftX;
+    private final int           playerShiftY;
 
 
     public static void main(String[] args)
@@ -67,7 +68,7 @@ public class CompressLandscapeMask
         BufferedImage playerImage    = ImageIO.read(new File(inputPlayerFileName));
 
         CompressLandscapeMask landscape =
-            new CompressLandscapeMask(landscapeImage.getRaster(),
+            new CompressLandscapeMask(landscapeImage,
                                       playerImage.getRaster(),
                                       playerShiftX,
                                       playerShiftY);
@@ -83,10 +84,10 @@ public class CompressLandscapeMask
     }
 
 
-    public CompressLandscapeMask(Raster landscape,
-                                 Raster player,
-                                 int    playerShiftX,
-                                 int    playerShiftY)
+    public CompressLandscapeMask(BufferedImage landscape,
+                                 Raster        player,
+                                 int           playerShiftX,
+                                 int           playerShiftY)
     {
         this.landscape       = landscape;
         this.landscapeWidth  = Math.min(MAX_WIDTH,  landscape.getWidth());
@@ -202,12 +203,12 @@ public class CompressLandscapeMask
         if (y < 0)                    y = 0;
         if (y >= landscapeHeight - 1) y = landscapeHeight - 1;
 
-        int sample = landscape.getSample(x, y, 0);
-        if (sample != EMPTY && sample != LANDSCAPE)
+        int rgb = landscape.getRGB(x, y) & 0xffffff;
+        if (rgb != EMPTY && rgb != LANDSCAPE)
         {
-            sample = landscape.getSample(x, y+1, 0);
+            rgb = landscape.getRGB(x, y+1);
         }
 
-        return sample == LANDSCAPE;
+        return rgb == LANDSCAPE;
     }
 }

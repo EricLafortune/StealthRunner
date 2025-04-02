@@ -9,7 +9,7 @@ mkdir -p $OUTPUT_DIR
 
 rm -f "$OUTPUT_DIR"/??.png
 
-for COUNT in {0..6}
+for COUNT in {0..7}
 do
   FRAME=$(printf "$OUTPUT_DIR/%02.0f.png" $COUNT)
   echo "Creating $FRAME ..."
@@ -20,6 +20,7 @@ do
     0) echo -draw "'line 60,67 67,60'"
        echo -draw "'line 60,60 67,67'"
        ;;
+    7) echo -draw "'rectangle 63,55 64,56'" ;&
     6) echo -draw "'rectangle 67,57 68,58'" ;&
     5) echo -draw "'rectangle 59,57 60,58'" ;&
     4) echo -draw "'rectangle 67,61 68,62'" ;&

@@ -24,27 +24,28 @@ exploding equ >0800
 
 * One-time macro: initialize the objects in the world.
 * IN r0: a pointer to the initial values.
+* OUT hud_counter
+* OUT weapon
 * OUT stone_count
+* OUT emp_count
+* OUT grenade_count
 * OUT stone_x
 * OUT stone_y
 * OUT stone_fx
 * OUT stone_fy
 * OUT stone_direction
 * OUT stone_counter
-* OUT emp_count
 * OUT emp_x
 * OUT emp_y
 * OUT emp_fx
 * OUT emp_fy
 * OUT emp_direction
-* OUT grenade_count
 * OUT grenade_x
 * OUT grenade_y
 * OUT grenade_fx
 * OUT grenade_fy
 * OUT grenade_direction
 * OUT grenade_counter
-* OUT weapon
 * OUT targets
 * OUT stones
 * OUT batteries
@@ -65,8 +66,9 @@ exploding equ >0800
 * LOCAL r2
     .defm initialize_objects
 
-    li   r1, stone_count
-    mov  r1, @weapon
+    seto @hud_counter
+
+    clr  @weapon
     .ifdef initial_stones
     li   r1, initial_stones
     mov  r1, @stone_count
@@ -85,12 +87,13 @@ exploding equ >0800
     .else
     clr  @grenade_count
     .endif
-    seto @stone_x
-    seto @emp_x
-    seto @grenade_x
-    seto @bullet_x
-    seto @grenade_x
-    seto @hud_counter
+
+    seto @stone_state
+    seto @emp_state
+    seto @grenade_state
+
+    seto @bullet_state
+    seto @shell_state
 
 * Initialize the object lists of all horizontal strips.
     clr  r1
@@ -107,50 +110,6 @@ initialize_target_loop
     mov  *r0+, *r2+            ; Copy the y ordinate.
     jmp  initialize_target_loop
 initialize_target_loop_end
-
-* Initialize the bush positions.
-    li   r2, bushes
-    a    r1, r2
-
-initialize_bush_loop
-    mov  *r0+, *r2+            ; Copy the x ordinate.
-    jlt  initialize_bush_loop_end ; Is it the last bush?
-    mov  *r0+, *r2+            ; Copy the y ordinate.
-    jmp  initialize_bush_loop
-initialize_bush_loop_end
-
-* Initialize the tree positions.
-    li   r2, trees
-    a    r1, r2
-
-initialize_tree_loop
-    mov  *r0+, *r2+            ; Copy the x ordinate.
-    jlt  initialize_tree_loop_end ; Is it the last tree?
-    mov  *r0+, *r2+            ; Copy the y ordinate.
-    jmp  initialize_tree_loop
-initialize_tree_loop_end
-
-* Initialize the stone positions.
-    li   r2, stones
-    a    r1, r2
-
-initialize_stone_loop
-    mov  *r0+, *r2+            ; Copy the x ordinate.
-    jlt  initialize_stone_loop_end ; Is it the last stone?
-    mov  *r0+, *r2+            ; Copy the y ordinate.
-    jmp  initialize_stone_loop
-initialize_stone_loop_end
-
-* Initialize the battery positions.
-    li   r2, batteries
-    a    r1, r2
-
-initialize_battery_loop
-    mov  *r0+, *r2+            ; Copy the x ordinate.
-    jlt  initialize_battery_loop_end ; Is it the last battery?
-    mov  *r0+, *r2+            ; Copy the y ordinate.
-    jmp  initialize_battery_loop
-initialize_battery_loop_end
 
 * Initialize the mine positions and states.
     li   r2, mines
@@ -201,6 +160,30 @@ initialize_turret_loop
     clr  *r2+                  ; Initialize the direction.
     jmp  initialize_turret_loop
 initialize_turret_loop_end
+
+* Initialize the collectible positions.
+    li   r2, collectibles
+    a    r1, r2
+
+initialize_collectible_loop
+    mov  *r0+, *r2+            ; Copy the x ordinate.
+    jlt  initialize_collectible_loop_end ; Is it the last collectible?
+    mov  *r0+, *r2+            ; Copy the y ordinate.
+    mov  *r0+, *r2+            ; Copy the type.
+    jmp  initialize_collectible_loop
+initialize_collectible_loop_end
+
+* Initialize the background object positions and sprites.
+    li   r2, background_objects
+    a    r1, r2
+
+initialize_background_object_loop
+    mov  *r0+, *r2+            ; Copy the x ordinate.
+    jlt  initialize_background_object_loop_end ; Is it the last object?
+    mov  *r0+, *r2+            ; Copy the y ordinate.
+    mov  *r0+, *r2+            ; Copy the supersprite number.
+    jmp  initialize_background_object_loop
+initialize_background_object_loop_end
 
 * Repeat for the next strip, if any.
     ai   r1, object_strip_size
@@ -277,70 +260,6 @@ check_target_player
     jmp  update_target_loop
 
 update_target_loop_end
-
-* Update the stone states.
-    li   r8, stones
-    a    r9, r8
-
-update_stone_loop
-    mov  *r8+, r0              ; Get the x ordinate.
-    jlt  update_stone_loop_end ; Is it the last stone?
-    mov  *r8+, r1              ; Get the y ordinate.
-    jlt  update_stone_loop     ; Is it inactive?
-
-check_stone_player
-    .dist @player_x, r0, 20    ; Is it close to the player?
-    jgt  update_stone_loop
-    .dist @player_y, r1, 40
-    jgt  update_stone_loop
-
-    mov  @stone_count, r1      ; Then increment the number of available stones.
-    inc  r1
-    mov  r1, @stone_count
-
-    ci   r1, 6                 ; Set the supersprite.
-    jle  !
-    li   r1, 6
-!   ai   r1, stone_counter_sprites
-    mov  r1, @hud_sprite
-    clr  @hud_counter
-
-    seto @-2(r8)               ; Disable the stone.
-    jmp  update_stone_loop
-
-update_stone_loop_end
-
-* Update the battery states.
-    li   r8, batteries
-    a    r9, r8
-
-update_battery_loop
-    mov  *r8+, r0              ; Get the x ordinate.
-    jlt  update_battery_loop_end ; Is it the last battery?
-    mov  *r8+, r1              ; Get the y ordinate.
-    jlt  update_battery_loop   ; Is it inactive?
-
-check_battery_player
-    .dist @player_x, r0, 20    ; Is it close to the player?
-    jgt  update_battery_loop
-    .dist @player_y, r1, 40
-    jgt  update_battery_loop
-
-    mov  @emp_count, r1        ; Then increment the number of available EMPs.
-    inc  r1
-    mov  r1, @emp_count
-
-    ci   r1, 6                 ; Set the supersprite.
-    jle  !
-    li   r1, 6
-!   ai   r1, charge_sprites
-    mov  r1, @hud_sprite
-    clr  @hud_counter
-
-    seto @-2(r8)               ; Disable the battery.
-    jmp  update_battery_loop
-
-update_battery_loop_end
 
 * Update the mine states.
     li   r8, mines
@@ -676,6 +595,42 @@ update_launcher_explosion
 
 update_launcher_loop_end
 
+* Update the collectible states.
+    li   r8, collectibles
+    a    r9, r8
+
+update_collectible_loop
+    mov  *r8+, r0              ; Get the x ordinate.
+    jlt  update_collectible_loop_end ; Is it the last collectible?
+    mov  *r8+, r1              ; Get the y ordinate.
+    mov  *r8+, r2              ; Get the type.
+    jlt  update_collectible_loop     ; Is it inactive?
+
+check_collectible_player
+    .dist @player_x, r0, 20    ; Is it close to the player?
+    jgt  update_collectible_loop
+    .dist @player_y, r1, 40
+    jgt  update_collectible_loop
+
+    sla  r2, 1
+    mov  @weapon_counts(r2), r1 ; Then increment the number of available
+    inc  r1                     ; collectibles.
+    mov  r1, @weapon_counts(r2)
+
+    ci   r1, 7                 ; Compute and set the supersprite.
+    jle  !                     ; based on the (clamped) count...
+    li   r1, 7
+!   sla  r2, 2                 ; ...and the type.
+    a    r2, r1
+    ai   r1, collectible_counter_sprites
+    mov  r1, @hud_sprite
+    clr  @hud_counter
+
+    seto @-2(r8)               ; Disable the collectible.
+    jmp  update_collectible_loop
+
+update_collectible_loop_end
+
 * Repeat for the next strip, if any.
     .next_object_strip r9, r10
     jh   !
@@ -684,6 +639,7 @@ update_launcher_loop_end
 
 
 * Update the thrown stone state and position, if any.
+update_stone
     mov  @stone_x, r0
     jlt  update_stone_end      ; Is it inactive?
     mov  @stone_y, r1
@@ -837,7 +793,7 @@ check_grenade_drone_loop
     mov  *r8+, r4              ; Get the y ordinate.
     ai   r8, 4                 ; Skip the fractional coordinates.
     mov  *r8+, r5              ; Get the direction.
-    jne  check_grenade_drone_loop ; Is it inactive?
+    jlt  check_grenade_drone_loop ; Is it inactive?
 
     .dist r0, r3, 32           ; Is it close to the landing grenade?
     jgt  check_grenade_drone_loop

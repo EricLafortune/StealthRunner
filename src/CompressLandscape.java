@@ -63,15 +63,15 @@ public class CompressLandscape
     private static final int MAX_WIDTH  = 0x1fff;
     private static final int MAX_HEIGHT = 512;
 
-    private static final int EMPTY     = 0;
-    private static final int LANDSCAPE = 3;
+    private static final int EMPTY     = 0x000000;
+    private static final int LANDSCAPE = 0x5edc78;
 
     private static final boolean DEBUG = false;
 
 
-    private final Raster raster;
-    private final int    width;
-    private final int    height;
+    private final BufferedImage image;
+    private final int           width;
+    private final int           height;
 
     private int deltaIndex; // For debug printing.
 
@@ -110,7 +110,7 @@ public class CompressLandscape
         }
 
         CompressLandscape landscape =
-            new CompressLandscape(image.getRaster());
+            new CompressLandscape(image);
 
         try (DataOutputStream outputStream =
                  new DataOutputStream(
@@ -122,11 +122,11 @@ public class CompressLandscape
     }
 
 
-    public CompressLandscape(Raster raster)
+    public CompressLandscape(BufferedImage image)
     {
-        this.raster = raster;
-        this.width  = Math.min(MAX_WIDTH,  raster.getWidth());
-        this.height = Math.min(MAX_HEIGHT, raster.getHeight());
+        this.image  = image;
+        this.width  = Math.min(MAX_WIDTH,  image.getWidth());
+        this.height = Math.min(MAX_HEIGHT, image.getHeight());
     }
 
 
@@ -246,7 +246,7 @@ public class CompressLandscape
                                      DataOutputStream frameOutputStream)
     throws IOException
     {
-        // The landscape height is half the raster height.
+        // The landscape height is half the image height.
         // Scan all landscape rows.
         for (int charY = 0; charY < height / 2; charY++)
         {
@@ -426,12 +426,12 @@ public class CompressLandscape
         if (y < 0)           y = 0;
         if (y >= height - 1) y = height - 1;
 
-        int sample = raster.getSample(x, y, 0);
-        if (sample != EMPTY && sample != LANDSCAPE)
+        int rgb = image.getRGB(x, y) & 0xffffff;
+        if (rgb != EMPTY && rgb != LANDSCAPE)
         {
-            sample = raster.getSample(x, y+1, 0);
+            rgb = image.getRGB(x, y+1) & 0xffffff;
         }
 
-        return sample == LANDSCAPE;
+        return rgb == LANDSCAPE;
     }
 }

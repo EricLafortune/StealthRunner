@@ -220,89 +220,46 @@ draw_target_loop
 
 draw_target_loop_end
 
-* Draw the batteries (supersprites, low priority).
-    li   r8, batteries
+* Draw the collectibles: stones, batteries, grenades (supersprites, low priority).
+    li   r8, collectibles
     a    r9, r8
 
-draw_battery_loop
+draw_collectible_loop
     mov  *r8+, r2              ; Get the x ordinate.
-    jlt  draw_battery_loop_end ; Is it the last battery?
+    jlt  draw_collectible_loop_end ; Is it the last collectible?
     mov  *r8+, r3              ; Get the y ordinate.
-    jlt  draw_battery_loop     ; Is it inactive?
+    mov  *r8+, r1              ; Get the type.
+    jlt  draw_collectible_loop ; Is it inactive?
 
-    li   r1, battery_sprite
+    ai   r1, collectible_sprites ; Compute the supersprite number.
 
     s    @player_x, r2         ; Get the coordinates in screen space.
     s    @player_y, r3
 
     bl   @draw_small_supersprite
 
-    jmp  draw_battery_loop
+    jmp  draw_collectible_loop
 
-draw_battery_loop_end
+draw_collectible_loop_end
 
-* Draw the stones (supersprites, low priority).
-    li   r8, stones
+* Draw the background objects: grass, bushes,... (supersprites, low priority).
+    li   r8, background_objects
     a    r9, r8
 
-draw_stone_loop
+draw_background_object_loop
     mov  *r8+, r2              ; Get the x ordinate.
-    jlt  draw_stone_loop_end   ; Is it the last stone?
+    jlt  draw_background_object_loop_end ; Is it the last object?
     mov  *r8+, r3              ; Get the y ordinate.
-    jlt  draw_stone_loop       ; Is it inactive?
-
-    li   r1, stone_sprite
-
-    s    @player_x, r2         ; Get the coordinates in screen space.
-    s    @player_y, r3
-
-    bl   @draw_small_supersprite
-
-    jmp  draw_stone_loop
-
-draw_stone_loop_end
-
-* Draw the bushes (supersprite, low priority).
-    li   r8, bushes
-    a    r9, r8
-
-draw_bush_loop
-    mov  *r8+, r2              ; Get the x ordinate.
-    jlt  draw_bush_loop_end    ; Is it the last bush?
-    mov  *r8+, r3              ; Get the y ordinate.
-    jlt  draw_bush_loop        ; Is it inactive?
-
-    li   r1, bush_sprite
+    mov  *r8+, r1              ; Get the type.
 
     s    @player_x, r2         ; Get the coordinates in screen space.
     s    @player_y, r3
 
     bl   @draw_supersprite
 
-    jmp  draw_bush_loop
+    jmp  draw_background_object_loop
 
-draw_bush_loop_end
-
-* Draw the trees (supersprite, low priority).
-    li   r8, trees
-    a    r9, r8
-
-draw_tree_loop
-    mov  *r8+, r2              ; Get the x ordinate.
-    jlt  draw_tree_loop_end    ; Is it the last tree?
-    mov  *r8+, r3              ; Get the y ordinate.
-    jlt  draw_tree_loop        ; Is it inactive?
-
-    li   r1, tree_sprite
-
-    s    @player_x, r2         ; Get the coordinates in screen space.
-    s    @player_y, r3
-
-    bl   @draw_supersprite
-
-    jmp  draw_tree_loop
-
-draw_tree_loop_end
+draw_background_object_loop_end
 
 * Repeat for the next strip, if any.
     .next_object_strip r9, r10
@@ -334,6 +291,7 @@ draw_emp
     s    @player_y, r3
 
     mov  @emp_direction, r1    ; Draw the EMP.
+    andi r1, >000f
     ai   r1, emp_sprites
 
     bl   @draw_small_supersprite
@@ -371,7 +329,7 @@ draw_hud
     clr  r2
     clr  r3
 
-    bl   @draw_supersprite_unchecked
+    bl   @draw_small_supersprite_unchecked
 
     mov  r0, r2                ; Save the sprite cache queue address.
     .switch_bank @data_bank    ; The sounds are in the data bank.
@@ -387,10 +345,12 @@ draw_hud
 draw_hud_end
 
 * End the list of sprites.
+draw_objects_sentinel
     li   r1, sprite_attribute_table_terminator * 256
     .vdpwd r1
 
 * Write any quadsprites that the supersprite drawing code has queued.
+draw_objects_quadsprites
     bl @write_quadsprites
 
     .endm

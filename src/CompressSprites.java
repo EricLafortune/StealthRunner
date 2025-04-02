@@ -12,10 +12,11 @@ import java.util.List;
  * Usage:
  *   java CompressSprites [options] <input_file> ... <name_output_file> <bounds_output_file> <index_output_file> <position_output_file> <pattern_output_file>
  * where options are
- *   -color <n>           the color number of the next supersprite(s).
+ *   -minpixelcount       the minimum number of pixels for a quadsprite to be added (default = 1).
+ *   -color <n>           the color number of the next supersprite(s) (default = 15).
  *   -shiftx <s>          the horizontal shift added to the object positions, expressed in pixels.
  *   -shifty <s>          the vertical shift added to the object positions, expressed in pixels.
- *   -explosioncount      the number of explosion frames.
+ *   -explosioncount      the number of explosion frames (default = 0).
  *   -explosionspeed      the speed of the exploding fragments (quadsprites).
  *   -explosiongravity    the gravity of the exploding fragments (quadsprites).
  *   -name                the name of the next supersprite.
@@ -70,16 +71,18 @@ public class CompressSprites
                  new FileOutputStream(patternOutputFileName))))
         {
             // Options.
-            int    color            = 15;
-            int    shiftX           = 0;
-            int    shiftY           = 0;
-            int    explosionCount   = 0;
-            double explosionSpeed   = 1;
-            double explosionGravity = 0.;
-            String appendFileName   = null;
-            int    appendShiftX     = 0;
-            int    appendShiftY     = 0;
-            int    appendColor      = 0;
+            int    minPixelCount       = 1;
+            int    color               = 15;
+            int    shiftX              = 0;
+            int    shiftY              = 0;
+            int    explosionCount      = 0;
+            double explosionSpeed      = 1;
+            double explosionGravity    = 0.;
+            String appendFileName      = null;
+            int    appendMinPixelCount = 1;
+            int    appendColor         = 0;
+            int    appendShiftX        = 0;
+            int    appendShiftY        = 0;
 
             // Keep a map of file names to supersprite definitions.
             Map<String,SpriteImage> nameImageMap = new HashMap<>();
@@ -95,6 +98,7 @@ public class CompressSprites
                     // Parse the option.
                     switch (arg)
                     {
+                        case "-minpixelcount"    -> minPixelCount    = Integer.parseInt(args[argIndex++]);
                         case "-color"            -> color            = Integer.parseInt(args[argIndex++]);
                         case "-shiftx"           -> shiftX           = Integer.parseInt(args[argIndex++]);
                         case "-shifty"           -> shiftY           = Integer.parseInt(args[argIndex++]);
@@ -113,10 +117,11 @@ public class CompressSprites
                         }
                         case "-append" ->
                         {
-                            appendFileName  = args[argIndex++];
-                            appendColor     = color;
-                            appendShiftX    = shiftX;
-                            appendShiftY    = shiftY;
+                            appendFileName      = args[argIndex++];
+                            appendMinPixelCount = minPixelCount;
+                            appendColor         = color;
+                            appendShiftX        = shiftX;
+                            appendShiftY        = shiftY;
                         }
                         default -> throw new IllegalArgumentException("Unknown option [" + arg + "]");
                     }
@@ -130,6 +135,7 @@ public class CompressSprites
                     }
 
                     appendSprite(arg,
+                                 minPixelCount,
                                  color,
                                  shiftX,
                                  shiftY,
@@ -137,6 +143,7 @@ public class CompressSprites
                                  explosionSpeed,
                                  explosionGravity,
                                  appendFileName,
+                                 appendMinPixelCount,
                                  appendColor,
                                  appendShiftX,
                                  appendShiftY,
@@ -163,6 +170,7 @@ public class CompressSprites
      * Appends a named sprite to the sprite that is currently being defined.
      */
     private static void appendSprite(String                  fileName,
+                                     int                     minPixelCount,
                                      int                     color,
                                      int                     shiftX,
                                      int                     shiftY,
@@ -170,6 +178,7 @@ public class CompressSprites
                                      double                  explosionSpeed,
                                      double                  explosionGravity,
                                      String                  appendFileName,
+                                     int                     appendMinPixelCount,
                                      int                     appendColor,
                                      int                     appendShiftX,
                                      int                     appendShiftY,
@@ -187,7 +196,9 @@ public class CompressSprites
         SpriteImage spriteImage = nameImageMap.get(fileName);
         if (spriteImage == null)
         {
-            spriteImage = createSpriteImage(fileName, patternOutputStream);
+            spriteImage = createSpriteImage(fileName,
+                                            minPixelCount,
+                                            patternOutputStream);
 
             nameImageMap.put(fileName, spriteImage);
         }
@@ -202,6 +213,7 @@ public class CompressSprites
                      explosionSpeed,
                      explosionGravity,
                      appendFileName,
+                     appendMinPixelCount,
                      appendColor,
                      appendShiftX,
                      appendShiftY,
@@ -219,6 +231,7 @@ public class CompressSprites
      * writing out the quadsprite patterns (but not yet any indices or positions).
      */
     private static SpriteImage createSpriteImage(String           fileName,
+                                                 int              minPixelCount,
                                                  DataOutputStream patternOutputStream)
     throws IOException
     {
@@ -258,7 +271,7 @@ public class CompressSprites
         // for the image.
         int[][] bitraster = new int[width][height];
 
-        for (int positionIndex = 0;; positionIndex++)
+        for (int spriteIndex = 0;; spriteIndex++)
         {
             Point position = findBestCornerSprite(raster);
             if (position == null)
@@ -282,7 +295,7 @@ public class CompressSprites
             copySprite(originalRaster,
                        position.x,
                        position.y,
-                       1 << positionIndex,
+                       1 << spriteIndex,
                        bitraster);
         }
 
@@ -294,38 +307,81 @@ public class CompressSprites
             System.out.println("  Extracting corresponding patterns, starting at #"+firstPatternIndex+":");
         }
 
-        int positionCount = positions.size();
+        int spriteCount = positions.size();
 
-        // Write the quadsprite patterns.
-        for (int positionIndex = 0; positionIndex < positionCount; positionIndex++)
+        // Cull the quadsprites that only have few required pixels,
+        // because they are mostly covered by other quadsprites.
+        if (spriteCount > 1)
         {
-            Point position = positions.get(positionIndex);
-
-            int spriteX = position.x;
-            int spriteY = position.y;
-
-            // Extract the quadsprite from the supersprite bitraster,
-            // gradually clearing its pixels.
-            byte[] spritePattern = extractSprite(bitraster,
-                                                 spriteX,
-                                                 spriteY,
-                                                 1 << positionIndex);
-
-            // Write the sprite pattern.
-            patternOutputStream.write(spritePattern);
-
-            if (DEBUG)
+            for (int spriteIndex = 0; spriteIndex < spriteCount; spriteIndex++)
             {
-                System.out.print("    #" + positionIndex +
-                                 ": (" + spriteX + ", " + spriteY + ") 0x");
+                Point position = positions.get(spriteIndex);
 
-                for (int index = 0; index < spritePattern.length; index++)
+                int spriteX = position.x;
+                int spriteY = position.y;
+
+                // Check the number of required pixels.
+                int bit = 1 << spriteIndex;
+                int pixelCount = requiredPixelCount(bitraster,
+                                                    spriteX,
+                                                    spriteY,
+                                                    bit);
+
+                if (pixelCount < minPixelCount)
                 {
-                    System.out.printf("%02x", spritePattern[index]);
+                    // Discard the quadsprite.
+                    clearSprite(bitraster,
+                                spriteX,
+                                spriteY,
+                                bit);
+
+                    positions.set(spriteIndex, null);
+                    bounds.set(spriteIndex, null);
+
+                    if (DEBUG)
+                    {
+                        System.out.println("   Culling quadsprite #"+spriteIndex+" at ("+spriteX+", "+spriteY+"): "+pixelCount+" pixels");
+                    }
                 }
-                System.out.println();
             }
         }
+
+        // Write the quadsprite patterns.
+        for (int spriteIndex = 0; spriteIndex < spriteCount; spriteIndex++)
+        {
+            Point position = positions.get(spriteIndex);
+            if (position != null)
+            {
+                int spriteX = position.x;
+                int spriteY = position.y;
+
+                // Extract the quadsprite from the supersprite bitraster,
+                // gradually clearing its pixels.
+                byte[] spritePattern = extractSprite(bitraster,
+                                                     spriteX,
+                                                     spriteY,
+                                                     1 << spriteIndex);
+
+                // Write the sprite pattern.
+                patternOutputStream.write(spritePattern);
+
+                if (DEBUG)
+                {
+                    System.out.print("    #" + spriteIndex +
+                                     ": (" + spriteX + ", " + spriteY + ") 0x");
+
+                    for (int index = 0; index < spritePattern.length; index++)
+                    {
+                        System.out.printf("%02x", spritePattern[index]);
+                    }
+                    System.out.println();
+                }
+            }
+        }
+
+        // Remove the null elements from the arrays.
+        positions.removeIf(Objects::isNull);
+        bounds.removeIf(Objects::isNull);
 
         return new SpriteImage(cropBounds, positions, bounds, firstPatternIndex);
     }
@@ -343,6 +399,7 @@ public class CompressSprites
                                      double                  explosionSpeed,
                                      double                  explosionGravity,
                                      String                  appendFileName,
+                                     int                     appendMinPixelCount,
                                      int                     appendColor,
                                      int                     appendShiftX,
                                      int                     appendShiftY,
@@ -363,7 +420,7 @@ public class CompressSprites
         List<Point>     positions = spriteImage.spritePositions;
         List<Rectangle> bounds    = spriteImage.spriteBounds;
 
-        int positionCount = positions.size();
+        int spriteCount = positions.size();
 
         // Write the quadsprite positions, including exploded ones.
         for (int explosionCounter = 0; explosionCounter <= explosionCount; explosionCounter++)
@@ -382,10 +439,10 @@ public class CompressSprites
                 System.out.println("  Explosion #"+explosionCounter+":");
             }
 
-            for (int positionCounter = 0; positionCounter < positionCount; positionCounter++)
+            for (int spriteCounter = 0; spriteCounter < spriteCount; spriteCounter++)
             {
-                Point     position     = positions.get(positionCounter);
-                Rectangle spriteBounds = bounds.get(positionCounter);
+                Point     position     = positions.get(spriteCounter);
+                Rectangle spriteBounds = bounds.get(spriteCounter);
 
                 // Compute the deltas for the exploding sprite.
                 int spriteCenterX = spriteBounds.x + spriteBounds.width  / 2;
@@ -406,14 +463,14 @@ public class CompressSprites
                                        ": x = " + positionX +
                                        ", y = " + positionY +
                                        ", color = " + color +
-                                       ", pattern = " + (spriteImage.firstPatternIndex + positionCounter));
+                                       ", pattern = " + (spriteImage.firstPatternIndex + spriteCounter));
                 }
 
                 // Write the quadsprite information.
                 positionOutputStream.writeChar(positionX);
                 positionOutputStream.writeChar(positionY);
                 positionOutputStream.writeChar(color);
-                positionOutputStream.writeChar(spriteImage.firstPatternIndex + positionCounter);
+                positionOutputStream.writeChar(spriteImage.firstPatternIndex + spriteCounter);
 
                 // Compute the exploding quadsprite's bounds.
                 Rectangle explodingBounds = spriteBounds.getBounds();
@@ -440,6 +497,7 @@ public class CompressSprites
             if (appendFileName != null)
             {
                 appendSprite(appendFileName,
+                             appendMinPixelCount,
                              appendColor,
                              appendShiftX,
                              appendShiftY,
@@ -447,6 +505,7 @@ public class CompressSprites
                              0.0,
                              0.0,
                              null,
+                             0,
                              0,
                              0,
                              0,
@@ -729,6 +788,61 @@ public class CompressSprites
                 {
                     bitraster[x][y] |= bit;
                 }
+            }
+        }
+    }
+
+
+    /**
+     * Returns the number of pixels that are required in the quadsprite at the
+     * specified position. Pixels that are covered by other quadsprites are
+     * ignored.
+     */
+    private static int requiredPixelCount(int[][] bitraster,
+                                          int     spriteX,
+                                          int     spriteY,
+                                          int     bit)
+    {
+        int pixelCount = 0;
+
+        for (int dx = 0; dx < 16; dx++)
+        {
+            for (int dy = 0; dy < 16; dy++)
+            {
+                int x = spriteX + dx;
+                int y = spriteY + dy;
+
+                // Check the bitraster bits.
+                int bits = bitraster[x][y];
+                if ((bits &  bit) != 0 &&
+                    (bits & ~bit) == 0)
+                {
+                    pixelCount++;
+                }
+            }
+        }
+
+        return pixelCount;
+    }
+
+
+    /**
+     * Clears the bits of the quadsprite at the specified position.
+     */
+    private static void clearSprite(int[][] bitraster,
+                                    int     spriteX,
+                                    int     spriteY,
+                                    int     bit)
+    {
+        for (int dx = 0; dx < 16; dx++)
+        {
+            for (int dy = 0; dy < 16; dy++)
+            {
+                int x = spriteX + dx;
+                int y = spriteY + dy;
+
+                // Clear the bitraster bit.
+                bitraster[x][y] &= ~bit;
             }
         }
     }
