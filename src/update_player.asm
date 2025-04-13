@@ -38,6 +38,7 @@
     clr  @player_fy
     clr  @player_speed
     clr  @player_direction
+    seto @player_direction_delta
 
     li   r1, standing_player_animation_banks
     mov  r1, @player_animation_bank
@@ -63,28 +64,33 @@
     jeq  dont_update_player_position ; Is the player standing still?
                                ; Then we don't need to update the position.
 
-    jgt  !                     ; Is the player dead?
+    jgt  update_player_position_start ; Is the player dead?
     b    @check_quit           ; Then don't update the position or check keys.
-!
+
+update_player_position_start
+    mov  @player_direction, r7
+    mov  @player_direction_delta, r8
+
+update_player_position_loop
     mov  @player_x, r2         ; Get the coordinates.
     mov  @player_fx, r3
 
     mov  @player_y, r4
     mov  @player_fy, r5
 
-    sla  r6, player_direction_shift ; Compute the delta entry adress,
-    a    @player_direction, r6      ; based on direction and speed.
-    sla  r6, 3
-    ai   r6, delta_still
+    mov  r6, r0
+    sla  r0, player_direction_shift ; Compute the delta entry adress,
+    a    r7, r0                     ; based on direction and speed.
+    sla  r0, 3
+    ai   r0, delta_still
 
     .switch_bank @data_bank    ; The motion deltas are in the data bank.
 
-    .update_ordinate r6, r2, r3 ; Adjust the coordinates.
-    .update_ordinate r6, r4, r5
+    .update_ordinate r0, r2, r3 ; Adjust the coordinates.
+    .update_ordinate r0, r4, r5
 
     .switch_bank @landscape_mask_bank ; Check the new position.
 
-check_full_player_move
     mov  r2, r0                ; Scale the x ordinate to a char ordinate.
     ai   r0, -player_base_x
     srl  r0, 3
@@ -92,56 +98,38 @@ check_full_player_move
     ai   r1, -player_base_y
     andi r1, >fff8             ; Compute the y offset of the mask span.
     ai   r1, module_memory
-    mov  r1, r7                ; Save a copy of the landscape mask address.
     c    r0, *r1+              ; Is the x ordinate smaller than the first mask span start?
-    jl   check_vertical_player_move
+    jl   try_other_player_direction
     c    r0, *r1+              ; Is the x ordinate larger than the first mask span end?
     jl   update_player_position
     c    r0, *r1+              ; Is the x ordinate smaller than the second mask span start?
-    jl   check_vertical_player_move
+    jl   try_other_player_direction
     c    r0, *r1               ; Is the x ordinate larger than the second mask span end?
     jl   update_player_position
 
-check_vertical_player_move
-    mov  @player_x, r6         ; Get the unchanged x ordinate.
-    ai   r6, -player_base_x    ; Scale it to a char ordinate.
-    srl  r6, 3
-    c    r6, *r7+              ; Is the x ordinate smaller than the first mask span start?
-    jl   check_horizontal_player_move
-    c    r6, *r7+              ; Is the x ordinate larger than the first mask span end?
-    jl   update_player_y_ordinate
-    c    r6, *r7+              ; Is the x ordinate smaller than the second mask span start?
-    jl   check_horizontal_player_move
-    c    r6, *r7               ; Is the x ordinate larger than the second mask span end?
-    jl   update_player_y_ordinate
+try_other_player_direction
+    a    r8, r7                ; Try another player direction.
+    andi r7, player_direction_count - 1
 
-check_horizontal_player_move
-    mov  @player_y, r1         ; Get the unchanged y ordinate.
-    ai   r1, -player_base_y    ; Scale the y ordinate to a char ordinate.
-    andi r1, >fff8             ; Compute the y offset of the mask span.
-    ai   r1, module_memory
-    c    r0, *r1+              ; Is the x ordinate smaller than the first mask span start?
-    jl   dont_update_player_position
-    c    r0, *r1+              ; Is the x ordinate larger than the first mask span end?
-    jl   update_player_x_ordinate
-    c    r0, *r1+              ; Is the x ordinate smaller than the second mask span start?
-    jl   dont_update_player_position
-    c    r0, *r1               ; Is the x ordinate larger than the second mask span end?
-    jhe  dont_update_player_position
+    neg  r8                    ; Update the player direction delta:
+    jlt  !                     ;   -1, 2, -3, 4, -5, 6,...
+    inct r8                    ; or
+!   dec  r8                    ;   1, -2, 3, -4, 5, -6,...
 
-update_player_x_ordinate
-    mov  r2, @player_x         ; Update the x ordinate.
-    mov  r3, @player_fx
-    jmp  dont_update_player_position
+    jmp  update_player_position_loop
 
 update_player_position
     mov  r2, @player_x         ; Update the x ordinate.
     mov  r3, @player_fx
 
-update_player_y_ordinate
     mov  r4, @player_y         ; Update the y ordinate.
     mov  r5, @player_fy
 
+    srl  r8, 1                       ; Swap the preferential initial player
+    jnc  dont_update_player_position ; direction delta (-1 or 1) if the
+    neg  @player_direction_delta     ; current delta is even. This is mostly
+                                     ; to keep the accumulated delta -4 or +4
+                                     ; preferential if they are successful.
 dont_update_player_position
 
     .endm

@@ -273,12 +273,13 @@ current_speech_length data 0; The address of the speech data currently being spo
 * Player variables. The coordinates are those of the top-left corner of the
 * screen in the world. The player is centered on the screen, with his base
 * at (128,112) expressed in pixels.
-player_x           data 0 ; X ordinate, expressed in pixels.
-player_y           data 0 ; Y ordinate, expressed in pixels.
-player_fx          data 0 ; Fractional x ordinate (fixed point 16.16 bits).
-player_fy          data 0 ; Fractional y ordinate (fixed point 16.16 bits).
-player_speed       data 0 ; Speed (-1 for dying, 0 for standing,...)
-player_direction   data 0 ; Direction (0..15).
+player_x               data 0 ; X ordinate, expressed in pixels.
+player_y               data 0 ; Y ordinate, expressed in pixels.
+player_fx              data 0 ; Fractional x ordinate (fixed point 16.16 bits).
+player_fy              data 0 ; Fractional y ordinate (fixed point 16.16 bits).
+player_speed           data 0 ; Speed (-1 for dying, 0 for standing,...)
+player_direction       data 0 ; Direction (0..15).
+player_direction_delta data 0 ; Preferential initial direction delta (-1 or 1).
 
 * Player display variables.
 player_animation_bank          data 0 ; Animation memory bank (>6000, >6002,...).
@@ -361,7 +362,7 @@ background_objects        bss >0080 ; X ordinate, y ordinate, type.
 strip_object_lists_end
 
 world_character_height    equ 256 ; Number of characters vertically in the world.
-world_pixel_height        equ world_character_height * 8 ; Number of characters vertically in the world.
+world_pixel_height        equ world_character_height * 8 ; Number of pixels vertically in the world.
 
 object_strip_pixel_height       equ 128 ; Number of pixels vertically per strip.
 object_strip_pixel_height_shift equ 7 ; The corresponding bit shift.

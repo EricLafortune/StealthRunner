@@ -23,6 +23,15 @@ public class CompressPlayer
     private static final int SCREEN_WIDTH  = 32;
     private static final int SCREEN_HEIGHT = 24;
 
+    private static final byte TRANSPARENT = -1;
+    private static final byte BLANK       = 0;
+    private static final byte COVERED     = 1;
+
+    private static final int FRAME_MIN_PIXELS_PER_CHARACTER  =  1;
+    private static final int GLOBAL_MIN_PIXELS_PER_CHARACTER = 30;
+
+    private static final boolean DEBUG = false;
+
 
     public static void main(String[] args)
     throws IOException
@@ -126,6 +135,8 @@ public class CompressPlayer
                     width  = raster.getWidth();
                     height = raster.getHeight();
 
+                    // The pixels are a byte array with compacted monochrome
+                    // pixels, row by row, top to bottom.
                     byte[] pixels = ((DataBufferByte)raster.getDataBuffer()).getData();
 
                     // Transpose the bytes, so we'll work with columns of
@@ -148,24 +159,25 @@ public class CompressPlayer
             {
                 int frameCount = frames[typeIndex][directionIndex].length;
 
-                // Create an empty screen.
-                // We can truncate it to the height of the frames.
                 byte[] screen = new byte[SCREEN_WIDTH * SCREEN_HEIGHT];
-                Arrays.fill(screen, (byte)-1);
 
                 // Mark the used (non-blank) characters in the screen.
                 for (int frameIndex = 0; frameIndex < frameCount; frameIndex++)
                 {
-                    markScreen(frames[typeIndex][directionIndex][frameIndex],
-                               width,
-                               height,
-                               screen,
-                               charOffset);
+                    markCoverage(frames[typeIndex][directionIndex][frameIndex],
+                                 width,
+                                 height,
+                                 FRAME_MIN_PIXELS_PER_CHARACTER,
+                                 screen);
                 }
+
+                // Convert blank characters to transparent characters.
+                makeTransparent(screen);
 
                 screens[typeIndex][directionIndex] = screen;
             }
         }
+
 
         // Mark the used characters of adjacent screens (adjacent in type and
         // in direction), so their non-blank characters are properly cleared
@@ -196,8 +208,8 @@ public class CompressPlayer
                             if (adjacentTypeIndex      != typeIndex ||
                                 adjacentDirectionIndex != directionIndex)
                             {
-                                markAdjacentScreen(screens[adjacentTypeIndex][adjacentDirectionIndex],
-                                                   screen);
+                                markAdjacentMask(screens[adjacentTypeIndex][adjacentDirectionIndex],
+                                                 screen);
                             }
                         }
                     }
@@ -261,7 +273,7 @@ public class CompressPlayer
                     // compressed as spans.
                     writeSpans(emptyScreen,
                                screen,
-                               (byte)-1,
+                               TRANSPARENT,
                                offsetOutputStream,
                                offsetsLength,
                                frameOutputStream);
@@ -272,7 +284,7 @@ public class CompressPlayer
                     {
                         writeSpans(patterns[(frameIndex - 1 + frameCount) % frameCount],
                                    patterns[frameIndex],
-                                   (byte)0,
+                                   BLANK,
                                    offsetOutputStream,
                                    offsetsLength,
                                    frameOutputStream);
@@ -301,9 +313,39 @@ public class CompressPlayer
 
         if (outputMaskFile != null)
         {
-            byte[] playerMaskBytes = computeGlobalMask(landscapeMaskFlags,
-                                                       screens);
+            // Compute a global character collision mask, ignoring characters
+            // that are only covered by few pixels.
+            byte[] mask = new byte[SCREEN_WIDTH * SCREEN_HEIGHT];
 
+            for (int typeIndex = 0; typeIndex < typeCount; typeIndex++)
+            {
+                if (landscapeMaskFlags[typeIndex])
+                {
+                    int directionCount = frames[typeIndex].length;
+
+                    for (int directionIndex = 0; directionIndex < directionCount; directionIndex++)
+                    {
+                        int frameCount = frames[typeIndex][directionIndex].length;
+
+                        if (DEBUG)
+                        {
+                            System.out.println("Type "+typeIndex+", dir "+directionIndex);
+                        }
+
+                        // Mark the non-blank characters in the mask.
+                        for (int frameIndex = 0; frameIndex < frameCount; frameIndex++)
+                        {
+                            markCoverage(frames[typeIndex][directionIndex][frameIndex],
+                                         width,
+                                         height,
+                                         GLOBAL_MIN_PIXELS_PER_CHARACTER,
+                                         mask);
+                        }
+                    }
+                }
+            }
+
+            // Write out the mask as a binary image.
             BufferedImage playerMask =
                 new BufferedImage(SCREEN_WIDTH,
                                   SCREEN_HEIGHT,
@@ -313,7 +355,7 @@ public class CompressPlayer
                                                    0,
                                                    SCREEN_WIDTH,
                                                    SCREEN_HEIGHT,
-                                                   playerMaskBytes);
+                                                   mask);
 
             ImageIO.write(playerMask,
                           "png",
@@ -344,43 +386,91 @@ public class CompressPlayer
 
 
     /**
-     * Marks the used characters of the given frame, in the given screens.
+     * Sets the coverage in the 8x8 pixel characters of the given frame,
+     * in the given character mask.
      */
-    private static void markScreen(byte[] frame,
-                                   int    width,
-                                   int    height,
-                                   byte[] screen,
-                                   int    charOffset)
+    private static void markCoverage(byte[] frame,
+                                     int    width,
+                                     int    height,
+                                     int    minPixelsPerCharacter,
+                                     byte[] mask)
     {
         width  /= 8;
         height /= 8;
 
+        // Loop over all characters in the mask.
         for (int x = 0; x < width; x++)
         {
             for (int y = 0; y < height; y++)
             {
+                // Count the number of pixels per character.
                 int patternIndex = (x * height + y) * 8;
 
-                if (!isBlank(frame, patternIndex))
+                int pixelCount = 0;
+
+                for (int row = 0; row < 8; row++)
+                {
+                    int pixels = frame[patternIndex + row] & 0xff;
+
+                    pixelCount += Integer.bitCount(pixels);
+                }
+
+                if (DEBUG)
+                {
+                    System.out.printf("%3d", pixelCount);
+                }
+
+                // Is the number of pixels worth it?
+                if (pixelCount >= minPixelsPerCharacter)
                 {
                     int characterIndex = y * SCREEN_WIDTH + x;
 
-                    screen[characterIndex] = 1;
+                    // Then mark the character.
+                    mask[characterIndex] = COVERED;
                 }
+            }
+
+            if (DEBUG)
+            {
+                System.out.println();
+            }
+        }
+
+        if (DEBUG)
+        {
+            System.out.println();
+        }
+    }
+
+
+    /**
+     * Makes blank entries transparent in the given mask.
+     */
+    private static void makeTransparent(byte[] mask)
+    {
+        for (int index = 0; index < mask.length; index++)
+        {
+            if (mask[index] == BLANK)
+            {
+                mask[index] = TRANSPARENT;
             }
         }
     }
 
 
-    private static void markAdjacentScreen(byte[] fromScreen,
-                                           byte[] toScreen)
+    /**
+     * Changes characters that are covered in the given mask from transparent
+     * to blank in the given adjacent mask.
+     */
+    private static void markAdjacentMask(byte[] fromMask,
+                                         byte[] toMask)
     {
-        for (int index = 0; index < fromScreen.length; index++)
+        for (int index = 0; index < fromMask.length; index++)
         {
-            if (fromScreen[index] > 0 &&
-                toScreen[index] < 0)
+            if (fromMask[index] == COVERED &&
+                toMask[index]   == TRANSPARENT)
             {
-                toScreen[index] = 0;
+                toMask[index] = BLANK;
             }
         }
     }
@@ -388,7 +478,7 @@ public class CompressPlayer
 
     /**
      * Assigns unique, vertically sequential characters to the marked
-     * characters in the given screen.
+     * characters in the given mask/screen.
      */
     private static int assignScreenCharacters(byte[] screen,
                                               int    charOffset)
@@ -401,7 +491,7 @@ public class CompressPlayer
             {
                 int screenIndex = y * SCREEN_WIDTH + x;
 
-                if (screen[screenIndex] > 0)
+                if (screen[screenIndex] == COVERED)
                 {
                     screen[screenIndex] = (byte)(charOffset + charCount++);
                 }
@@ -410,18 +500,6 @@ public class CompressPlayer
         }
 
         return charCount;
-    }
-
-
-    private static void replace(byte[] bytes, byte from, byte to)
-    {
-        for (int index = 0; index < bytes.length; index++)
-        {
-            if (bytes[index] == from)
-            {
-                bytes[index] = to;
-            }
-        }
     }
 
 
@@ -462,33 +540,6 @@ public class CompressPlayer
         }
 
         return remappedPatterns;
-    }
-
-
-    private static boolean isAllBlank(byte[][] patterns, int patternIndex)
-    {
-        for (int index = 0; index < patterns.length; index++)
-        {
-            if (!isBlank(patterns[index], patternIndex))
-            {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-
-    private static boolean isBlank(byte[] patterns, int patternIndex)
-    {
-        return patterns[patternIndex    ] == 0 &&
-               patterns[patternIndex + 1] == 0 &&
-               patterns[patternIndex + 2] == 0 &&
-               patterns[patternIndex + 3] == 0 &&
-               patterns[patternIndex + 4] == 0 &&
-               patterns[patternIndex + 5] == 0 &&
-               patterns[patternIndex + 6] == 0 &&
-               patterns[patternIndex + 7] == 0;
     }
 
 
@@ -584,40 +635,5 @@ public class CompressPlayer
         }
 
         return index;
-    }
-
-
-    /**
-     * Computes a mask screen of zeros and ones, marking non-empty characters
-     * (characters that are larger than 0) in any of the given screens.
-     */
-    private static byte[] computeGlobalMask(Boolean[]  landscapeMaskFlags,
-                                            byte[][][] screens)
-    {
-        byte[] mask = new byte[SCREEN_WIDTH * SCREEN_HEIGHT];
-
-        for (int typeIndex = 0; typeIndex < screens.length; typeIndex++)
-        {
-            if (landscapeMaskFlags[typeIndex])
-            {
-                byte[][] typeScreens    = screens[typeIndex];
-                int      directionCount = typeScreens.length;
-
-                for (int directionIndex = 0; directionIndex < directionCount; directionIndex++)
-                {
-                    byte[] screen = typeScreens[directionIndex];
-
-                    for (int screenIndex = 0; screenIndex < screen.length; screenIndex++)
-                    {
-                        if (screen[screenIndex] > 0)
-                        {
-                            mask[screenIndex] = 1;
-                        }
-                    }
-                }
-            }
-        }
-
-        return mask;
     }
 }
