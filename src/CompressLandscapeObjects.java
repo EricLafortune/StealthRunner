@@ -202,20 +202,20 @@ public class CompressLandscapeObjects
         }
 
         // Write out the (single) initial player position.
-        writeObjectPositions(0, height, outputStream, PLAYER);
+        writeObjectPositions(0, height, outputStream, PLAYER, 4, 4);
 
         // Write out all other object positions, per horizontal strip.
         for (int startY = 0; startY < height; startY += STRIP_HEIGHT)
         {
             int endY = Math.min(height, startY + STRIP_HEIGHT);
 
-            writeObjectPositions(startY, endY, outputStream, TARGET);
-            writeObjectPositions(startY, endY, outputStream, MINE);
-            writeObjectPositions(startY, endY, outputStream, DRONE);
-            writeObjectPositions(startY, endY, outputStream, LAUNCHER);
-            writeObjectPositions(startY, endY, outputStream, TURRET);
-            writeBackgroundObjectPositions(startY, endY, outputStream, collectibleRGBTypes);
-            writeBackgroundObjectPositions(startY, endY, outputStream, backgroundRGBTypes);
+            writeObjectPositions(startY, endY, outputStream, TARGET,   0x10 - 2,  4);
+            writeObjectPositions(startY, endY, outputStream, MINE,     0x40 - 2,  6);
+            writeObjectPositions(startY, endY, outputStream, DRONE,    0x40 - 2, 10);
+            writeObjectPositions(startY, endY, outputStream, LAUNCHER, 0x40 - 2,  6);
+            writeObjectPositions(startY, endY, outputStream, TURRET,   0x40 - 2,  6);
+            writeBackgroundObjectPositions(startY, endY, outputStream, collectibleRGBTypes, 0x70 - 2, 6);
+            writeBackgroundObjectPositions(startY, endY, outputStream, backgroundRGBTypes,  0x80 - 2, 6);
         }
 
         int size = outputStream.size();
@@ -236,10 +236,13 @@ public class CompressLandscapeObjects
     private void writeObjectPositions(int              startY,
                                       int              endY,
                                       DataOutputStream outputStream,
-                                      int              objectType)
+                                      int              objectType,
+                                      int              maxSize,
+                                      int              itemSize)
     throws IOException
     {
         int objectRGB = rgb(objectType);
+        int size      = 0;
 
         // The landscape height is half the image height.
         // We're scanning all rows anyway.
@@ -252,11 +255,18 @@ public class CompressLandscapeObjects
                 {
                     outputStream.writeChar(x     * 8 + shiftX + 4);
                     outputStream.writeChar(y / 2 * 8 + shiftY + 4);
+
+                    size += itemSize;
                 }
             }
         }
 
         outputStream.writeChar(-1);
+
+        if (size > maxSize)
+        {
+            throw new IllegalArgumentException("Maximum strip buffer size [0x"+Integer.toHexString(maxSize)+"] exceeded [0x"+Integer.toHexString(size)+"] for object type "+objectType+" in strip ["+startY+".."+endY+"]");
+        }
     }
 
 
@@ -267,9 +277,13 @@ public class CompressLandscapeObjects
     private void writeBackgroundObjectPositions(int                  startY,
                                                 int                  endY,
                                                 DataOutputStream     outputStream,
-                                                Map<Integer,Integer> rgbTypes)
+                                                Map<Integer,Integer> rgbTypes,
+                                                int                  maxSize,
+                                                int                  itemSize)
     throws IOException
     {
+        int size = 0;
+
         // The landscape height is half the image height.
         // We're scanning all rows anyway.
         for (int y = startY; y < endY; y++)
@@ -283,10 +297,17 @@ public class CompressLandscapeObjects
                     outputStream.writeChar(x     * 8 + shiftX + 4);
                     outputStream.writeChar(y / 2 * 8 + shiftY + 4);
                     outputStream.writeChar(type);
+
+                    size += itemSize;
                 }
             }
         }
 
         outputStream.writeChar(-1);
+
+        if (size > maxSize)
+        {
+            throw new IllegalArgumentException("Maximum strip buffer size [0x"+Integer.toHexString(maxSize)+"] exceeded [0x"+Integer.toHexString(size)+"] for background objects in strip ["+startY+".."+endY+"]");
+        }
     }
 }
