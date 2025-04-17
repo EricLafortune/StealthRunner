@@ -69,7 +69,7 @@ cru_read_keyboard_row_bit_count equ 8
 
     .defm set_keyboard_column
     li   r12, cru_write_keyboard_column
-    li   r0, #1 * 256
+    li   r0, #1 << 8
     ldcr r0, cru_keyboard_column_bit_count
     clr  r12
     .endm

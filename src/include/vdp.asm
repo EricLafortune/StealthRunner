@@ -85,14 +85,14 @@ sprite_early_clock_shift equ 32
 * IN #2: the foreground color.
 * IN #3: the background color.
     .defm li_color
-    li   #1, (#2 * 16 + #3) * 256
+    li   #1, ((#2) << 4 | (#3)) << 8
     .endm
 
 * Macro: byte directive with a constant color combination.
 * IN #1: the foreground color.
 * IN #2: the background color.
     .defm byte_color
-    byte #1 * 16 + #2
+    byte #1 << 4 | (#2)
     .endm
 
 * Macro: cache the vdpwa constant in the given register, to automatically get
@@ -177,7 +177,7 @@ r_vdpsta equ #1
 * IN #2: the register value.
 * OUT r0: the VDP register data.
     .defm vdpwr
-    li   r0, (#2) * 256 + vdp_register_bit_lsb + (#1)
+    li   r0, #2 << 8 | vdp_register_bit_lsb | (#1)
     .vdpwa_swapped r0
     .endm
 
@@ -344,14 +344,14 @@ magnified_sprites equ >01
 * LOCAL r3
     .defm write_decimal
     mov  #1, r1
-    li   r3, >4000 + #2
+    li   r3, #2 | vdp_write_bit
     li   r2, 10
 
 !   clr  r0                    ; Compute the least significant digit.
     div  r2, r0
 
     sla  r1, 8
-    ai   r1, (#3) * 256        ; Add the '0' char to the digit.
+    ai   r1, #3 << 8           ; Add the '0' char to the digit.
 
     .vdpwa r3                  ; Write the address of the digit.
     dec  r3

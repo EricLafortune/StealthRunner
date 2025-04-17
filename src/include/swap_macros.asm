@@ -21,12 +21,12 @@
 * Macro: data instruction with a swapped word.
 * IN #1: the data.
     .defm data_swapped
-    data (#1 % 256 * 256) + (#1 / 256)
+    data (#1 & >ff << 8) | (#1 >> 8)
     .endm
 
 * Macro: li instruction with a swapped word.
 * IN #1: the register number.
 * IN #2: the data.
     .defm li_swapped
-    li   #1, (#2 % 256 * 256) + (#2 / 256)
+    li   #1, (#2 & >ff << 8) | (#2 >> 8)
     .endm
