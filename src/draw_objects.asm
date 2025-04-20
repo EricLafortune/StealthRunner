@@ -43,6 +43,11 @@
 
     li   r0, sprite_cache_queue
 
+;    li   r1, parachute_sprite
+;    clr  r2
+;    clr  r3
+;    bl   @draw_supersprite     ; Draw the parachute.
+
 * Draw the launcher shell, if any (supersprite, high priority).
 draw_shell
     mov  @shell_x, r2
@@ -104,7 +109,7 @@ draw_drone_loop
     s    @player_x, r2         ; Get the coordinates in screen space.
     s    @player_y, r3
 
-    bl   @draw_supersprite     ; Draw the dronw.
+    bl   @draw_supersprite     ; Draw the drone.
 
     jmp  draw_drone_loop
 
@@ -351,6 +356,6 @@ draw_objects_sentinel
 
 * Write any quadsprites that the supersprite drawing code has queued.
 draw_objects_quadsprites
-    bl @write_quadsprites
+    bl   @write_quadsprites
 
     .endm

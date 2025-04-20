@@ -25,3 +25,4 @@ $DITHER -sigma 3 -black 99%   -white 0.6%  Base
 $DITHER -sigma 3 -black 97%   -white 0.2%  Launcher
 $DITHER -sigma 2                           Shell
 $DITHER -sigma 4 -black 97%   -white 1%    Explosion
+$DITHER -sigma 4 -black 50%   -white 2%    Player/01.png

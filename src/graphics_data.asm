@@ -24,7 +24,7 @@ player_color    equ blue
 
 * The complete color table.
 colors
-    .byte_color landscape_color, black
+    .byte_color black, black
     .byte_color player_color, black
     .byte_color player_color, black
     .byte_color player_color, black

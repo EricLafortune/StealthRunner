@@ -49,10 +49,9 @@ game_sprite_attribute_table   equ >1300 ; Size >0080.
     .vdpwa game_screen_image_table | vdp_write_bit
 
     clr  r0
-    li   r1, >0300
-    clr  r2
+    li   r1, screen_image_table_size
 screen_loop
-    .vdpwd r2
+    .vdpwd r0
     dec  r1
     jne  screen_loop
 

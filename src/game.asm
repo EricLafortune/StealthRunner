@@ -122,12 +122,17 @@ play_game
     .initialize_game_graphics
 
 * Initialize the player and the objects from the world data.
+
     .switch_bank @landscape_objects_bank
     li   r0, module_memory
 
     .initialize_player
+    .initialize_player_weapons
     .initialize_objects
-    .initialize_landscape
+
+    .save_player_state
+    .save_player_weapon_states
+    .save_object_states
 
 * Reset the sound pointers.
     seto @current_tone0
@@ -142,10 +147,94 @@ play_game
 * Initialize the supersprite/quadsprite cache.
     bl   @initialize_quadsprites
 
-    .start_speech speech_letsgo
-
 * Keep track of even/odd frames.
     clr  @frame_timestamp
+
+    .reset_launched_weapons
+
+* Animate the player parachuting in.
+parachute_intro
+    mov  @player_start_x, @player_x ; Initialize the screen x ordinate to the
+                                    ; start position.
+    li   r0, 400
+    mov  r0, @parachute_counter
+
+    .initialize_landscape
+
+parachute_loop
+                               ; Start drawing the parachuting player sprite.
+    .vdpwa game_sprite_attribute_table | vdp_write_bit
+
+    li   r0, sprite_cache_queue
+
+    li   r1, parachute_sprite  ; Pick the parachuting sprite.
+    clr  r2
+
+    mov  @parachute_counter, r2 ; Compute the sprite x ordinate, converging
+    sra  r2, 2                  ; to 0 (the center of the screen).
+    neg  r2
+
+    mov  @parachute_counter, r3 ; Compute the sprite y ordinate, converging
+    sra  r3, 1                  ; to 0 (the center of the screen).
+    neg  r3
+
+    bl   @draw_supersprite     ; Draw the parachute.
+
+    li   r1, sprite_attribute_table_terminator << 8
+    .vdpwd r1                  ; Terminate the quadsprites.
+
+    bl   @write_quadsprites    ; Load the quadsprites into VDP memory.
+
+;    mov  @parachute_counter, r0 ; Compute the screen x ordinate, converging
+;    sra  r0, 2                  ; to the start position.
+;    neg  r0
+;    a    @player_start_x, r0
+;    mov  r0, @player_x
+
+    mov  @player_start_y, r0    ; Compute the screen y ordinate, converging
+    s    @parachute_counter, r0 ; to the start position.
+    mov  r0, @player_y
+
+    .draw_landscape_delta      ; Draw the landscape delta.
+
+    mov  @frame_timestamp, r0  ; Increment the time stamp.
+
+                               ; Update the landscape color from black...
+    .vdpwa game_color_table | vdp_write_bit
+
+    mov  @parachute_counter, r0 ; ...to blue
+    ci   r0, 400 - display_pixel_height
+    jh   dont_wait_for_vsync   ; Skip the Vsync for the initial incomplete
+    jne  !                     ; (black) frames, to fast-forward through them.
+    .li_color r1, blue, black
+    .vdpwd    r1
+!
+    ci   r0, 180               ; ...to dark green
+    jne  !
+    .li_color r1, dark_green, black
+    .vdpwd    r1
+!
+    ci   r0, 160               ; ...to green
+    jne  !
+    .li_color r1, green, black
+    .vdpwd    r1
+!
+    ci   r0, 140               ; ...to light green.
+    jne  !
+    .li_color r1, landscape_color, black
+    .vdpwd    r1
+!
+    .wait_for_vsync
+dont_wait_for_vsync
+
+    inc  @frame_timestamp      ; Update the time stamp.
+
+    dec  @parachute_counter    ; Continue with the next frame.
+    jeq  parachute_intro_end
+    b    @parachute_loop
+parachute_intro_end
+
+    .start_speech speech_letsgo
 
 * The main game loop.
 game_loop
@@ -178,6 +267,9 @@ check_quit
 !   .test_keyboard_row 3       ; Wait until '6' is released again.
     jne  -!
 !
+    .test_keyboard 3, 3        ; Pressing '7' = <Aid>?
+    jne  next_life             ; Then continue with the next life.
+!
     .test_keyboard 2, 3        ; Pressing '8' = <Redo>?
     jeq  !
     b    @play_game            ; Then restart the game.
@@ -202,6 +294,13 @@ wait_for_vsync
 * Continue with the next frame in the main game loop.
     inc  @frame_timestamp
     b    @game_loop
+
+* Continue with the next life.
+next_life
+    .restore_player_state
+    .restore_player_weapon_states
+    .restore_object_states
+    b    @parachute_intro
 
 * Various subroutines.
     copy "kill_player.asm"
@@ -273,6 +372,7 @@ current_speech_length data 0; The address of the speech data currently being spo
 * Player variables. The coordinates are those of the top-left corner of the
 * screen in the world. The player is centered on the screen, with his base
 * at (128,112) expressed in pixels.
+player_state
 player_x               data 0 ; X ordinate, expressed in pixels.
 player_y               data 0 ; Y ordinate, expressed in pixels.
 player_fx              data 0 ; Fractional x ordinate (fixed point 16.16 bits).
@@ -287,10 +387,15 @@ previous_player_animation_bank data 0
 player_frame                   data 0 ; Animation frame (0..n-1).
 previous_player_frame          data 0
 
+player_state_end
+
 * Landscape display variables.
+landscape_state
 previous_landscape_patterns_offset data 0 ; Most recently drawn landscape patterns source offset.
 previous_quadrant_x                data 0 ; Most recently drawn landscape quadrant ordinates,
 previous_quadrant_y                data 0 ; expressed as multiples of 4 pixels.
+
+landscape_state_end
 
     .print 'Unused bytes in scratchpad after blitting code:', workspace - $
 
@@ -351,7 +456,7 @@ module_end
 * high. All coordinates in the lists are those of the top-left corner of a
 * virtual screen in the world, compatible with the player coordinates.
 * Reserve space for the first strip of object lists.
-strip_object_lists
+object_states
 targets                   bss >0010 ; X ordinate, y ordinate.
 mines                     bss >0040 ; X ordinate, y ordinate, explosion.
 drones                    bss >0040 ; X ordinate, y ordinate, fractional x ordinate, fractional y ordinate, direction (0..15 = 4 bits).
@@ -359,17 +464,17 @@ launchers                 bss >0040 ; X ordinate, y ordinate, explosion.
 turrets                   bss >0040 ; X ordinate, y ordinate, direction (0..15 = 4 bits).
 collectibles              bss >0070 ; X ordinate, y ordinate, type.
 background_objects        bss >0080 ; X ordinate, y ordinate, type.
-strip_object_lists_end
+first_object_states_end
 
 world_character_height    equ 256 ; Number of characters vertically in the world.
 world_pixel_height        equ world_character_height * 8 ; Number of pixels vertically in the world.
 
 object_strip_pixel_height       equ 128 ; Number of pixels vertically per strip.
-object_strip_pixel_height_shift equ 7 ; The corresponding bit shift.
+object_strip_pixel_height_shift equ 7   ; The corresponding bit shift.
 
-object_strip_size         equ strip_object_lists_end - strip_object_lists    ; 256 bytes of data per strip.
-object_strip_size_shift   equ 9                                              ; The corresponding bit shift.
-object_strip_count        equ world_pixel_height / object_strip_pixel_height ; 16 strips.
+object_strip_size         equ first_object_states_end - object_states ; 512 bytes of data per strip.
+object_strip_size_shift   equ 9                                       ; The corresponding bit shift.
+object_strip_count        equ world_pixel_height / object_strip_pixel_height    ; 16 strips.
 
     .ifne object_strip_size, 512
     .error 'Incorrect strip size.'
@@ -378,38 +483,36 @@ object_strip_count        equ world_pixel_height / object_strip_pixel_height ; 1
 * Reserve space for the remaining strips of object lists.
                           bss (object_strip_count - 1) * object_strip_size
 
+object_states_end
 
-* Supersprite/quadsprite cache pointers.
-vdp_quadsprite_numbers    bss 1024 * 2 ; The VDP quadsprite number (0..63 = 6 bits, shifted left 1 bit) for each CPU ROM quadsprite number (0..1023).
-cpu_quadsprite_numbers    bss 64 * 2   ; The CPU ROM quadsprite number (0..1023, shifted left 1 bit) for each VDP quadsprite number (0..63).
-vdp_quadsprite_timestamps bss 64 * 2   ; The timestamp of the most recent frame for each VDP quadsprite number (0..63).
-sprite_cache_queue        bss 32 * 2   ; The queue with CPU quadsprite numbers (shifted left 1 bit) to be written to VDP memory.
+* Parachute variables.
+parachute_counter data 0 ; Counter (down) for the parachute intro.
 
-* Mouse variables.
-mouse_present data 0 ; Mouse present or not (>0000).
-mouse_x       data 0 ; Mouse x ordinate around player.
-mouse_y       data 0 ; Mouse y ordinate around player.
+* Player start position (initial or most recently reached target). The
+* coordinates are those of the top-left corner of a virtual screen in the
+* world, compatible with the player coordinates.
+player_start_x data 0 ; X ordinate, expressed in pixels.
+player_start_y data 0 ; Y ordinate, expressed in pixels.
 
 * HUD variables.
 hud_sprite  data 0 ; Supersprite number to be shown in the HUD.
 hud_counter data 0 ; Counter for the display time of the HUD.
 
-* Target variables. The coordinates are those of the top-left corner of a
-* virtual screen in the world, compatible with the player coordinates.
-latest_target_x data 0 ; X ordinate, expressed in pixels.
-latest_target_y data 0 ; Y ordinate, expressed in pixels.
-
 * Weapons.
-weapon  data 0 ; The selected weapon type (0, 1, or 2).
-
 stone   equ 0
 emp     equ 1
 grenade equ 2
+
+player_weapon_states
+
+weapon  data 0 ; The selected weapon type (0, 1, or 2).
 
 weapon_counts
 stone_count   data 0 ; Number of stones available.
 emp_count     data 0 ; Number of EMPs available.
 grenade_count data 0 ; Number of grenades available.
+
+player_weapon_states_end
 
 * Thrown stone variables.
 weapon_states
@@ -462,6 +565,28 @@ shell_dy      data 0 ; Y speed, expressed in pixels per frame.
 shell_dfx     data 0 ; Fractional x speed (fixed point 16.16 bits).
 shell_dfy     data 0 ; Fractional y speed (fixed point 16.16 bits).
 shell_counter data 0 ; Counter for the life time of the shell.
+
+* Mouse variables.
+mouse_present data 0 ; Mouse present or not (>0000).
+mouse_x       data 0 ; Mouse x ordinate around player.
+mouse_y       data 0 ; Mouse y ordinate around player.
+
+* Supersprite/quadsprite cache pointers.
+vdp_quadsprite_numbers    bss 1024 * 2 ; The VDP quadsprite number (0..63 = 6 bits, shifted left 1 bit) for each CPU ROM quadsprite number (0..1023).
+cpu_quadsprite_numbers    bss 64 * 2   ; The CPU ROM quadsprite number (0..1023, shifted left 1 bit) for each VDP quadsprite number (0..63).
+vdp_quadsprite_timestamps bss 64 * 2   ; The timestamp of the most recent frame for each VDP quadsprite number (0..63).
+sprite_cache_queue        bss 32 * 2   ; The queue with CPU quadsprite numbers (shifted left 1 bit) to be written to VDP memory.
+
+* Saved states.
+saved_player_state         bss player_state_end - player_state
+saved_player_weapon_states bss player_weapon_states_end - player_weapon_states
+saved_object_states        bss object_states_end - object_states
+
+    .print 'Unused bytes in upper expansion memory:', -$
+
+    .iflt  $, >8000
+    .error 'Data structures too large for upper expansion memory'
+    .endif
 
 * The memory bank addresses: >6000, >6002,.... (multiples of 2).
     dorg >6000

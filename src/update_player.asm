@@ -18,29 +18,37 @@
 
 * Macros to update the player.
 
-* One-time macro: initialize the position, direction,... of the player.
-* IN r0: a pointer to the initial values.
+* Macro: initialize the position, direction,... of the player.
+* IN  r0: a pointer to the initial values.
 * OUT player_x
 * OUT player_y
 * OUT player_fx
 * OUT player_fy
-*     player_speed
-*     player_direction
+* OUT player_speed
+* OUT player_direction
+* OUT player_direction_delta
+* OUT player_animation_bank
+* OUT previous_player_animation_bank
+* OUT player_frame
+* OUT previous_player_frame
 * LOCAL r0
 * LOCAL r1
     .defm initialize_player
 
-    mov  *r0+, @player_x
-    mov  *r0+, @player_y
+    mov  *r0+, @player_start_x
+    mov  *r0+, @player_start_y
     inct r0
 
+    clr  @player_x
+    clr  @player_y
     clr  @player_fx
     clr  @player_fy
     clr  @player_speed
-    clr  @player_direction
+    li   r1, 8                 ; Start with the player facing away from us.
+    mov  r1, @player_direction
     seto @player_direction_delta
 
-    li   r1, standing_player_animation_banks
+    li   r1, standing_player_animation_banks + (8 * 2)
     mov  r1, @player_animation_bank
     clr  @previous_player_animation_bank
     clr  @player_frame
@@ -49,7 +57,47 @@
     .endm
 
 
-* One-time macro: update the position of the player, based in his direction
+* Macro: save the position, direction,... of the player.
+* IN  player_x
+* IN  player_y
+* IN  player_fx
+* IN  player_fy
+* IN  player_speed
+* IN  player_direction
+* IN  player_direction_delta
+* IN  player_animation_bank
+* IN  previous_player_animation_bank
+* IN  player_frame
+* IN  previous_player_frame
+* OUT saved_player_state
+* LOCAL r0
+* LOCAL r1
+    .defm save_player_state
+    .copy_memory player_state, player_state_end, saved_player_state
+    .endm
+
+
+* Macro: restore the position, direction,... of the player.
+* IN  saved_player_state
+* OUT player_x
+* OUT player_y
+* OUT player_fx
+* OUT player_fy
+* OUT player_speed
+* OUT player_direction
+* OUT player_direction_delta
+* OUT player_animation_bank
+* OUT previous_player_animation_bank
+* OUT player_frame
+* OUT previous_player_frame
+* LOCAL r0
+* LOCAL r1
+    .defm restore_player_state
+    .copy_memory saved_player_state, saved_player_state+player_state_end-player_state, player_state
+    .endm
+
+
+* One-time macro: update the position of the player, based on his direction
 * and speed.
 * IN OUT player_x
 * IN OUT player_y

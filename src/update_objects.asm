@@ -22,10 +22,8 @@
 * Special supersprite flags.
 exploding equ >0800
 
-* One-time macro: initialize the objects in the world.
+* One-time macro: initialize the objects lying around in the untouched world.
 * IN r0: a pointer to the initial values.
-* OUT hud_counter
-* OUT weapon
 * OUT stone_count
 * OUT emp_count
 * OUT grenade_count
@@ -65,35 +63,6 @@ exploding equ >0800
 * LOCAL r1
 * LOCAL r2
     .defm initialize_objects
-
-    seto @hud_counter
-
-    clr  @weapon
-    .ifdef initial_stones
-    li   r1, initial_stones
-    mov  r1, @stone_count
-    .else
-    clr  @stone_count
-    .endif
-    .ifdef initial_emps
-    li   r1, initial_emps
-    mov  r1, @emp_count
-    .else
-    clr  @emp_count
-    .endif
-    .ifdef initial_grenades
-    li   r1, initial_grenades
-    mov  r1, @grenade_count
-    .else
-    clr  @grenade_count
-    .endif
-
-    seto @stone_state
-    seto @emp_state
-    seto @grenade_state
-
-    seto @bullet_state
-    seto @shell_state
 
 * Initialize the object lists of all horizontal strips.
     clr  r1
@@ -193,6 +162,201 @@ initialize_background_object_loop_end
     .endm
 
 
+* Macro: save the states of the objects lying around in the world.
+* IN  stone_count
+* IN  emp_count
+* IN  grenade_count
+* IN  stone_x
+* IN  stone_y
+* IN  stone_fx
+* IN  stone_fy
+* IN  stone_direction
+* IN  stone_counter
+* IN  emp_x
+* IN  emp_y
+* IN  emp_fx
+* IN  emp_fy
+* IN  emp_direction
+* IN  grenade_x
+* IN  grenade_y
+* IN  grenade_fx
+* IN  grenade_fy
+* IN  grenade_direction
+* IN  grenade_counter
+* IN  targets
+* IN  stones
+* IN  batteries
+* IN  mines
+* IN  drones
+* IN  launchers
+* IN  turrets
+* IN  bullet_x
+* IN  bullet_y
+* IN  bullet_direction
+* IN  grenade_x
+* IN  grenade_y
+* IN  grenade_fx
+* IN  grenade_fy
+* IN  grenade_counter
+* OUT saved_object_states
+* LOCAL r0
+* LOCAL r1
+    .defm save_object_states
+    .copy_memory object_states, object_states_end, saved_object_states
+    .endm
+
+
+* Macro: restore the states of the objects lying around in the world.
+* IN  saved_object_states
+* OUT stone_count
+* OUT emp_count
+* OUT grenade_count
+* OUT stone_x
+* OUT stone_y
+* OUT stone_fx
+* OUT stone_fy
+* OUT stone_direction
+* OUT stone_counter
+* OUT emp_x
+* OUT emp_y
+* OUT emp_fx
+* OUT emp_fy
+* OUT emp_direction
+* OUT grenade_x
+* OUT grenade_y
+* OUT grenade_fx
+* OUT grenade_fy
+* OUT grenade_direction
+* OUT grenade_counter
+* OUT targets
+* OUT stones
+* OUT batteries
+* OUT mines
+* OUT drones
+* OUT launchers
+* OUT turrets
+* OUT bullet_x
+* OUT bullet_y
+* OUT bullet_direction
+* OUT grenade_x
+* OUT grenade_y
+* OUT grenade_fx
+* OUT grenade_fy
+* OUT grenade_counter
+* LOCAL r0
+* LOCAL r1
+    .defm restore_object_states
+    .copy_memory saved_object_states, saved_object_states+object_states_end-object_states, object_states
+    .endm
+
+
+* Macro: initialize the weapons that the player is carrying.
+* OUT hud_counter
+* OUT weapon
+* OUT stone_count
+* OUT emp_count
+* OUT grenade_count
+* LOCAL r1
+    .defm initialize_player_weapons
+
+    seto @hud_counter
+
+    clr  @weapon
+    .ifdef initial_stones
+    li   r1, initial_stones
+    mov  r1, @stone_count
+    .else
+    clr  @stone_count
+    .endif
+    .ifdef initial_emps
+    li   r1, initial_emps
+    mov  r1, @emp_count
+    .else
+    clr  @emp_count
+    .endif
+    .ifdef initial_grenades
+    li   r1, initial_grenades
+    mov  r1, @grenade_count
+    .else
+    clr  @grenade_count
+    .endif
+
+    .endm
+
+
+* Macro: save the weapons that the player is carrying.
+* OUT hud_counter
+* OUT weapon
+* OUT stone_count
+* OUT emp_count
+* OUT grenade_count
+* OUT saved_player_weapon_states
+* LOCAL r0
+* LOCAL r1
+    .defm save_player_weapon_states
+    .copy_memory player_weapon_states, player_weapon_states_end, saved_player_weapon_states
+    .endm
+
+
+* Macro: restore the weapons that the player is carrying.
+* IN  saved_player_weapon_states
+* OUT hud_counter
+* OUT weapon
+* OUT stone_count
+* OUT emp_count
+* OUT grenade_count
+* LOCAL r0
+* LOCAL r1
+    .defm restore_player_weapon_states
+    .copy_memory saved_player_weapon_states, saved_player_weapon_states+player_weapon_states_end-player_weapon_states, player_weapon_states
+    .endm
+
+
+* Macro: reset any player/enemy weapons that have been launched.
+* OUT stone_x
+* OUT stone_y
+* OUT stone_fx
+* OUT stone_fy
+* OUT stone_direction
+* OUT stone_counter
+* OUT emp_x
+* OUT emp_y
+* OUT emp_fx
+* OUT emp_fy
+* OUT emp_direction
+* OUT grenade_x
+* OUT grenade_y
+* OUT grenade_fx
+* OUT grenade_fy
+* OUT grenade_direction
+* OUT grenade_counter
+* OUT bullet_x
+* OUT bullet_y
+* OUT bullet_fx
+* OUT bullet_fy
+* OUT bullet_direction
+* OUT bullet_counter
+* OUT shell_x
+* OUT shell_y
+* OUT shell_fx
+* OUT shell_fy
+* OUT shell_dx
+* OUT shell_dy
+* OUT shell_dfx
+* OUT shell_dfy
+* OUT shell_counter
+    .defm reset_launched_weapons
+
+    seto @stone_state
+    seto @emp_state
+    seto @grenade_state
+
+    seto @bullet_state
+    seto @shell_state
+
+    .endm
+
+
 * One-time macro: update the objects in the world.
 * IN OUT stone_x
 * IN OUT stone_y
@@ -250,10 +414,14 @@ check_target_player
     .dist @player_y, r1, r3, 40
     jgt  update_target_loop
 
-    mov  r0, @latest_target_x  ; Remember the target position.
-    mov  r1, @latest_target_y
-
     seto @-2(r8)               ; Disable the target.
+
+    mov  r0, @player_start_x   ; Remember the target position.
+    mov  r1, @player_start_y
+
+    .save_player_state         ; Remember the current state.
+    .save_player_weapon_states
+    .save_object_states
 
     .start_speech speech_ahohe ; Start singing.
 

@@ -44,7 +44,7 @@
     .defm draw_landscape_delta
 
 * Write the landscape patterns.
-draw_landscape_patterns
+;draw_landscape_patterns
     .switch_bank @data_bank    ; The patterns are in the data bank.
 
     .vdpwa game_pattern_descriptor_table + 8 | vdp_write_bit
@@ -59,7 +59,7 @@ draw_landscape_patterns
     mov  r3, r0                ; Compute the source address of the first 1-dot pattern.
     a    r4, r0
     c    r0, @previous_landscape_patterns_offset ; Same dots as last time?
-    jeq  draw_landscape_characters_end           ; Then don't redraw the landscape at all.
+    jeq  !! ;draw_landscape_characters_end           ; Then don't redraw the landscape at all.
     mov  r0, @previous_landscape_patterns_offset
 
     ai   r0, landscape_patterns_1dot
@@ -81,10 +81,10 @@ draw_landscape_patterns
     ai   r0, landscape_patterns_2dots
 
     .blit_more_bytes 8
-draw_landscape_patterns_end
+;draw_landscape_patterns_end
 
 * Write the landscape character deltas.
-draw_landscape_characters
+;draw_landscape_characters
     mov  @player_x, r0         ; Compute the current quadrant ordinates,
     srl  r0, 2                 ; expressed as multiples of 4 pixels.
 
@@ -100,7 +100,7 @@ draw_landscape_characters
     a    r3, r2                ; Compute the delta as an index:
     sla  r3, 1                 ; index = 3 * dy + dx + 4, but leaving out
     a    r3, r2                ; an index for (0, 0).
-    jeq  draw_landscape_characters_end ; Skip if the combined delta is 0.
+    jeq  !! ;draw_landscape_characters_end ; Skip if the combined delta is 0.
     jgt  !                     ;   0 1 2 (with "0" moving left/up, etc)
     inc  r2                    ;   3   4
 !   ai   r2, 3                 ;   5 6 7
@@ -134,6 +134,7 @@ draw_landscape_characters
     li   r5, 32
     li   r6, 24
     .blit_clipped_blobs game_screen_image_table ; Write the characters.
-draw_landscape_characters_end
+!
+;draw_landscape_characters_end
 
     .endm

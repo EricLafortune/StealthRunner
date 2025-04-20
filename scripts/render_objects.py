@@ -82,3 +82,33 @@ render_object('Cannon', 16)
 render_object('Launcher', 1)
 render_object('Shell', 1)
 render_object('Explosion', 16)
+
+# Also render the player dangling from parachute lines.
+
+# Shift the camera, so we see more of the lines.
+camera_name = "Camera"
+
+camera = bpy.data.cameras[camera_name]
+camera.shift_y = 0.4
+
+# Put the player in a dangling pose.
+player_name = "Player"
+action_name = "Hang"
+
+player_collection = bpy.data.collections[player_name]
+player_object     = bpy.context.scene.objects[player_name]
+track             = player_object.animation_data.nla_tracks[action_name]
+track.is_solo = True
+
+# Enable rendering the lines, rotated so they come out right with the player
+# rotated.
+lines_name = "Lines"
+
+lines_collection = bpy.data.collections[lines_name]
+lines_object     = bpy.data.objects[lines_name]
+
+lines_collection.hide_render = False
+lines_object.rotation_euler[2] = math.radians(180.)
+#lines_object.parent = player_object
+
+render_object('Player', 2)

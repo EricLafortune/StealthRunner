@@ -165,6 +165,12 @@ INPUT_FRAMES=${1:-
   -explosiongravity 0
   $INPUT_DIR/Explosion/08.png
   -explosioncount 0
+
+  -name parachute_sprite
+  -color 4
+  -shifty 0
+  $INPUT_DIR/Player/01.png
+  -shifty 48
 }
 OUTPUT_NAMES=${2:-$OUTPUT_DIR/sprite_names.asm}
 OUTPUT_BOUNDS=${3:-$OUTPUT_DIR/sprite_bounds.dat}
