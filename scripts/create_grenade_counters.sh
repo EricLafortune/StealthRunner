@@ -20,13 +20,15 @@ do
       echo -draw "'line 60,67 67,60'"
       echo -draw "'line 60,60 67,67'"
     fi
+
     for I in $(seq $[COUNT-1] -1 0)
     do
       COL=$[2-(I+2)%3*2%3]
       ROW=$[I/3*2 + (I%3==0 ? 0 : 1)]
+
       X=$[58+COL*5]
       Y=$[63-ROW*2]
-echo $I ": " $COL $ROW $X $Y > /dev/tty
+
       echo -stroke black
       echo -draw "'ellipse $X,$Y.5 3,4.4 0,360'"
       echo -draw "'line    $X,$[Y-4] $[X-3],$[Y-4]'"

@@ -17,10 +17,12 @@ do
   (
     echo -draw "'line 61,55 66,55'"
     echo -draw "'rectangle 58,56 69,70'"
+
     for BAR in $(seq 1 $COUNT)
     do
       echo -draw "'line 60,$[70-2*BAR] 67,$[70-2*BAR]'"
     done
+
     echo +dither -monochrome
     echo $FRAME
   ) \
