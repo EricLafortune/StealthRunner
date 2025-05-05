@@ -26,6 +26,7 @@
     copy "include/swap_macros.asm"
 
     copy "initialize_graphics.asm"
+    copy "draw_parachute.asm"
     copy "draw_landscape.asm"
     copy "draw_player.asm"
     copy "draw_objects.asm"
@@ -162,67 +163,14 @@ parachute_intro
     .initialize_landscape
 
 parachute_loop
-                               ; Start drawing the parachuting player sprite.
-    .vdpwa game_sprite_attribute_table | vdp_write_bit
-
-    li   r0, sprite_cache_queue
-
-    li   r1, parachute_sprite  ; Pick the parachuting sprite.
-    clr  r2
-
-    mov  @parachute_counter, r2 ; Compute the sprite x ordinate, converging
-    sra  r2, 2                  ; to 0 (the center of the screen).
-    neg  r2
-
-    mov  @parachute_counter, r3 ; Compute the sprite y ordinate, converging
-    sra  r3, 1                  ; to 0 (the center of the screen).
-    neg  r3
-
-    bl   @draw_supersprite     ; Draw the parachute.
-
-    li   r1, sprite_attribute_table_terminator << 8
-    .vdpwd r1                  ; Terminate the quadsprites.
-
-    bl   @write_quadsprites    ; Load the quadsprites into VDP memory.
-
-    mov  @player_start_y, r0    ; Compute the screen y ordinate, converging
-    s    @parachute_counter, r0 ; to the start position.
-    mov  r0, @player_y
-
-    .draw_landscape_delta      ; Draw the landscape delta.
-
-    mov  @frame_timestamp, r0  ; Increment the time stamp.
-
-                               ; Update the landscape color from black...
-    .vdpwa game_color_table | vdp_write_bit
-
-    mov  @parachute_counter, r0 ; ...to blue
-    ci   r0, 400 - display_pixel_height
-    jh   dont_wait_for_vsync   ; Skip the Vsync for the initial incomplete
-    jne  !                     ; (black) frames, to fast-forward through them.
-    .li_color r1, blue, black
-    .vdpwd    r1
-!
-    ci   r0, 180               ; ...to dark green
-    jne  !
-    .li_color r1, dark_green, black
-    .vdpwd    r1
-!
-    ci   r0, 160               ; ...to green
-    jne  !
-    .li_color r1, green, black
-    .vdpwd    r1
-!
-    ci   r0, 140               ; ...to light green.
-    jne  !
-    .li_color r1, landscape_color, black
-    .vdpwd    r1
-!
+    .draw_parachute            ; Draw the player parachuting into view.
+    .update_parachute          ; Update the player world coordinates.
+    .draw_landscape_delta      ; Draw the landscape scrolling into view.
+    .fade_in_landscape_colors  ; Fade in the lanscape colors from black.
     .wait_for_vsync
 dont_wait_for_vsync
 
     inc  @frame_timestamp      ; Update the time stamp.
-
     dec  @parachute_counter    ; Continue with the next frame.
     jeq  parachute_intro_end
     b    @parachute_loop
