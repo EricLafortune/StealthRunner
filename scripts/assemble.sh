@@ -9,7 +9,7 @@
 # Useful xas99 options for debugging:
 #   --listing-file out/romc.lst --symbol-table
 # Also:
-#   -D immortal initial_stones=50  initial_emps=50 initial_grenades=50
+#   -D immortal initial_medkits=2 initial_stones=50 initial_emps=50 initial_grenades=50
 
 INPUT=src/game.asm
 OUTPUT_DIR=out

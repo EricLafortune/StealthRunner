@@ -83,18 +83,87 @@ draw_player_update_frame
     inc  r0
 
     mov  @player_speed, r1     ; Check the animation frame based on the speed.
+    jeq  draw_player_footsteps ; Skip all updates if just standing.
+
     sla  r1, 1
     c    r0, @frame_counts(r1) ; After the last frame?
-    jl   !
-    mov  r1, r1                ; And not dying?
-    jlt  draw_player_end
-    clr  r0                    ; Then wrap it around.
-!   mov  r0, @player_frame
+    jl   draw_player_save_frame
+
+    clr  r0                    ; Then wrap the frame around.
+
+    ci   r1, crouch << 1       ; End of crouching?
+    jeq  draw_player_crouching_end
+    jgt  draw_player_save_frame ; End of a regular walking cycle?
+
+    mov  @medkit_count, r0     ; End of dying. Show the medkit counter.
+    ci   r0, 7
+    jle  !
+    li   r0, 7
+!   ai   r0, medkit_counter_sprites
+    mov  r0, @hud_sprite
+    li   r0, 16
+    mov  r0, @hud_counter
+
+    jmp  draw_player_end       ; But don't save the frame or play any more
+                               ; sound.
+
+draw_player_crouching_end
+    clr  @player_speed         ; End of crouching. Switch to standing.
+    mov  @player_direction, r1
+    .update_player_animation_bank standing_player_animation_banks, r1
+
+draw_player_save_frame
+    mov  r0, @player_frame
 
 * Play footstep sound effects.
 draw_player_footsteps
     .play_noise_type_frame sound_walking, sound_walking_frames, player_speed, r0
 
 draw_player_end
+
+    .endm
+
+
+* Macro: scale the player animation frame index, adapting it from the given old
+* speed to the given new speed (=motion). The animation should then be more
+* continuous.
+* IN #1: the register containing the old speed.
+* IN #2: the register containing the new speed.
+* OUT player_frame
+* LOCAL r0
+* LOCAL r1
+    .defm update_player_frame_for_speed
+
+    mov  @player_frame, r0     ; Get the old frame index.
+
+    sla  #2, 1
+    mpy  @frame_counts(#2), r0 ; Multiply by the new frame count (to r0 & r1).
+
+    sla  #1, 1
+    div  @frame_counts(#1), r0 ; Divide by the old frame count (from r0 & r1).
+
+    mov  r0, @player_frame     ; Save the adjusted frame index.
+
+    sra  #2, 1                 ; Restore the new speed.
+
+    .endm
+
+
+* Macro: cache the address of the player animation bank, so the player gets
+* drawn properly after his speed or direction changes.
+* IN #1: the base animation bank (standing_player_animation_banks,...).
+* IN #2: the optional register containing the player speed (-2..8).
+* IN #3: the register containing the player direction (0..15).
+* OUT player_animation_bank
+* LOCAL #2
+    .defm update_player_animation_bank
+
+    .ifdef #3
+    sla  #2, player_direction_shift
+    a    #3, #2
+    .endif
+    sla  #2, 1
+    ai   #2, #1
+    mov  #2, @player_animation_bank
 
     .endm

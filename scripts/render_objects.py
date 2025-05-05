@@ -74,6 +74,7 @@ render_object('Manhole', 1)
 render_object('Bricks', 1)
 render_object('Pylon', 1)
 render_object('Target', 1)
+render_object('Medkit', 1)
 render_object('Battery', 1)
 render_object('Mine', 2)
 render_object('Drone', 16)
@@ -82,6 +83,7 @@ render_object('Cannon', 16)
 render_object('Launcher', 1)
 render_object('Shell', 1)
 render_object('Explosion', 16)
+render_object('Tombstone', 1)
 
 # Also render the player dangling from parachute lines.
 

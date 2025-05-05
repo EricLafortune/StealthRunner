@@ -71,6 +71,7 @@ Y=$[Y+10]
 
 legend $(color  4)   Player
 legend $(color 11)   Target
+legend $(color 12)   Medkit
 legend $(color  6)   Stone
 legend $(color  2)   Battery
 legend $(color 14)   Grenade
@@ -84,14 +85,14 @@ legend $(color 15)   Turret
 
 convert \
   +antialias \
-  -size 100x500 \
+  -size 100x520 \
   xc:black \
   -font Arial \
   -pointsize 12 \
   -stroke none \
 \
   -fill \#$(color 0) \
-  -draw 'rectangle 0,0 512,512' \
+  -draw 'rectangle 0,0 100,600' \
 \
   "${LEGEND_OPTIONS[@]}" \
 \

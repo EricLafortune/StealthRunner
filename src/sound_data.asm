@@ -330,7 +330,8 @@ sound_walking
     even
 
 sound_dying_frames
-    data sound_die             ; 11 frames.
+    data sound_die             ; 17 frames.
+    data sound_crouch          ; 17 frames.
 sound_walking_frames
     data sound_stand           ;  1 frame.
     data sound_walk            ; 31 frames.
@@ -360,6 +361,24 @@ sound_die                      ; 17 frames.
     .noise_attenuation 2       ; Frame 15.
     .noise_attenuation 2       ; Frame 16.
     byte 0                     ; Frame 17.
+
+sound_crouch                   ; 16 frames.
+    .noise_attenuation 4       ; Frame 1.
+    byte 0                     ; Frame 2.
+    byte 0                     ; Frame 3.
+    byte 0                     ; Frame 4.
+    byte 0                     ; Frame 5.
+    byte 0                     ; Frame 6.
+    byte 0                     ; Frame 7.
+    byte 0                     ; Frame 8.
+    byte 0                     ; Frame 9.
+    byte 0                     ; Frame 10.
+    byte 0                     ; Frame 11.
+    byte 0                     ; Frame 12.
+    byte 0                     ; Frame 13.
+    byte 0                     ; Frame 14.
+    byte 0                     ; Frame 15.
+    byte 0                     ; Frame 16.
 
 sound_stand                    ; 1 frame.
     byte 0                     ; Frame 1.

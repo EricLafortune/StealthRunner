@@ -44,7 +44,20 @@ import math
 
 # Define what we want to render.
 armature_name = "Player"
-action_names  = ["Run backward", "Walk backward", "Stand", "Walk", "Run", "Die backward", "Run strafe left", "Run strafe right", "Walk strafe left", "Walk strafe right" ]
+action_names  = [
+"Die backward",
+"Crouch to stand",
+"Stand",
+"Walk",
+"Run",
+"Walk backward",
+"Run backward",
+"Walk strafe left",
+"Run strafe left",
+"Walk strafe right",
+"Run strafe right"
+]
+
 angles        = 16
 path          = os.path.abspath(os.path.join('out', 'animations', 'color', 'Player'))
 
@@ -78,6 +91,8 @@ for action_name in action_names:
             frames = range(1, 2)
         case "Die backward":
             frames = range(15, 100, 5)
+        case "Crouch to stand":
+            frames = range(1, 79, 5)
         case _:
             frames = range(int(action.frame_range[0]),
                            int(action.frame_range[1]))

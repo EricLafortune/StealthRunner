@@ -24,7 +24,8 @@ player_direction_count equ 16
 player_direction_shift equ 4
 
 * Player speed values.
-dying             equ -1
+die               equ -2
+crouch            equ -1
 stand             equ 0
 walk              equ 1
 run               equ 2
@@ -105,6 +106,7 @@ slow_down
 * Number of animation frames for walking states.
 frame_counts_die
     data 17 ; Die.
+    data 16 ; Crouch.
 frame_counts
     data  1 ; Stand.
     data 31 ; Walk.

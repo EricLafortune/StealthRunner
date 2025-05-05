@@ -75,6 +75,10 @@ INPUT_FRAMES=${1:-
   -minpixelcount 5
 
   -name collectible_sprites
+  -name medkit_sprite
+  -color 12
+  $INPUT_DIR/Medkit/*.png
+
   -name stone_sprite
   -color 6
   $INPUT_DIR/StoneCounters/01.png
@@ -89,6 +93,13 @@ INPUT_FRAMES=${1:-
 
   -name collectible_counter_sprites
   -shifty 25
+  -name medkit_counter_sprites
+  -color 14
+  $INPUT_DIR/Tombstone/00.png
+  -color 12
+  $INPUT_DIR/MedkitCounters/0[1-7].png
+
+  -name weapon_counter_sprites
   -name stone_counter_sprites
   -color 6
   $INPUT_DIR/StoneCounters/*.png

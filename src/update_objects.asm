@@ -246,7 +246,7 @@ initialize_background_object_loop_end
 * LOCAL r0
 * LOCAL r1
     .defm restore_object_states
-    .copy_memory saved_object_states, saved_object_states+object_states_end-object_states, object_states
+    .copy_memory saved_object_states, saved_object_states+object_states_size, object_states
     .endm
 
 
@@ -261,25 +261,35 @@ initialize_background_object_loop_end
 
     seto @hud_counter
 
-    clr  @weapon
+    .ifdef initial_medkits
+    li   r1, initial_medkits
+    mov  r1, @medkit_count
+    .else
+    clr  @medkit_count
+    .endif
+
     .ifdef initial_stones
     li   r1, initial_stones
     mov  r1, @stone_count
     .else
     clr  @stone_count
     .endif
+
     .ifdef initial_emps
     li   r1, initial_emps
     mov  r1, @emp_count
     .else
     clr  @emp_count
     .endif
+
     .ifdef initial_grenades
     li   r1, initial_grenades
     mov  r1, @grenade_count
     .else
     clr  @grenade_count
     .endif
+
+    clr  @weapon
 
     .endm
 
@@ -294,7 +304,7 @@ initialize_background_object_loop_end
 * LOCAL r0
 * LOCAL r1
     .defm save_player_weapon_states
-    .copy_memory player_weapon_states, player_weapon_states_end, saved_player_weapon_states
+    .copy_memory collectible_counts, collectible_counts_end, saved_collectible_counts
     .endm
 
 
@@ -308,7 +318,7 @@ initialize_background_object_loop_end
 * LOCAL r0
 * LOCAL r1
     .defm restore_player_weapon_states
-    .copy_memory saved_player_weapon_states, saved_player_weapon_states+player_weapon_states_end-player_weapon_states, player_weapon_states
+    .copy_memory saved_collectible_counts, saved_collectible_counts+collectible_counts_end-collectible_counts, collectible_counts
     .endm
 
 
@@ -781,9 +791,9 @@ check_collectible_player
     jgt  update_collectible_loop
 
     sla  r2, 1
-    mov  @weapon_counts(r2), r1 ; Then increment the number of available
+    mov  @collectible_counts(r2), r1 ; Then increment the number of available
     inc  r1                     ; collectibles.
-    mov  r1, @weapon_counts(r2)
+    mov  r1, @collectible_counts(r2)
 
     ci   r1, 7                 ; Compute and set the supersprite.
     jle  !                     ; based on the (clamped) count...

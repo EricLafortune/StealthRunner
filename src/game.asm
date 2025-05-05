@@ -185,12 +185,6 @@ parachute_loop
 
     bl   @write_quadsprites    ; Load the quadsprites into VDP memory.
 
-;    mov  @parachute_counter, r0 ; Compute the screen x ordinate, converging
-;    sra  r0, 2                  ; to the start position.
-;    neg  r0
-;    a    @player_start_x, r0
-;    mov  r0, @player_x
-
     mov  @player_start_y, r0    ; Compute the screen y ordinate, converging
     s    @parachute_counter, r0 ; to the start position.
     mov  r0, @player_y
@@ -268,16 +262,14 @@ check_quit
     jne  -!
 !
     .test_keyboard 3, 3        ; Pressing '7' = <Aid>?
-    jne  next_life             ; Then continue with the next life.
+    jne  restore_savepoint     ; Then continue from the last save point.
 !
     .test_keyboard 2, 3        ; Pressing '8' = <Redo>?
-    jeq  !
-    b    @play_game            ; Then restart the game.
-!
+    jne  next_game             ; Then restart the game.
+
     .test_keyboard 1, 3        ; Pressing '9' = <Back>?
-    jeq  !
-    b    @play_intro_video     ; Then restart from the intro video.
-!
+    jne  return_to_intro       ; Then restart from the intro video.
+
     .test_keyboard 0, 0        ; Pressing '=' = <Quit>?
     jeq  !
     blwp @0                    ; Then quit.
@@ -295,12 +287,20 @@ wait_for_vsync
     inc  @frame_timestamp
     b    @game_loop
 
-* Continue with the next life.
-next_life
+* Continue from the last save point.
+restore_savepoint
     .restore_player_state
     .restore_player_weapon_states
     .restore_object_states
     b    @parachute_intro
+
+* Continue with a new game.
+next_game
+    b    @play_game
+
+* Return to the intro video.
+return_to_intro
+    b    @play_intro_video
 
 * Various subroutines.
     copy "kill_player.asm"
@@ -377,8 +377,8 @@ player_x               data 0 ; X ordinate, expressed in pixels.
 player_y               data 0 ; Y ordinate, expressed in pixels.
 player_fx              data 0 ; Fractional x ordinate (fixed point 16.16 bits).
 player_fy              data 0 ; Fractional y ordinate (fixed point 16.16 bits).
-player_speed           data 0 ; Speed (-1 for dying, 0 for standing,...)
-player_direction       data 0 ; Direction (0..15).
+player_speed           data 0 ; Speed (=motion) (-2 for dying, -1 for crouching, 0 for standing,...)
+player_direction       data 0 ; Direction (=orientation) (0..15).
 player_direction_delta data 0 ; Preferential initial direction delta (-1 or 1).
 
 * Player display variables.
@@ -475,13 +475,14 @@ object_strip_pixel_height_shift equ 7   ; The corresponding bit shift.
 object_strip_size         equ first_object_states_end - object_states ; 512 bytes of data per strip.
 object_strip_size_shift   equ 9                                       ; The corresponding bit shift.
 object_strip_count        equ world_pixel_height / object_strip_pixel_height    ; 16 strips.
+object_states_size        equ object_strip_count * object_strip_size
 
     .ifne object_strip_size, 512
     .error 'Incorrect strip size.'
     .endif
 
 * Reserve space for the remaining strips of object lists.
-                          bss (object_strip_count - 1) * object_strip_size
+                          bss object_states_size - object_strip_size
 
 object_states_end
 
@@ -503,16 +504,16 @@ stone   equ 0
 emp     equ 1
 grenade equ 2
 
-player_weapon_states
-
-weapon  data 0 ; The selected weapon type (0, 1, or 2).
-
+collectible_counts
+medkit_count  data 0 ; Number of available medkits.
 weapon_counts
-stone_count   data 0 ; Number of stones available.
-emp_count     data 0 ; Number of EMPs available.
-grenade_count data 0 ; Number of grenades available.
+stone_count   data 0 ; Number of available stones.
+emp_count     data 0 ; Number of available EMPs.
+grenade_count data 0 ; Number of available grenades.
 
-player_weapon_states_end
+weapon        data 0 ; The selected weapon type (0, 1, or 2).
+
+collectible_counts_end
 
 * Thrown stone variables.
 weapon_states
@@ -578,9 +579,9 @@ vdp_quadsprite_timestamps bss 64 * 2   ; The timestamp of the most recent frame 
 sprite_cache_queue        bss 32 * 2   ; The queue with CPU quadsprite numbers (shifted left 1 bit) to be written to VDP memory.
 
 * Saved states.
-saved_player_state         bss player_state_end - player_state
-saved_player_weapon_states bss player_weapon_states_end - player_weapon_states
-saved_object_states        bss object_states_end - object_states
+saved_player_state       bss player_state_end - player_state
+saved_collectible_counts bss collectible_counts_end - collectible_counts
+saved_object_states      bss object_states_end - object_states
 
     .print 'Unused bytes in upper expansion memory:', -$
 
@@ -595,6 +596,7 @@ code_bank                        bss 2 * 1
 data_bank                        bss 2 * 1
 intro_video_bank                 bss 2 * 3
 dying_player_animation_banks     bss 2 * 16
+crouching_player_animation_banks bss 2 * 16
 standing_player_animation_banks  bss 2 * 9 * 16
 landscape_objects_bank           bss 2 * 1
 landscape_characters_banks       bss 2 * 32

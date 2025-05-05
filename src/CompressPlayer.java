@@ -4,7 +4,8 @@ import java.io.*;
 import java.util.*;
 
 /**
- * Converts PBM image animations to a file in our own compressed format.
+ * Converts black-and-white image animations to a file in our own compressed
+ * format.
  *
  * Usage:
  *   java CompressPlayer [options] <type> ... <output_file>
@@ -17,6 +18,15 @@ import java.util.*;
  *                   screens.
  *   -outputmaskfile the optional output monochrome PNG file containing the
  *                   character mask.
+ *   -fromtypes      a comma-separate list of relative indices of types from
+ *                   which the next type may continue.
+ *   -fromdirections a comma-separate list of relative indices of directions
+ *                   the next type may come from.
+ * the input
+ *   type            the type name in the directory structure
+ *                   <dir>/<type>/<direction>/<frame>.png.
+ * the output file
+ *   output_file     the compressed player animations.
  */
 public class CompressPlayer
 {
@@ -40,13 +50,13 @@ public class CompressPlayer
         int  charOffset     = 1;
         File outputMaskFile = null;
 
-        int[]   currentAdjacentTypes      = { -1, 0, 1 };
-        int[]   currentAdjacentDirections = { -1, 0, 1 };
+        int[]   currentFromTypes      = { 0 };
+        int[]   currentFromDirections = { -1, 0, 1 };
         boolean currentLandscapeMaskFlag  = true;
 
         List<String>  collectedTypes              = new ArrayList<>();
-        List<int[]>   collectedAdjacentTypes      = new ArrayList<>();
-        List<int[]>   collectedAdjacentDirections = new ArrayList<>();
+        List<int[]>   collectedFromTypes      = new ArrayList<>();
+        List<int[]>   collectedFromDirections = new ArrayList<>();
         List<Boolean> collectedLandscapeMaskFlags = new ArrayList<>();
 
         // Parse the options and input types.
@@ -62,28 +72,28 @@ public class CompressPlayer
 
                 switch (arg)
                 {
-                    case "-inputdirectory"     -> inputDirectory = new File(optionArg);
-                    case "-charoffset"         -> charOffset     = Integer.parseInt(optionArg);
-                    case "-outputmaskfile"     -> outputMaskFile = new File(optionArg);
-                    case "-adjacenttypes"      -> currentAdjacentTypes = optionArg.isEmpty() ?
+                    case "-inputdirectory" -> inputDirectory = new File(optionArg);
+                    case "-charoffset"     -> charOffset     = Integer.parseInt(optionArg);
+                    case "-outputmaskfile" -> outputMaskFile = new File(optionArg);
+                    case "-fromtypes"      -> currentFromTypes = optionArg.isEmpty() ?
                         new int[] { 0 } :
                         Arrays.stream(optionArg.split(","))
                             .mapToInt(Integer::parseInt)
                             .toArray();
-                    case "-adjacentdirections" -> currentAdjacentDirections = optionArg.isEmpty() ?
+                    case "-fromdirections" -> currentFromDirections = optionArg.isEmpty() ?
                         new int[] { 0 } :
                         Arrays.stream(optionArg.split(","))
                             .mapToInt(Integer::parseInt)
                             .toArray();
-                    case "-landscapemask"      -> currentLandscapeMaskFlag = Boolean.valueOf(optionArg);
-                    default                    -> throw new IllegalArgumentException("Unknown option [" + arg + "]");
+                    case "-landscapemask"  -> currentLandscapeMaskFlag = Boolean.valueOf(optionArg);
+                    default                -> throw new IllegalArgumentException("Unknown option [" + arg + "]");
                 }
             }
             else
             {
                 collectedTypes.add(arg);
-                collectedAdjacentTypes.add(currentAdjacentTypes);
-                collectedAdjacentDirections.add(currentAdjacentDirections);
+                collectedFromTypes.add(currentFromTypes);
+                collectedFromDirections.add(currentFromDirections);
                 collectedLandscapeMaskFlags.add(currentLandscapeMaskFlag);
             }
         }
@@ -94,8 +104,8 @@ public class CompressPlayer
         byte[][][][] frames = new byte[typeCount][][][];
 
         String[]  types              = collectedTypes.toArray(new String[typeCount]);
-        int[][]   adjacentTypes      = collectedAdjacentTypes.toArray(new int[typeCount][]);
-        int[][]   adjacentDirections = collectedAdjacentDirections.toArray(new int[typeCount][]);
+        int[][]   fromTypes          = collectedFromTypes.toArray(new int[typeCount][]);
+        int[][]   fromDirections     = collectedFromDirections.toArray(new int[typeCount][]);
         Boolean[] landscapeMaskFlags = collectedLandscapeMaskFlags.toArray(new Boolean[typeCount]);
 
         int width  = -1;
@@ -179,36 +189,36 @@ public class CompressPlayer
         }
 
 
-        // Mark the used characters of adjacent screens (adjacent in type and
+        // Mark the used characters of from screens (from in type and
         // in direction), so their non-blank characters are properly cleared
         // when changing type or direction.
         for (int typeIndex = 0; typeIndex < typeCount; typeIndex++)
         {
             int directionCount = frames[typeIndex].length;
 
-            int[] fromTypes      = adjacentTypes[typeIndex];
-            int[] fromDirections = adjacentDirections[typeIndex];
+            int[] fromTypeDeltas      = fromTypes[typeIndex];
+            int[] fromDirectionDeltas = fromDirections[typeIndex];
 
             for (int directionIndex = 0; directionIndex < directionCount; directionIndex++)
             {
                 byte[] screen = screens[typeIndex][directionIndex];
 
-                // Mark from screens of adjacent types and directions.
-                for (int fromTypeindex = 0; fromTypeindex < fromTypes.length; fromTypeindex++)
+                // Mark from screens of from types and directions.
+                for (int fromTypeDeltaindex = 0; fromTypeDeltaindex < fromTypeDeltas.length; fromTypeDeltaindex++)
                 {
-                    int adjacentTypeIndex = typeIndex + fromTypes[fromTypeindex];
-                    if (adjacentTypeIndex >= 0 &&
-                        adjacentTypeIndex <  typeCount)
+                    int fromTypeIndex = typeIndex + fromTypeDeltas[fromTypeDeltaindex];
+                    if (fromTypeIndex >= 0 &&
+                        fromTypeIndex <  typeCount)
                     {
-                        for (int fromDirectionIndex = 0; fromDirectionIndex < fromDirections.length; fromDirectionIndex++)
+                        for (int fromDirectionDeltaIndex = 0; fromDirectionDeltaIndex < fromDirectionDeltas.length; fromDirectionDeltaIndex++)
                         {
-                            int adjacentDirectionIndex =
-                                (directionIndex + fromDirections[fromDirectionIndex] + directionCount) % directionCount;
+                            int fromDirectionIndex =
+                                (directionIndex + fromDirectionDeltas[fromDirectionDeltaIndex] + directionCount) % directionCount;
 
-                            if (adjacentTypeIndex      != typeIndex ||
-                                adjacentDirectionIndex != directionIndex)
+                            if (fromTypeIndex      != typeIndex ||
+                                fromDirectionIndex != directionIndex)
                             {
-                                markAdjacentMask(screens[adjacentTypeIndex][adjacentDirectionIndex],
+                                markFromMask(screens[fromTypeIndex][fromDirectionIndex],
                                                  screen);
                             }
                         }
@@ -460,9 +470,9 @@ public class CompressPlayer
 
     /**
      * Changes characters that are covered in the given mask from transparent
-     * to blank in the given adjacent mask.
+     * to blank in the given from mask.
      */
-    private static void markAdjacentMask(byte[] fromMask,
+    private static void markFromMask(byte[] fromMask,
                                          byte[] toMask)
     {
         for (int index = 0; index < fromMask.length; index++)

@@ -17,6 +17,7 @@ $DITHER -sigma 1 -black 95%   -white 0.2%  Manhole
 $DITHER -sigma 1 -black 96.5% -white 0.2%  Bricks
 $DITHER -sigma 2 -black 97%   -white 0.4%  Pylon
 $DITHER -sigma 2                           Target
+$DITHER -sigma 2 -black 99.15%             Medkit
 $DITHER -sigma 2                           Battery
 $DITHER -sigma 3                           Mine
 $DITHER -sigma 2 -black 96%   -white 0.4%  Drone
@@ -26,3 +27,4 @@ $DITHER -sigma 3 -black 97%   -white 0.2%  Launcher
 $DITHER -sigma 2                           Shell
 $DITHER -sigma 4 -black 97%   -white 1%    Explosion
 $DITHER -sigma 4 -black 50%   -white 2%    Player/01.png
+$DITHER -sigma 2 -black 99.07%             Tombstone

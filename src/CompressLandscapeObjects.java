@@ -59,6 +59,7 @@ public class CompressLandscapeObjects
     private static final int LANDSCAPE =  3;
     private static final int PLAYER    =  4;
     private static final int TARGET    = 11;
+    private static final int MEDKIT    = 12;
     private static final int STONE     =  6;
     private static final int BATTERY   =  2;
     private static final int GRENADE   = 14;
@@ -85,9 +86,10 @@ public class CompressLandscapeObjects
 
     private static final int[] COLLECTIBLES =
     {
-         STONE,
-         BATTERY,
-         GRENADE,
+        MEDKIT,
+        STONE,
+        BATTERY,
+        GRENADE,
     };
 
     private static final int[] BACKGROUND_OBJECTS =

@@ -25,12 +25,11 @@ kill_player
     mov  @player_speed, r0     ; Is he already dead?
     jlt  !
 
-    seto @player_speed         ; Kill the player.
+    li   r0, die               ; Kill the player.
+    mov  r0, @player_speed
 
-    mov  @player_direction, r0 ; Update the cached player animation bank
-    sla  r0, 1                 ; address.
-    ai   r0, dying_player_animation_banks
-    mov  r0, @player_animation_bank
+    mov  @player_direction, r0 ; Start the dying animation.
+    .update_player_animation_bank dying_player_animation_banks, r0
 
     clr  @player_frame         ; Reset the player animation frame.
     .endif

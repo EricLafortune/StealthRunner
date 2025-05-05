@@ -122,11 +122,13 @@ mouse:
 | <kbd>Shift</kbd>                 | Speed up from walking to running.                                |
 | <kbd>X</kbd>                     | Swap the current weapon (stone, electromagnetic pulse, grenade). |
 | <kbd>Enter</kbd>                 | Fire the current weapon.                                         |
+| <kbd>Ctrl</kbd>                  | Apply a medkit after you've fallen.                              |
 | Mouse                            | Turn.                                                            |
 | Mouse button 1                   | Fire the current weapon.                                         |
 | Mouse button 2                   | Swap the current weapon.                                         |
 | <kbd>6</kbd> = <kbd>Proc'd</kbd> | Pause/unpause the game.                                          |
-| <kbd>8</kbd> = <kbd>Redo</kbd>   | Restart the game.                                                |
+| <kbd>7</kbd> = <kbd>Aid</kbd>    | Restart at the last save point.                                  |
+| <kbd>8</kbd> = <kbd>Redo</kbd>   | Start a new game.                                                |
 | <kbd>9</kbd> = <kbd>Back</kbd>   | Return to the game title screen.                                 |
 | <kbd>=</kbd> = <kbd>Quit</kbd>   | Return to the computer title screen.                             |
     

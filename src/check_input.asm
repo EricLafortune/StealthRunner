@@ -70,10 +70,12 @@
     .switch_bank @data_bank    ; The player deltas and frame counts are in the
                                ; data bank.
 
-* LOCAL r6: Player speed (-1 for dying, 0 for standing,...)
+* LOCAL r6: Player speed (-2 for dying, -1 for crouching, 0 for standing,...)
 * LOCAL r7: Player direction (0..15).
-    mov  @player_speed, r6     ; Get the current speed and direction.
     mov  @player_direction, r7
+
+    mov  @player_speed, r6     ; Is the player dead or crouching?
+    jlt  check_apply_medkit    ; Then check applying a medkit.
 
     seto r8                    ; No mouse buttons pressed.
     seto r9
@@ -120,7 +122,7 @@ check_backward
     mov  @go_backward(r1), r1
     jlt  check_speed_up
     mov  r1, r6
-    jmp  change_speed
+    b    @change_speed
 
 check_slow_down
     mov  r6, r1                ; Slow down if no speed key.
@@ -128,7 +130,7 @@ check_slow_down
     mov  @slow_down(r1), r1
     jlt  check_mouse
     mov  r1, r6
-    jmp  change_speed
+    b    @change_speed
 
 check_speed_up
     .test_keyboard 0, 5        ; Speeding up with 'Shift'?
@@ -139,7 +141,35 @@ check_speed_up
     mov  @speed_up(r1), r1
     jlt  check_mouse
     mov  r1, r6
-    jmp  change_speed
+    b    @change_speed
+
+check_apply_medkit
+    ci   r6, die               ; Is the player dead or already crouching?
+    jne  check_crouching_to_standing
+
+    .test_keyboard 0, 6        ; Applying a medkit with 'Ctrl'?
+    jeq  check_input_end0
+
+    mov  @medkit_count, r0     ; Does he have any medkits?
+    dec  r0
+    jlt  check_input_end0
+
+    mov  r0, @medkit_count     ; Save the new number of medkits.
+
+    li   r6, crouch            ; Start crouching to standing.
+    clr  @player_frame
+    jmp  set_speed
+
+check_crouching_to_standing
+    mov  @player_frame, r0     ; After the last crouching frame?
+    jne  check_input_end0
+
+    li   r6, stand             ; Start standing.
+    clr  @player_frame
+    jmp  set_speed
+
+check_input_end0
+    b    @check_input_end
 
 check_mouse
     mov  @mouse_present, r0    ; Is a mouse present at all?
@@ -197,24 +227,15 @@ change_direction
     jmp  update_player_animation_bank
 
 change_speed
-    mov  @player_frame, r3     ; Scale the animation frame to the new animation.
-    sla  r6, 1
-    mpy  @frame_counts(r6), r3 ; Multiply by the new frame count (to r3 & r4).
-    sra  r6, 1
+    mov  @player_speed, r2     ; Get the old speed.
 
-    mov  @player_speed, r5
-    sla  r5, 1
-    div  @frame_counts(r5), r3 ; Divide by the old frame count (from r3 & r4).
+    .update_player_frame_for_speed r2, r6
 
-    mov  r6, @player_speed     ; Set the new speed.
-    mov  r3, @player_frame     ; Set the adjusted frame.
+set_speed
+    mov  r6, @player_speed     ; Save the new speed.
 
 update_player_animation_bank
-    sla  r6, player_direction_shift ; Update the cached player animation bank
-    a    r7, r6                     ; address.
-    sla  r6, 1
-    ai   r6, standing_player_animation_banks
-    mov  r6, @player_animation_bank
+    .update_player_animation_bank standing_player_animation_banks, r6, r7
 
 check_change_weapon
     sla  r9, 3                 ; Changing weapons with mouse button 2?
@@ -242,7 +263,7 @@ change_weapon
     li   r0, 7
 !   sla  r1, 2                 ; ...and the type.
     a    r1, r0
-    ai   r0, collectible_counter_sprites
+    ai   r0, weapon_counter_sprites
     mov  r0, @hud_sprite
 
 dont_change_weapon
@@ -282,7 +303,7 @@ launch_weapon
     ai   r7, 1 << player_direction_shift
 !   mov  r7, *r2+
 
-    clr  *r2                   ; Reset the weapon liftetime counter.
+    clr  *r2                   ; Reset the weapon lifetime counter.
 
 check_input_end
 

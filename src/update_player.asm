@@ -44,12 +44,12 @@
     clr  @player_fx
     clr  @player_fy
     clr  @player_speed
+
     li   r1, 8                 ; Start with the player facing away from us.
     mov  r1, @player_direction
     seto @player_direction_delta
 
-    li   r1, standing_player_animation_banks + (8 * 2)
-    mov  r1, @player_animation_bank
+    .update_player_animation_bank standing_player_animation_banks, r1
     clr  @previous_player_animation_bank
     clr  @player_frame
     clr  @previous_player_frame
@@ -97,25 +97,23 @@
     .endm
 
 
-* One-time macro: update the position of the player, based on his direction
-* and speed.
+* One-time macro: update the position of the player, based on his speed
+* (motion) and direction (orientation).
 * IN OUT player_x
 * IN OUT player_y
 * IN OUT player_fx
 * IN OUT player_fy
 * IN     player_speed
 * IN     player_direction
+* IN     player_direction_delta
 * LOCAL r0-r15
     .defm update_player
 
     mov  @player_speed, r6
+    jlt  dont_update_player_position ; Is the player dead or crouching?
     jeq  dont_update_player_position ; Is the player standing still?
                                ; Then we don't need to update the position.
 
-    jgt  update_player_position_start ; Is the player dead?
-    b    @check_quit           ; Then don't update the position or check keys.
-
-update_player_position_start
     mov  @player_direction, r7
     mov  @player_direction_delta, r8
 
