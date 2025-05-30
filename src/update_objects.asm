@@ -51,6 +51,9 @@ exploding equ >0800
 * OUT drones
 * OUT launchers
 * OUT turrets
+* OUT collectibles
+* OUT messages
+* OUT background_objects
 * OUT bullet_x
 * OUT bullet_y
 * OUT bullet_direction
@@ -141,6 +144,18 @@ initialize_collectible_loop
     mov  *r0+, *r2+            ; Copy the type.
     jmp  initialize_collectible_loop
 initialize_collectible_loop_end
+
+* Initialize the message positions and sprites.
+    li   r2, messages
+    a    r1, r2
+
+initialize_message_loop
+    mov  *r0+, *r2+            ; Copy the x ordinate.
+    jlt  initialize_message_loop_end ; Is it the last message?
+    mov  *r0+, *r2+            ; Copy the y ordinate.
+    mov  *r0+, *r2+            ; Copy the supersprite number.
+    jmp  initialize_message_loop
+initialize_message_loop_end
 
 * Initialize the background object positions and sprites.
     li   r2, background_objects
@@ -318,7 +333,7 @@ initialize_background_object_loop_end
 * LOCAL r0
 * LOCAL r1
     .defm restore_player_weapon_states
-    .copy_memory saved_collectible_counts, saved_collectible_counts+collectible_counts_end-collectible_counts, collectible_counts
+    .copy_memory saved_collectible_counts, saved_collectible_counts+collectible_counts_size, collectible_counts
     .endm
 
 

@@ -15,6 +15,7 @@ INPUT_FRAMES=${1:-
 
   -minpixelcount 10
 
+  -name background_object_sprites
   -name grass_sprite
   -color 2
   $INPUT_DIR/Grass/00.png
@@ -72,6 +73,16 @@ INPUT_FRAMES=${1:-
   -color 11
   $INPUT_DIR/Target/*.png
 
+  -shiftx 96
+  -shifty 150
+  -minpixelcount 1
+
+  -name message_sprites
+  -color 15
+  $INPUT_DIR/Messages/*.png
+
+  -shiftx 64
+  -shifty 48
   -minpixelcount 5
 
   -name collectible_sprites

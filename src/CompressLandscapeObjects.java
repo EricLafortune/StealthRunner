@@ -1,5 +1,5 @@
 import javax.imageio.ImageIO;
-import java.awt.image.*;
+import java.awt.image.BufferedImage;
 import java.io.*;
 import java.util.*;
 
@@ -9,8 +9,8 @@ import java.util.*;
  * Usage:
  *   java CompressLandscapeObjects [options] <input_file> <output_file>
  * where options are
- *   -shiftx <s>     the horizontal shift added to the object positions, expressed in pixels.
- *   -shifty <s>     the vertical shift added to the object positions, expressed in pixels.
+ *   -shiftx <s> a horizontal shift added to the object positions, expressed in pixels.
+ *   -shifty <s> a vertical shift added to the object positions, expressed in pixels.
  *
  * The landscape has the same width but half the height as the image.
  *
@@ -50,9 +50,30 @@ public class CompressLandscapeObjects
 
     // Each pair of two vertical pixels corresponds to one character
     // (8x8 pixels in the game).
-    private static final int MAX_WIDTH    = 0x1fff;
-    private static final int MAX_HEIGHT   = 512;
-    private static final int STRIP_HEIGHT = 128 * 2 / 8;
+    private static final int MAX_WIDTH    = 0x1fff;      // image pixels.
+    private static final int MAX_HEIGHT   = 1024;        // image pixels.
+    private static final int STRIP_HEIGHT = 128 * 2 / 8; // world pixels.
+    private static final int STRIP_SIZE   = 256;         // bytes.
+
+    // The maximum number of objects per strip.
+    private static final int MAX_TARGET_COUNT      =  1;
+    private static final int MAX_MINE_COUNT        =  3;
+    private static final int MAX_DRONE_COUNT       =  3;
+    private static final int MAX_LAUNCHER_COUNT    =  3;
+    private static final int MAX_TURRET_COUNT      =  3;
+    private static final int MAX_COLLECTIBLE_COUNT =  8;
+    private static final int MAX_MESSAGE_COUNT     =  4;
+    private static final int MAX_BACKGROUND_COUNT  = 12;
+
+    // The object sizes, when unpacked in memory, expressed in bytes.
+    private static final int TARGET_OBJECT_SIZE      =  4;
+    private static final int MINE_OBJECT_SIZE        =  6;
+    private static final int DRONE_OBJECT_SIZE       = 10;
+    private static final int LAUNCHER_OBJECT_SIZE    =  6;
+    private static final int TURRET_OBJECT_SIZE      =  6;
+    private static final int COLLECTIBLE_OBJECT_SIZE =  6;
+    private static final int MESSAGE_OBJECT_SIZE     =  6;
+    private static final int BACKGROUND_OBJECT_SIZE  =  6;
 
     // Main color palette indices.
     private static final int EMPTY     =  1;
@@ -67,6 +88,9 @@ public class CompressLandscapeObjects
     private static final int DRONE     =  7;
     private static final int LAUNCHER  =  9;
     private static final int TURRET    = 15;
+
+    // Popup messages with counters.
+    private static final int MESSAGE   =  5;
 
     // Background color palette indices (same color palette in the game, but
     // slightly different colors in the landscape image, so we can identify
@@ -90,6 +114,11 @@ public class CompressLandscapeObjects
         STONE,
         BATTERY,
         GRENADE,
+    };
+
+    private static final int[] MESSAGE_OBJECTS =
+    {
+        MESSAGE,
     };
 
     private static final int[] BACKGROUND_OBJECTS =
@@ -194,6 +223,15 @@ public class CompressLandscapeObjects
                 index);
         }
 
+        // Put the message objects in a map (RGB -> counter).
+        Map<Integer, Integer> messageRGBCounters = new HashMap<>();
+        for (int index = 0; index < MESSAGE_OBJECTS.length; index++)
+        {
+            messageRGBCounters.put(
+                rgb(MESSAGE_OBJECTS[index]),
+                0);
+        }
+
         // Put the background objects in a map (RGB -> type).
         Map<Integer, Integer> backgroundRGBTypes = new HashMap<>();
         for (int index = 0; index < BACKGROUND_OBJECTS.length; index++)
@@ -203,22 +241,90 @@ public class CompressLandscapeObjects
                 index);
         }
 
+        int totalTargetCount      = 0;
+        int totalMineCount        = 0;
+        int totalDroneCount       = 0;
+        int totalLauncherCount    = 0;
+        int totalTurretCount      = 0;
+        int totalCollectibleCount = 0;
+        int totalMessageCount     = 0;
+        int totalBackgroundCount  = 0;
+
+        int maxTargetCount      = 0;
+        int maxMineCount        = 0;
+        int maxDroneCount       = 0;
+        int maxLauncherCount    = 0;
+        int maxTurretCount      = 0;
+        int maxCollectibleCount = 0;
+        int maxMessageCount     = 0;
+        int maxBackgroundCount  = 0;
+
         // Write out the (single) initial player position.
-        writeObjectPositions(0, height, outputStream, PLAYER, 4, 4);
+        writeObjectPositions(0, height, outputStream, PLAYER, 1);
 
         // Write out all other object positions, per horizontal strip.
         for (int startY = 0; startY < height; startY += STRIP_HEIGHT)
         {
             int endY = Math.min(height, startY + STRIP_HEIGHT);
 
-            writeObjectPositions(startY, endY, outputStream, TARGET,   0x10 - 2,  4);
-            writeObjectPositions(startY, endY, outputStream, MINE,     0x40 - 2,  6);
-            writeObjectPositions(startY, endY, outputStream, DRONE,    0x40 - 2, 10);
-            writeObjectPositions(startY, endY, outputStream, LAUNCHER, 0x40 - 2,  6);
-            writeObjectPositions(startY, endY, outputStream, TURRET,   0x40 - 2,  6);
-            writeBackgroundObjectPositions(startY, endY, outputStream, collectibleRGBTypes, 0x70 - 2, 6);
-            writeBackgroundObjectPositions(startY, endY, outputStream, backgroundRGBTypes,  0x80 - 2, 6);
+            int targetCount      = writeObjectPositions(          startY, endY, outputStream, TARGET,              MAX_TARGET_COUNT);
+            int mineCount        = writeObjectPositions(          startY, endY, outputStream, MINE,                MAX_MINE_COUNT);
+            int droneCount       = writeObjectPositions(          startY, endY, outputStream, DRONE,               MAX_DRONE_COUNT);
+            int launcherCount    = writeObjectPositions(          startY, endY, outputStream, LAUNCHER,            MAX_LAUNCHER_COUNT);
+            int turretCount      = writeObjectPositions(          startY, endY, outputStream, TURRET,              MAX_TURRET_COUNT);
+            int collectibleCount = writeBackgroundObjectPositions(startY, endY, outputStream, collectibleRGBTypes, MAX_COLLECTIBLE_COUNT);
+            int messageCount     = writeBackgroundObjectPositions(startY, endY, outputStream, messageRGBCounters,  MAX_MESSAGE_COUNT, 1);
+            int backgroundCount  = writeBackgroundObjectPositions(startY, endY, outputStream, backgroundRGBTypes,  MAX_BACKGROUND_COUNT);
+
+            totalTargetCount      += targetCount;
+            totalMineCount        += mineCount;
+            totalDroneCount       += droneCount;
+            totalLauncherCount    += launcherCount;
+            totalTurretCount      += turretCount;
+            totalCollectibleCount += collectibleCount;
+            totalMessageCount     += messageCount;
+            totalBackgroundCount  += backgroundCount;
+
+            if (maxTargetCount      < targetCount     ) maxTargetCount      = targetCount;
+            if (maxMineCount        < mineCount       ) maxMineCount        = mineCount;
+            if (maxDroneCount       < droneCount      ) maxDroneCount       = droneCount;
+            if (maxLauncherCount    < launcherCount   ) maxLauncherCount    = launcherCount;
+            if (maxTurretCount      < turretCount     ) maxTurretCount      = turretCount;
+            if (maxCollectibleCount < collectibleCount) maxCollectibleCount = collectibleCount;
+            if (maxMessageCount     < messageCount    ) maxMessageCount     = messageCount;
+            if (maxBackgroundCount  < backgroundCount ) maxBackgroundCount  = backgroundCount;
         }
+
+        System.out.printf("Total targets      = %2d, max/strip = %2d / %2d (%2d / %2d bytes)\n", totalTargetCount,      maxTargetCount,      MAX_TARGET_COUNT,      maxTargetCount      * TARGET_OBJECT_SIZE      + 2, MAX_TARGET_COUNT      * TARGET_OBJECT_SIZE      + 2);
+        System.out.printf("Total mines        = %2d, max/strip = %2d / %2d (%2d / %2d bytes)\n", totalMineCount,        maxMineCount,        MAX_MINE_COUNT,        maxMineCount        * MINE_OBJECT_SIZE        + 2, MAX_MINE_COUNT        * MINE_OBJECT_SIZE        + 2);
+        System.out.printf("Total drones       = %2d, max/strip = %2d / %2d (%2d / %2d bytes)\n", totalDroneCount,       maxDroneCount,       MAX_DRONE_COUNT,       maxDroneCount       * DRONE_OBJECT_SIZE       + 2, MAX_DRONE_COUNT       * DRONE_OBJECT_SIZE       + 2);
+        System.out.printf("Total launchers    = %2d, max/strip = %2d / %2d (%2d / %2d bytes)\n", totalLauncherCount,    maxLauncherCount,    MAX_LAUNCHER_COUNT,    maxLauncherCount    * LAUNCHER_OBJECT_SIZE    + 2, MAX_LAUNCHER_COUNT    * LAUNCHER_OBJECT_SIZE    + 2);
+        System.out.printf("Total turrets      = %2d, max/strip = %2d / %2d (%2d / %2d bytes)\n", totalTurretCount,      maxTurretCount,      MAX_TURRET_COUNT,      maxTurretCount      * TURRET_OBJECT_SIZE      + 2, MAX_TURRET_COUNT      * TURRET_OBJECT_SIZE      + 2);
+        System.out.printf("Total collectibles = %2d, max/strip = %2d / %2d (%2d / %2d bytes)\n", totalCollectibleCount, maxCollectibleCount, MAX_COLLECTIBLE_COUNT, maxCollectibleCount * COLLECTIBLE_OBJECT_SIZE + 2, MAX_COLLECTIBLE_COUNT * COLLECTIBLE_OBJECT_SIZE + 2);
+        System.out.printf("Total messages     = %2d, max/strip = %2d / %2d (%2d / %2d bytes)\n", totalMessageCount,     maxMessageCount,     MAX_MESSAGE_COUNT,     maxMessageCount     * MESSAGE_OBJECT_SIZE     + 2, MAX_MESSAGE_COUNT     * MESSAGE_OBJECT_SIZE     + 2);
+        System.out.printf("Total background   = %2d, max/strip = %2d / %2d (%2d / %2d bytes)\n", totalBackgroundCount,  maxBackgroundCount,  MAX_BACKGROUND_COUNT,  maxBackgroundCount  * BACKGROUND_OBJECT_SIZE  + 2, MAX_BACKGROUND_COUNT  * BACKGROUND_OBJECT_SIZE  + 2);
+
+        int stripSize =
+            maxTargetCount        * TARGET_OBJECT_SIZE      + 2 +
+            maxMineCount          * MINE_OBJECT_SIZE        + 2 +
+            maxDroneCount         * DRONE_OBJECT_SIZE       + 2 +
+            maxLauncherCount      * LAUNCHER_OBJECT_SIZE    + 2 +
+            maxTurretCount        * TURRET_OBJECT_SIZE      + 2 +
+            maxCollectibleCount   * COLLECTIBLE_OBJECT_SIZE + 2 +
+            maxMessageCount       * MESSAGE_OBJECT_SIZE     + 2 +
+            maxBackgroundCount    * BACKGROUND_OBJECT_SIZE  + 2;
+
+        int maxStripSize =
+            MAX_TARGET_COUNT      * TARGET_OBJECT_SIZE      + 2 +
+            MAX_MINE_COUNT        * MINE_OBJECT_SIZE        + 2 +
+            MAX_DRONE_COUNT       * DRONE_OBJECT_SIZE       + 2 +
+            MAX_LAUNCHER_COUNT    * LAUNCHER_OBJECT_SIZE    + 2 +
+            MAX_TURRET_COUNT      * TURRET_OBJECT_SIZE      + 2 +
+            MAX_COLLECTIBLE_COUNT * COLLECTIBLE_OBJECT_SIZE + 2 +
+            MAX_MESSAGE_COUNT     * MESSAGE_OBJECT_SIZE     + 2 +
+            MAX_BACKGROUND_COUNT  * BACKGROUND_OBJECT_SIZE  + 2;
+
+        System.out.printf("Strip size: min %d bytes, max %d bytes\n", stripSize, maxStripSize);
 
         int size = outputStream.size();
         if (size > 8 * 1024)
@@ -235,16 +341,15 @@ public class CompressLandscapeObjects
      * Writes out the array with initial object positions
      * of the given type, for a specified horizontal strip.
      */
-    private void writeObjectPositions(int              startY,
-                                      int              endY,
-                                      DataOutputStream outputStream,
-                                      int              objectType,
-                                      int              maxSize,
-                                      int              itemSize)
+    private int writeObjectPositions(int              startY,
+                                     int              endY,
+                                     DataOutputStream outputStream,
+                                     int              objectType,
+                                     int              maxCount)
     throws IOException
     {
         int objectRGB = rgb(objectType);
-        int size      = 0;
+        int count     = 0;
 
         // The landscape height is half the image height.
         // We're scanning all rows anyway.
@@ -258,17 +363,19 @@ public class CompressLandscapeObjects
                     outputStream.writeChar(x     * 8 + shiftX + 4);
                     outputStream.writeChar(y / 2 * 8 + shiftY + 4);
 
-                    size += itemSize;
+                    count++;
                 }
             }
         }
 
         outputStream.writeChar(-1);
 
-        if (size > maxSize)
+        if (count > maxCount)
         {
-            throw new IllegalArgumentException("Maximum strip buffer size [0x"+Integer.toHexString(maxSize)+"] exceeded [0x"+Integer.toHexString(size)+"] for object type "+objectType+" in strip ["+startY+".."+endY+"]");
+            throw new IllegalArgumentException("Object count ["+count+"] exceeded maximum ["+maxCount+"] for object type "+objectType+" in strip ["+startY+".."+endY+"]");
         }
+
+        return count;
     }
 
 
@@ -276,15 +383,35 @@ public class CompressLandscapeObjects
      * Writes out the array with initial object positions
      * of the given types, for a specified horizontal strip.
      */
-    private void writeBackgroundObjectPositions(int                  startY,
-                                                int                  endY,
-                                                DataOutputStream     outputStream,
-                                                Map<Integer,Integer> rgbTypes,
-                                                int                  maxSize,
-                                                int                  itemSize)
+    private int writeBackgroundObjectPositions(int                  startY,
+                                               int                  endY,
+                                               DataOutputStream     outputStream,
+                                               Map<Integer,Integer> rgbTypes,
+                                               int                  maxCount)
     throws IOException
     {
-        int size = 0;
+        return writeBackgroundObjectPositions(startY,
+                                              endY,
+                                              outputStream,
+                                              rgbTypes,
+                                              maxCount,
+                                              0);
+    }
+
+
+    /**
+     * Writes out the array with initial object positions
+     * of the given types, for a specified horizontal strip.
+     */
+    private int writeBackgroundObjectPositions(int                  startY,
+                                               int                  endY,
+                                               DataOutputStream     outputStream,
+                                               Map<Integer,Integer> rgbTypes,
+                                               int                  maxCount,
+                                               int                  typeIncrement)
+    throws IOException
+    {
+        int count = 0;
 
         // The landscape height is half the image height.
         // We're scanning all rows anyway.
@@ -300,16 +427,25 @@ public class CompressLandscapeObjects
                     outputStream.writeChar(y / 2 * 8 + shiftY + 4);
                     outputStream.writeChar(type);
 
-                    size += itemSize;
+                    count++;
+
+                    if (typeIncrement != 0)
+                    {
+                        type += typeIncrement;
+
+                        rgbTypes.put(rgb, type);
+                    }
                 }
             }
         }
 
         outputStream.writeChar(-1);
 
-        if (size > maxSize)
+        if (count > maxCount)
         {
-            throw new IllegalArgumentException("Maximum strip buffer size [0x"+Integer.toHexString(maxSize)+"] exceeded [0x"+Integer.toHexString(size)+"] for background objects in strip ["+startY+".."+endY+"]");
+            throw new IllegalArgumentException("Object count ["+count+"] exceeded maximum ["+maxCount+"] for background objects [RGB 0x"+Integer.toHexString(rgbTypes.keySet().iterator().next())+"...] in strip ["+startY+".."+endY+"]");
         }
+
+        return count;
     }
 }

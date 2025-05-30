@@ -805,13 +805,15 @@ public class CompressSprites
     {
         int pixelCount = 0;
 
-        for (int dx = 0; dx < 16; dx++)
-        {
-            for (int dy = 0; dy < 16; dy++)
-            {
-                int x = spriteX + dx;
-                int y = spriteY + dy;
+        int xMin = Math.max(spriteX, 0);
+        int xMax = Math.min(spriteX+16, bitraster.length);
+        int yMin = Math.max(spriteY, 0);
+        int yMax = Math.min(spriteY+16, bitraster[0].length);
 
+        for (int x = xMin; x < xMax; x++)
+        {
+            for (int y = yMin; y < yMax; y++)
+            {
                 // Check the bitraster bits.
                 int bits = bitraster[x][y];
                 if ((bits &  bit) != 0 &&
@@ -834,13 +836,15 @@ public class CompressSprites
                                     int     spriteY,
                                     int     bit)
     {
-        for (int dx = 0; dx < 16; dx++)
-        {
-            for (int dy = 0; dy < 16; dy++)
-            {
-                int x = spriteX + dx;
-                int y = spriteY + dy;
+        int xMin = Math.max(spriteX, 0);
+        int xMax = Math.min(spriteX+16, bitraster.length);
+        int yMin = Math.max(spriteY, 0);
+        int yMax = Math.min(spriteY+16, bitraster[0].length);
 
+        for (int x = xMin; x < xMax; x++)
+        {
+            for (int y = yMin; y < yMax; y++)
+            {
                 // Clear the bitraster bit.
                 bitraster[x][y] &= ~bit;
             }
@@ -860,54 +864,47 @@ public class CompressSprites
     {
         Random random = new Random();
 
+        // Extract the 2x2 characters (= 16x16 pixels = 2x16 rows = 32 bytes).
         byte[] pattern = new byte[2*2*8];
 
-        int patternOffset = 0;
+        int xMin = Math.max(spriteX, 0);
+        int xMax = Math.min(spriteX+16, bitraster.length);
+        int yMin = Math.max(spriteY, 0);
+        int yMax = Math.min(spriteY+16, bitraster[0].length);
 
-        // Extract the 2x2 characters (=16x16 pixels).
-        for (int cx = 0; cx < 16; cx += 8)
+        for (int x = xMin; x < xMax; x++)
         {
-            for (int dy = 0; dy < 16; dy++)
+            for (int y = yMin; y < yMax; y++)
             {
-                // Collect the row of 8 pixels.
-                int pixels = 0;
+                int sx = x - spriteX;
+                int sy = y - spriteY;
 
-                for (int rx = 0; rx < 8; rx++)
+                int bits = bitraster[x][y];
+                if ((bits & bit) != 0)
                 {
-                    int dx = cx + rx;
-
-                    int x = spriteX + dx;
-                    int y = spriteY + dy;
-
-                    int bits = bitraster[x][y];
-                    if ((bits & bit) != 0)
+                    // Is the pixel covered by multiple sprites?
+                    // We can then randomize the pixel, heuristically
+                    // with a lower probability near the edges.
+                    int coverage = Integer.bitCount(bits);
+                    if (coverage == 1 ||
+                        random.nextInt(coverage +
+                                       (sx <= 2 || sx >= 13 ? 1 : 0) +
+                                       (sy <= 2 || sy >= 13 ? 1 : 0)) == 0)
                     {
-                        // Is the pixel covered by multiple sprites?
-                        // We can then randomize the pixel, heuristically
-                        // with a lower probability near the edges.
-                        int coverage = Integer.bitCount(bits);
-                        if (coverage == 1 ||
-                            random.nextInt(coverage +
-                                           (dx <= 2 || dx >= 13 ? 1 : 0) +
-                                           (dy <= 2 || dy >= 13 ? 1 : 0)) == 0)
-                        {
-                            // Set the sprite pixel.
-                            pixels |= 0x80 >>> rx;
+                        // Set the sprite pixel.
+                        pattern[sx / 8 * 16 + sy] |= 0x80 >> (sx & 7);
 
-                            // Clear the bitraster pixel.
-                            // This sprite has it covered.
-                            bitraster[x][y] = 0;
-                        }
-                        else
-                        {
-                            // Clear the bitraster bit.
-                            // This sprite won't cover it.
-                            bitraster[x][y] &= ~bit;
-                        }
+                        // Clear the bitraster pixel.
+                        // This sprite has it covered.
+                        bitraster[x][y] = 0;
+                    }
+                    else
+                    {
+                        // Clear the bitraster bit.
+                        // This sprite won't cover it.
+                        bitraster[x][y] &= ~bit;
                     }
                 }
-
-                pattern[patternOffset++] = (byte)pixels;
             }
         }
 
@@ -918,13 +915,20 @@ public class CompressSprites
     /**
      * Clears the 16x16 pixels at the specified position.
      */
-    private static void clearSprite(WritableRaster raster, int x, int y)
+    private static void clearSprite(WritableRaster raster,
+                                    int            spriteX,
+                                    int            spriteY)
     {
-        for (int dx = 0; dx < 16; dx++)
+        int xMin = Math.max(spriteX, 0);
+        int xMax = Math.min(spriteX+16, raster.getWidth());
+        int yMin = Math.max(spriteY, 0);
+        int yMax = Math.min(spriteY+16, raster.getHeight());
+
+        for (int x = xMin; x < xMax; x++)
         {
-            for (int dy = 0; dy < 16; dy++)
+            for (int y = yMin; y < yMax; y++)
             {
-                raster.setSample(x + dx, y + dy, 0, 0);
+                raster.setSample(x, y, 0, 0);
             }
         }
     }
@@ -935,7 +939,12 @@ public class CompressSprites
      */
     private static boolean isSet(Raster raster, int x, int y)
     {
-        return raster.getSample(x, y, 0) != 0;
+        return
+            x >= 0                  &&
+            x <  raster.getWidth()  &&
+            y >= 0                  &&
+            y <  raster.getHeight() &&
+            raster.getSample(x, y, 0) != 0;
     }
 
 

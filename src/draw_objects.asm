@@ -84,6 +84,7 @@ draw_bullet
 
 draw_bullet_end
 
+
 * Draw the object lists of all surrounding horizontal strips.
     .first_object_strip r9
     .last_object_strip r10
@@ -257,6 +258,9 @@ draw_background_object_loop
     mov  *r8+, r3              ; Get the y ordinate.
     mov  *r8+, r1              ; Get the type.
 
+    ;ai   r1, background_object_sprites ; Compute the supersprite number.
+                               ; The offset is currently 0.
+
     s    @player_x, r2         ; Get the coordinates in screen space.
     s    @player_y, r3
 
@@ -271,6 +275,47 @@ draw_background_object_loop_end
     jh   !
     b    @draw_object_strip_loop
 !
+
+
+* Draw the message lists of all surrounding horizontal strips.
+* We're drawing them in a separate loop, for tighter bounds,
+* and so we can stop after the first message.
+    .object_strip @player_y, -32, r9
+    .object_strip @player_y, 32, r10
+
+draw_message_strip_loop
+
+* Draw the messages (supersprites, low priority).
+    li   r8, messages
+    a    r9, r8
+
+draw_message_loop
+    mov  *r8+, r2              ; Get the x ordinate.
+    jlt  draw_message_loop_end ; Is it the last object?
+    mov  *r8+, r3              ; Get the y ordinate.
+    mov  *r8+, r1              ; Get the number.
+
+    .dist @player_x, r2, 32    ; Is it close to the player?
+    jgt  draw_message_loop
+    .dist @player_y, r3, 32
+    jgt  draw_message_loop
+
+    ai   r1, message_sprites   ; Compute the supersprite number.
+
+    clr  r2                    ; Set the coordinates in screen space.
+    clr  r3
+
+    bl   @draw_supersprite_unchecked ; Draw this one message.
+    jmp  draw_message_strip_loop_end
+
+draw_message_loop_end
+
+* Repeat for the next strip, if any.
+    .next_object_strip r9, r10
+    jle  draw_message_strip_loop
+
+draw_message_strip_loop_end
+
 
 * Draw the thrown stone, if any (supersprite, low priority).
 draw_stone

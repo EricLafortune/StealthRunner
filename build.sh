@@ -68,8 +68,12 @@ scripts/convert_sound.sh
 scripts/convert_speech.sh
 
 scripts/create_intro.sh
+scripts/create_messages.sh
+scripts/create_medkit_counters.sh
+scripts/create_stone_counters.sh
+scripts/create_charge_counters.sh
+scripts/create_grenade_counters.sh
 scripts/create_emp.sh
-scripts/create_charge.sh
 
 scripts/compress_sprites.sh
 scripts/compress_player.sh

@@ -20,9 +20,7 @@
 
 * A supersprite can in principle cover any area.
 * For performance, we're culling by assuming approximate visual bounds of
-* 100x100 pixels, centered around the player base (128,112).
-supersprite_center_x equ player_base_x
-supersprite_center_y equ player_base_y
+* 100x100 pixels.
 supersprite_width    equ 100
 supersprite_height   equ 100
 

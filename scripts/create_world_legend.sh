@@ -69,23 +69,27 @@ legend $(color 11 fefeff) Pylon
 
 Y=$[Y+10]
 
-legend $(color  4)   Player
-legend $(color 11)   Target
-legend $(color 12)   Medkit
-legend $(color  6)   Stone
-legend $(color  2)   Battery
-legend $(color 14)   Grenade
+legend $(color  4) Player
+legend $(color  5) Message
+legend $(color 11) Target
 
 Y=$[Y+10]
 
-legend $(color  8)   Mine
-legend $(color  7)   Drone
-legend $(color  9)   Launcher
-legend $(color 15)   Turret
+legend $(color 12) Medkit
+legend $(color  6) Stone
+legend $(color  2) Battery
+legend $(color 14) Grenade
+
+Y=$[Y+10]
+
+legend $(color  8) Mine
+legend $(color  7) Drone
+legend $(color  9) Launcher
+legend $(color 15) Turret
 
 convert \
   +antialias \
-  -size 100x520 \
+  -size 100x550 \
   xc:black \
   -font Arial \
   -pointsize 12 \
