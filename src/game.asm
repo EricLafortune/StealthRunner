@@ -119,9 +119,6 @@ key_press_loop
     .copy_memory blit_code_start, blit_code_end, scratchpad
 
 play_game
-    .switch_bank @data_bank    ; The graphics are in the data bank.
-    .initialize_game_graphics
-
 * Initialize the player and the objects from the world data.
 
     .switch_bank @landscape_objects_bank
@@ -135,6 +132,23 @@ play_game
     .save_player_weapon_states
     .save_object_states
 
+* Initialize the supersprite/quadsprite cache.
+    bl   @initialize_quadsprites
+
+* Keep track of even/odd frames.
+    clr  @frame_timestamp
+
+* Animate the player parachuting in.
+parachute_intro
+
+* Reset some basic states.
+    .reset_launched_weapons
+    .initialize_landscape
+
+* Reset the graphics.
+    .switch_bank @data_bank    ; The graphics are in the data bank.
+    .initialize_game_graphics
+
 * Reset the sound pointers.
     seto @current_tone0
     seto @current_tone1
@@ -145,22 +159,11 @@ play_game
     clr  @current_speech
     clr  @current_speech_length
 
-* Initialize the supersprite/quadsprite cache.
-    bl   @initialize_quadsprites
-
-* Keep track of even/odd frames.
-    clr  @frame_timestamp
-
-    .reset_launched_weapons
-
-* Animate the player parachuting in.
-parachute_intro
+* Start the parachuting.
     mov  @player_start_x, @player_x ; Initialize the screen x ordinate to the
                                     ; start position.
     li   r0, 400
     mov  r0, @parachute_counter
-
-    .initialize_landscape
 
 parachute_loop
     .draw_parachute            ; Draw the player parachuting into view.
@@ -255,6 +258,7 @@ return_to_intro
     copy "supersprites.asm"
     copy "directions.asm"
 
+expansion_data_start
     aorg
 expansion_code_end
 
@@ -295,6 +299,12 @@ blit_code_start
 
     ; Also, a tiny speech subroutine that has to be run from scratchpad RAM.
     .speech_read_status_byte_subroutine
+
+    .print 'Unused bytes in scratchpad after blitting code:', workspace - $
+
+    .ifgt  $, workspace
+    .error 'Blitting code too large for scratchpad'
+    .endif
 
 * Global variables in scratchpad RAM, for speed.
     dorg $
@@ -337,6 +347,9 @@ previous_player_frame          data 0
 
 player_state_end
 
+player_state_size equ player_state_end - player_state
+
+
 * Landscape display variables.
 landscape_state
 previous_landscape_patterns_offset data 0 ; Most recently drawn landscape patterns source offset.
@@ -345,10 +358,10 @@ previous_quadrant_y                data 0 ; expressed as multiples of 4 pixels.
 
 landscape_state_end
 
-    .print 'Unused bytes in scratchpad after blitting code:', workspace - $
+    .print 'Unused bytes in scratchpad after data:', workspace - $
 
     .ifgt  $, workspace
-    .error 'Blitting code too large for scratchpad'
+    .error 'Blitting code too large for data'
     .endif
 
     aorg
@@ -397,42 +410,8 @@ blit_code_end
     .next_bank
 module_end
 
-* Global variables.
-    dorg >a000
-
-* Object lists. We have a set of object data per horizontal strip of 128 pixels
-* high. All coordinates in the lists are those of the top-left corner of a
-* virtual screen in the world, compatible with the player coordinates.
-* Reserve space for the first strip of object lists.
-object_states
-targets                   bss >0010 ; X ordinate, y ordinate.
-mines                     bss >0040 ; X ordinate, y ordinate, explosion.
-drones                    bss >0040 ; X ordinate, y ordinate, fractional x ordinate, fractional y ordinate, direction (0..15 = 4 bits).
-launchers                 bss >0040 ; X ordinate, y ordinate, explosion.
-turrets                   bss >0040 ; X ordinate, y ordinate, direction (0..15 = 4 bits).
-collectibles              bss >0070 ; X ordinate, y ordinate, type.
-background_objects        bss >0080 ; X ordinate, y ordinate, type.
-first_object_states_end
-
-world_character_height    equ 256 ; Number of characters vertically in the world.
-world_pixel_height        equ world_character_height * 8 ; Number of pixels vertically in the world.
-
-object_strip_pixel_height       equ 128 ; Number of pixels vertically per strip.
-object_strip_pixel_height_shift equ 7   ; The corresponding bit shift.
-
-object_strip_size         equ first_object_states_end - object_states ; 512 bytes of data per strip.
-object_strip_size_shift   equ 9                                       ; The corresponding bit shift.
-object_strip_count        equ world_pixel_height / object_strip_pixel_height    ; 16 strips.
-object_states_size        equ object_strip_count * object_strip_size
-
-    .ifne object_strip_size, 512
-    .error 'Incorrect strip size.'
-    .endif
-
-* Reserve space for the remaining strips of object lists.
-                          bss object_states_size - object_strip_size
-
-object_states_end
+* Global variables after the code in low expansion memory.
+    dorg expansion_data_start
 
 * Parachute variables.
 parachute_counter data 0 ; Counter (down) for the parachute intro.
@@ -462,6 +441,8 @@ grenade_count data 0 ; Number of available grenades.
 weapon        data 0 ; The selected weapon type (0, 1, or 2).
 
 collectible_counts_end
+
+collectible_counts_size equ collectible_counts_end - collectible_counts
 
 * Thrown stone variables.
 weapon_states
@@ -520,25 +501,84 @@ mouse_present data 0 ; Mouse present or not (>0000).
 mouse_x       data 0 ; Mouse x ordinate around player.
 mouse_y       data 0 ; Mouse y ordinate around player.
 
+    .print 'Unused bytes in low expansion memory:', low_expansion_memory_end - $
+
+    .ifgt  $, low_expansion_memory_end
+    .error 'Data structures too large for low expansion memory'
+    .endif
+
+* Global variables in high expansion memory.
+    dorg high_expansion_memory
+
+* Object lists. We have a set of object data per horizontal strip of 128 pixels
+* high. All coordinates in the lists are those of the top-left corner of a
+* virtual screen in the world, compatible with the player coordinates.
+object_strip_pixel_height       equ 128 ; Number of pixels vertically per strip.
+object_strip_pixel_height_shift equ 7   ; The corresponding bit shift.
+
+object_strip_size         equ 256 ; Bytes of data per strip.
+object_strip_size_shift   equ 8   ; The corresponding bit shift.
+
+world_character_height    equ 512 ; Number of characters vertically in the world.
+world_pixel_height        equ world_character_height * 8 ; Number of pixels vertically in the world.
+
+object_strip_count        equ world_pixel_height / object_strip_pixel_height ; Number of strips.
+object_states_size        equ object_strip_count * object_strip_size         ; Total size of all strips.
+
+* Maximum numbers of objects per strip.
+max_target_count          equ  1
+max_mine_count            equ  3
+max_drone_count           equ  3
+max_launcher_count        equ  3
+max_turret_count          equ  3
+max_collectible_count     equ  8
+max_message_count         equ  4
+max_background_count      equ 12
+
+* Reserve space for the first strip of object lists.
+* Each list has a terminator word.
+object_states
+targets                   bss max_target_count * 4 + 2      ; X ordinate, y ordinate.
+mines                     bss max_mine_count * 6 + 2        ; X ordinate, y ordinate, explosion.
+drones                    bss max_drone_count * 10 + 2      ; X ordinate, y ordinate, fractional x ordinate, fractional y ordinate, direction (0..15 = 4 bits).
+launchers                 bss max_launcher_count * 6 + 2    ; X ordinate, y ordinate, explosion.
+turrets                   bss max_turret_count * 6 + 2      ; X ordinate, y ordinate, direction (0..15 = 4 bits).
+collectibles              bss max_collectible_count * 6 + 2 ; X ordinate, y ordinate, type.
+messages                  bss max_message_count * 6 + 2     ; X ordinate, y ordinate, number.
+background_objects        bss max_background_count * 6 + 2  ; X ordinate, y ordinate, type.
+first_object_states_end
+                                                            ; Filler to get to the strip size.
+                          bss object_strip_size + object_states - first_object_states_end
+
+    .ifgt first_object_states_end - object_states, object_strip_size
+    .error 'Incorrect strip size.'
+    .endif
+
+* Reserve space for the remaining strips of object lists.
+                          bss object_states_size - object_strip_size
+
+object_states_end
+
+* Saved states.
+saved_player_state       bss player_state_size
+saved_collectible_counts bss collectible_counts_size
+saved_object_states      bss object_states_size
+
 * Supersprite/quadsprite cache pointers.
 vdp_quadsprite_numbers    bss 1024 * 2 ; The VDP quadsprite number (0..63 = 6 bits, shifted left 1 bit) for each CPU ROM quadsprite number (0..1023).
 cpu_quadsprite_numbers    bss 64 * 2   ; The CPU ROM quadsprite number (0..1023, shifted left 1 bit) for each VDP quadsprite number (0..63).
 vdp_quadsprite_timestamps bss 64 * 2   ; The timestamp of the most recent frame for each VDP quadsprite number (0..63).
 sprite_cache_queue        bss 32 * 2   ; The queue with CPU quadsprite numbers (shifted left 1 bit) to be written to VDP memory.
+                                       ; TODO: The queue may overflow.
 
-* Saved states.
-saved_player_state       bss player_state_end - player_state
-saved_collectible_counts bss collectible_counts_end - collectible_counts
-saved_object_states      bss object_states_end - object_states
-
-    .print 'Unused bytes in upper expansion memory:', -$
+    .print 'Unused bytes in high expansion memory:', -$
 
     .iflt  $, >8000
-    .error 'Data structures too large for upper expansion memory'
+    .error 'Data structures too large for high expansion memory'
     .endif
 
 * The memory bank addresses: >6000, >6002,.... (multiples of 2).
-    dorg >6000
+    dorg module_bank_selection
 
 code_bank                        bss 2 * 1
 data_bank                        bss 2 * 1

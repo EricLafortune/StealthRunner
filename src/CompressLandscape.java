@@ -1,6 +1,9 @@
 import javax.imageio.ImageIO;
-import java.awt.image.*;
+import java.awt.image.BufferedImage;
 import java.io.*;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * Converts a landscape image to a landscape file in our own compressed
@@ -12,10 +15,8 @@ import java.io.*;
  * Usage:
  *   java CompressLandscape [options] <input_file> <output_file>
  * where options are
- *   -charoffset <c> the required offset for characters assigned in the
- *                   screens.
- *   -shiftx <s>     the horizontal shift of the first dot.
- *   -shifty <s>     the vertical shift of the first dot.
+ *   -baseaddress <n> a base address added to addresses in the output.
+ *   -charoffset  <c> an offset added to characters in the output.
  *
  * Interpretation:
  *
@@ -56,15 +57,23 @@ import java.io.*;
  *
  * The landscape has the same width but half the height as the image.
  *
- * The landscape bytes are compressed as horizontal runs of non-zero bytes.
+ * The landscape is represented as deltas for 16 translation directions
+ * (quadrants). Each of these is compressed as a list of horizontal spans
+ * of changing bytes in the display.
+ *
+ * [0x6000] Address table : first span address (word) ->
+ *          Span table: destination (word), length (byte), data offset (byte) ->
+ * [0x7f00] Span data
  */
 public class CompressLandscape
 {
-    private static final int MAX_WIDTH  = 0x1fff;
-    private static final int MAX_HEIGHT = 512;
+    private static final int MAX_WIDTH          = 0x1fff;
+    private static final int MAX_HEIGHT         = 1024;
+    private static final int MAX_SPAN_DATA_SIZE = 256;
 
     private static final int EMPTY     = 0x000000;
     private static final int LANDSCAPE = 0x5edc78;
+
 
     private static final boolean DEBUG = false;
 
@@ -72,13 +81,17 @@ public class CompressLandscape
     private final BufferedImage image;
     private final int           width;
     private final int           height;
+    private final int           baseAddress;
+    private final int           charOffset;
 
     private int deltaIndex; // For debug printing.
+
 
     public static void main(String[] args)
     throws IOException
     {
-        int charOffset = 1;
+        int baseAddress = 0;
+        int charOffset  = 0;
 
         // Parse any options.
         int argIndex = 0;
@@ -95,8 +108,9 @@ public class CompressLandscape
 
             switch (arg)
             {
-                case "-charoffset" -> charOffset  = Integer.parseInt(args[argIndex++]);
-                default            -> throw new IllegalArgumentException("Unknown option [" + arg + "]");
+                case "-baseaddress" -> baseAddress = Integer.parseInt(args[argIndex++]);
+                case "-charoffset"  -> charOffset  = Integer.parseInt(args[argIndex++]);
+                default             -> throw new IllegalArgumentException("Unknown option [" + arg + "]");
             }
         }
 
@@ -110,7 +124,9 @@ public class CompressLandscape
         }
 
         CompressLandscape landscape =
-            new CompressLandscape(image);
+            new CompressLandscape(image,
+                                  baseAddress,
+                                  charOffset);
 
         try (DataOutputStream outputStream =
                  new DataOutputStream(
@@ -122,11 +138,15 @@ public class CompressLandscape
     }
 
 
-    public CompressLandscape(BufferedImage image)
+    public CompressLandscape(BufferedImage image,
+                             int           baseAddress,
+                             int           charOffset)
     {
-        this.image  = image;
-        this.width  = Math.min(MAX_WIDTH,  image.getWidth());
-        this.height = Math.min(MAX_HEIGHT, image.getHeight());
+        this.image       = image;
+        this.width       = Math.min(MAX_WIDTH,  image.getWidth());
+        this.height      = Math.min(MAX_HEIGHT, image.getHeight());
+        this.baseAddress = baseAddress;
+        this.charOffset  = charOffset;
     }
 
 
@@ -177,6 +197,7 @@ public class CompressLandscape
                               quadrantY,
                               quadrantDeltaX,
                               quadrantDeltaY);
+
             for (int charY = 0; charY < height / 2; charY++)
             {
                 for (int charX = 0; charX < width; charX++)
@@ -207,34 +228,132 @@ public class CompressLandscape
         }
 
         // Compress and write out the patterns.
-        ByteArrayOutputStream offsetOutputStream =
-            new ByteArrayOutputStream(height);
+        ByteArrayOutputStream addressOutputStream =
+            new ByteArrayOutputStream(height + 2);
 
         ByteArrayOutputStream frameOutputStream =
             new ByteArrayOutputStream(8 * 1024);
 
-        // Write the characters compressed as spans.
+        // Collect and merge the characters of all spans.
+        String mergedSpans = collectCharacterSpans(quadrantX,
+                                                   quadrantY,
+                                                   quadrantDeltaX,
+                                                   quadrantDeltaY);
+
+        // Write the character spans as destination offsets, lengths, and
+        // source offsets.
         writeCharacterSpans(quadrantX,
                             quadrantY,
                             quadrantDeltaX,
                             quadrantDeltaY,
-                            new DataOutputStream(offsetOutputStream),
+                            mergedSpans,
+                            new DataOutputStream(addressOutputStream),
                             new DataOutputStream(frameOutputStream));
 
-        int size = offsetOutputStream.size() +
+        // Compute and check the total size.
+        int size = addressOutputStream.size() +
                    frameOutputStream.size();
 
-        if (size > 8 * 1024)
+        if (size > 8 * 1024 - MAX_SPAN_DATA_SIZE)
         {
-            throw new IllegalArgumentException("Landscape exceeds single memory bank");
+            throw new IllegalArgumentException("Landscape exceeds single 8K memory bank [" +
+                                               addressOutputStream.size() + " + " +
+                                               frameOutputStream.size() + " + " +
+                                               MAX_SPAN_DATA_SIZE + " = " +
+                                               size + MAX_SPAN_DATA_SIZE + "]");
         }
 
-        // Concatenate the offset table and the compressed frame data.
-        outputStream.write(offsetOutputStream.toByteArray());
+        // Concatenate the address table and the span table
+        outputStream.write(addressOutputStream.toByteArray());
         outputStream.write(frameOutputStream.toByteArray());
 
+        // Skip to the last 256 bytes of the memory bank.
+        outputStream.write(new byte[8 * 1024 - MAX_SPAN_DATA_SIZE - size]);
+
+        // Concatenate the span data.
+        outputStream.write(mergedSpans.getBytes(StandardCharsets.US_ASCII));
+
         // Skip to the next memory bank.
-        outputStream.write(new byte[8 * 1024 - size]);
+        outputStream.write(new byte[MAX_SPAN_DATA_SIZE - mergedSpans.length()]);
+    }
+
+
+    private String collectCharacterSpans(int quadrantX,
+                                         int quadrantY,
+                                         int quadrantDeltaX,
+                                         int quadrantDeltaY)
+    {
+        MultiCharacterSpan mergedSpans = new MultiCharacterSpan();
+
+        // The landscape height is half the image height.
+        // Scan all landscape rows.
+        for (int charY = 0; charY < height / 2; charY++)
+        {
+            // Write the spans of this row.
+            collectCharacterSpans(quadrantX,
+                                  quadrantY,
+                                  quadrantDeltaX,
+                                  quadrantDeltaY,
+                                  charY,
+                                  mergedSpans);
+        }
+
+        return mergedSpans.toCharacterString();
+    }
+
+
+    private void collectCharacterSpans(int                quadrantX,
+                                       int                quadrantY,
+                                       int                quadrantDeltaX,
+                                       int                quadrantDeltaY,
+                                       int                charY,
+                                       MultiCharacterSpan mergedSpans)
+    {
+        int endX = -1;
+        while (true)
+        {
+            // Compute the start and end of the next span.
+            int startX = characterSpanStart(quadrantX,
+                                            quadrantY,
+                                            quadrantDeltaX,
+                                            quadrantDeltaY,
+                                            endX + 1,
+                                            charY);
+            if (startX == width)
+            {
+                break;
+            }
+
+            endX = characterSpanEnd(quadrantX,
+                                    quadrantY,
+                                    quadrantDeltaX,
+                                    quadrantDeltaY,
+                                    startX + 1,
+                                    charY);
+
+            int length = endX - startX;
+            if (length > 255)
+            {
+                throw new IllegalArgumentException("Span longer than 255 bytes ("+length+" bytes)");
+            }
+
+            MultiCharacterSpan span = new MultiCharacterSpan();
+
+            for (int charX = startX; charX < endX; charX++)
+            {
+                span.append((char)landscapeCharacter(quadrantX,
+                                                     quadrantY,
+                                                     charX,
+                                                     charY));
+            }
+
+            mergedSpans.mergeOptimally(span);
+
+            if (DEBUG)
+            {
+                System.out.println("["+charY+"] " + mergedSpans + " " + mergedSpans.characterLength() + " (merged " + span + ")");
+            }
+        }
     }
 
 
@@ -242,17 +361,30 @@ public class CompressLandscape
                                      int              quadrantY,
                                      int              quadrantDeltaX,
                                      int              quadrantDeltaY,
-                                     DataOutputStream offsetOutputStream,
-                                     DataOutputStream frameOutputStream)
+                                     String           mergedSpans,
+                                     DataOutputStream addressOutputStream,
+                                     DataOutputStream spanOutputStream)
     throws IOException
     {
+        // The span table starts right after the address table.
+        int spanBaseAddress = baseAddress + height / 2 * 2;
+
         // The landscape height is half the image height.
         // Scan all landscape rows.
         for (int charY = 0; charY < height / 2; charY++)
         {
-            // Write the offset to the spans (including the size of the list
-            // of offsets in the same memory bank).
-            offsetOutputStream.writeChar(height + frameOutputStream.size());
+            if (DEBUG)
+            {
+                System.out.printf("#%d @ 0x%04x\n",
+                                  charY,
+                                  spanBaseAddress +
+                                  spanOutputStream.size());
+            }
+
+            // Write the address of the spans of this row.
+            addressOutputStream.writeShort(baseAddress +
+                                           height / 2 * 2 +
+                                           spanOutputStream.size());
 
             // Write the spans of this row.
             writeCharacterSpans(quadrantX,
@@ -260,7 +392,8 @@ public class CompressLandscape
                                 quadrantDeltaX,
                                 quadrantDeltaY,
                                 charY,
-                                frameOutputStream);
+                                mergedSpans,
+                                spanOutputStream);
         }
     }
 
@@ -270,7 +403,8 @@ public class CompressLandscape
                                      int              quadrantDeltaX,
                                      int              quadrantDeltaY,
                                      int              charY,
-                                     DataOutputStream frameOutputStream)
+                                     String           mergedSpans,
+                                     DataOutputStream spanOutputStream)
     throws IOException
     {
         int endX = -1;
@@ -301,23 +435,272 @@ public class CompressLandscape
                 throw new IllegalArgumentException("Span longer than 255 bytes ("+length+" bytes)");
             }
 
-            // Write the span: destination (little-endian), length, and data.
-            frameOutputStream.write(startX);
-            frameOutputStream.write(startX >> 8);
-            frameOutputStream.write(length);
+            StringBuilder span = new StringBuilder();
 
             for (int charX = startX; charX < endX; charX++)
             {
-                frameOutputStream.write(landscapeCharacter(quadrantX,
-                                                           quadrantY,
-                                                           charX,
-                                                           charY));
+                span.append((char)landscapeCharacter(quadrantX,
+                                                     quadrantY,
+                                                     charX,
+                                                     charY));
+            }
+
+            int spanOffset = mergedSpans.indexOf(span.toString());
+            if (spanOffset < 0)
+            {
+                throw new IllegalArgumentException("Can't find span ["+span+"]");
+            }
+
+            if (spanOffset > 255)
+            {
+                throw new IllegalArgumentException("Span offset ["+span+"] larger than 255");
+            }
+
+            // Write the span: destination, length, and source offset.
+            spanOutputStream.writeShort(startX);
+            spanOutputStream.write(length);
+            spanOutputStream.write(spanOffset);
+
+            if (DEBUG)
+            {
+                System.out.printf("    %3d < %3d (%2d)", startX, spanOffset, length);
             }
         }
 
-        // Write the terminator: large destination (little-endian).
-        frameOutputStream.write(0xff);
-        frameOutputStream.write(0x7f);
+        if (DEBUG)
+        {
+            System.out.println();
+        }
+    }
+
+
+    /**
+     * Represents a sequence of repeated characters, for example AAABBAA.
+     * Each repetition is marked to possibly be increased or not.
+     * Other sequences can be merged in by, e.g. merging in AAAABBB can yield
+     * AAAABBBAA.
+     */
+    private static class MultiCharacterSpan
+    {
+        List<SingleCharacterSpan> spans = new ArrayList<>();
+
+
+        public int spanCount()
+        {
+            return spans.size();
+        }
+
+
+        public int characterLength()
+        {
+            return spans.stream().mapToInt(SingleCharacterSpan::length).sum();
+        }
+
+
+        public void append(char character)
+        {
+            int size = spans.size();
+
+            if (size > 0 &&
+                spans.get(size - 1).character == character)
+            {
+                spans.get(size - 1).append();
+            }
+            else
+            {
+                if (size > 1)
+                {
+                    spans.get(size - 1).mayBeLonger = false;
+                }
+
+                spans.add(new SingleCharacterSpan(character,
+                                                  1,
+                                                  true));
+            }
+        }
+
+
+        public void mergeOptimally(MultiCharacterSpan other)
+        {
+            // Compute the overlapping part.
+            int thisEnd = this.spanCount() - other.spanCount();
+
+            // Try to merge the overlapping part.
+            for (int index = 0; index <= thisEnd; index++)
+            {
+                if (this.allows(index, other))
+                {
+                    this.merge(index, other);
+
+                    return;
+                }
+            }
+
+            // Try to merge with a partial overlap at the end.
+            for (int index = thisEnd + 1; index < this.spanCount(); index++)
+            {
+                if (this.allows(index, other))
+                {
+                    this.merge(index, other);
+
+                    return;
+                }
+            }
+
+            // Try to merge with a partial overlap at the start.
+            for (int index = -1; index < -other.spanCount(); index--)
+            {
+                if (this.allows(index, other))
+                {
+                    this.merge(index, other);
+
+                    return;
+                }
+            }
+
+            // Append at the end.
+            this.merge(this.spanCount(), other);
+        }
+
+
+        public boolean allows(int spanIndex, MultiCharacterSpan other)
+        {
+            // Compute the overlapping part.
+            int otherStart = Math.max(0, -spanIndex);
+            int otherEnd   = Math.min(other.spanCount(), this.spanCount() - spanIndex);
+
+            // Check the overlapping part.
+            for (int otherIndex = otherStart; otherIndex < otherEnd; otherIndex++)
+            {
+                int thisIndex = spanIndex + otherIndex;
+                if (!this.spans.get(thisIndex).allows(other.spans.get(otherIndex)))
+                {
+                     return false;
+                }
+            }
+
+            return true;
+        }
+
+
+        public void merge(int spanIndex, MultiCharacterSpan other)
+        {
+            // Compute the overlapping part.
+            int otherStart = Math.max(0, -spanIndex);
+            int otherEnd   = Math.min(other.spanCount(), this.spanCount() - spanIndex);
+
+            // Merge the overlapping part.
+            for (int otherIndex = otherStart; otherIndex < otherEnd; otherIndex++)
+            {
+                int thisIndex = spanIndex + otherIndex;
+
+                this.spans.get(thisIndex).merge(other.spans.get(otherIndex));
+            }
+
+            // Append the trailing part.
+            for (int otherIndex = otherEnd; otherIndex < other.spanCount(); otherIndex++)
+            {
+                this.spans.add(other.spans.get(otherIndex));
+            }
+
+            // Append the leading part.
+            for (int otherIndex = 0; otherIndex < otherStart; otherIndex++)
+            {
+                // Note that the elements are shifted each time.
+                this.spans.add(otherIndex, other.spans.get(otherIndex));
+            }
+        }
+
+
+        public String toCharacterString()
+        {
+            return spans.stream().map(SingleCharacterSpan::toCharacterString).collect(Collectors.joining());
+        }
+
+
+        public String toString()
+        {
+            return spans.stream().map(SingleCharacterSpan::toString).collect(Collectors.joining());
+        }
+    }
+
+
+    /**
+     * Represents a sequence of a repeated character, for example AAA.
+     * The repetition is marked to possibly be increased or not.
+     */
+    private static class SingleCharacterSpan
+    {
+        char    character;
+        int     length;
+        boolean mayBeLonger;
+
+
+        public SingleCharacterSpan(char    character,
+                                   int     length,
+                                   boolean mayBeLonger)
+        {
+            this.character   = character;
+            this.length      = length;
+            this.mayBeLonger = mayBeLonger;
+        }
+
+
+        public int length()
+        {
+            return length;
+        }
+
+
+        public void append()
+        {
+            length++;
+        }
+
+
+        public boolean allows(SingleCharacterSpan other)
+        {
+            return this.character == other.character &&
+                   (this.length == other.length ||
+                    this.mayBeLonger  && this.length < other.length ||
+                    other.mayBeLonger && this.length > other.length);
+        }
+
+
+        public void merge(SingleCharacterSpan other)
+        {
+            if (this.mayBeLonger)
+            {
+                if (this.length < other.length)
+                {
+                    this.length = other.length;
+                }
+
+                this.mayBeLonger = other.mayBeLonger;
+            }
+        }
+
+
+        public String toCharacterString()
+        {
+            StringBuilder builder = new StringBuilder(length);
+            for (int counter = 0; counter < length; counter++)
+            {
+                builder.append(character);
+            }
+
+            return builder.toString();
+        }
+
+
+        public String toString()
+        {
+            return new StringBuilder()
+                       .append(character)
+                       .append(length)
+                       .append(mayBeLonger ? "+" : "")
+                       .toString();
+        }
     }
 
 
@@ -412,7 +795,8 @@ public class CompressLandscape
         int x2 =     charX;
         int y2 = 2 * charY + 1;
 
-        return (landscapePixel(x1, y1) ? 1 : 0) |
+        return charOffset +
+               (landscapePixel(x1, y1) ? 1 : 0) |
                (landscapePixel(x2, y2) ? 2 : 0);
     }
 

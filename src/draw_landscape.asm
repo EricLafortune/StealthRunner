@@ -18,7 +18,7 @@
 
 * Macros to draw the landscape of dots.
 
-* One-time macro: initialize the landscape.
+* Macro: initialize the landscape.
 * OUT previous_landscape_patterns_offset
 * OUT previous_quadrant_x
 * OUT previous_quadrant_y
@@ -35,7 +35,7 @@
     mov  r0, @previous_quadrant_y
     .endm
 
-* One-time macro: draw the characted and pattern deltas of the landscape.
+* Macro: draw the characted and pattern deltas of the landscape.
 * IN player_x
 * IN player_y
 * IN previous_landscape_patterns_offset
@@ -125,7 +125,7 @@
 
     ai   r3, -player_base_y/4  ; Compute the address of the first visible row
     andi r3, >03fe             ; index (a list of words).
-    ai   r3, module_start
+    ai   r3, module_memory
 
     ai   r4, -player_base_x/4  ; Compute the character offset in the rows.
     srl  r4, 1

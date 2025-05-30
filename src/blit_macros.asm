@@ -126,14 +126,15 @@
                                 ; of bytes.
     .endm
 
-* Macro: blit a list of clipped graphics blobs (a list of pointers, each
-* pointing to a sequence of spans, where a span is a start offset word, a
-* length byte, and a list of data bytes) from CPU memory to VDP memory.
-* IN r3:   the source address of the first span pointer in CPU memory.
-* IN r4:   the destination clip start.
-* IN r5:   the destination clip length.
-* IN r6:   the span sequence count.
-* IN #1:   the destination address in VDP memory.
+* Macro: blit a list of clipped graphics blobs (a list of addresses, each
+* pointing to a sequence of spans, where a span is a world span start word,
+* a length byte, and an offset byte in the shared list of 256 data bytes at
+* >7f00) from CPU memory to VDP memory.
+* IN r3:   the source address of the first span row in CPU memory.
+* IN r4:   the world clip start.
+* IN r5:   the world clip length.
+* IN r6:   the row count.
+* IN #1:   the destination base address in VDP memory.
 * LOCAL r0
 * LOCAL r1
 * LOCAL r2
@@ -143,7 +144,7 @@
 * LOCAL r11
 * LOCAL r12
     .defm blit_clipped_blobs
-    li   r7, #1 | vdp_write_bit ; Set the VDP destination address.
+    li   r7, #1 | vdp_write_bit ; Set the VDP destination base address.
 
     bl   @blit_clipped_blobs
     .endm

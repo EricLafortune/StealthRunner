@@ -19,7 +19,7 @@ import java.io.*;
 public class CompressLandscapeMask
 {
     private static final int MAX_WIDTH  = 0x1fff;
-    private static final int MAX_HEIGHT = 512;
+    private static final int MAX_HEIGHT = 1024;
 
     private static final int EMPTY     = 0x000000;
     private static final int LANDSCAPE = 0x5edc78;

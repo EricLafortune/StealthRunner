@@ -13,6 +13,7 @@ OUTPUT_PREFIX=$OUTPUT_DIR/$LEVEL
 mkdir -p $OUTPUT_DIR
 
 java -cp out CompressLandscape \
+  -baseaddress $[0x6000] \
   $INPUT \
   ${OUTPUT_PREFIX}_landscape.dat
 

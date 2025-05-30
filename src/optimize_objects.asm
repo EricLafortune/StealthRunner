@@ -34,7 +34,7 @@
     ;   strip = (player_y - supersprite_center_y - supersprite_height/2)  /
     ;           object_strip_pixel_height
     ; and multiply by the strip size.
-    .object_strip @player_y, -supersprite_center_y-(supersprite_height/2), #1
+    .object_strip @player_y, -(display_pixel_height+supersprite_height)/2, #1
 
     .endm
 
@@ -51,7 +51,7 @@
     ;   strip = (player_y + display_pixel_height - supersprite_center_y + supersprite_height/2)  /
     ;           object_strip_pixel_height
     ; and multiply by the strip size.
-    .object_strip @player_y, display_pixel_height-supersprite_center_y+(supersprite_height/2), #1
+    .object_strip @player_y, (display_pixel_height+supersprite_height)/2, #1
 
     .endm
 
