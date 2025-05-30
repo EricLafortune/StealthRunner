@@ -33,27 +33,37 @@ reset_vector equ >0000
 isr_vector   equ >0004
 load_vector  equ >fffc
 
+* Internal ROM.
+console_rom      equ >0000
+console_rom_size equ >2000
+console_rom_end  equ console_rom + console_rom_size
+
 * Internal fast scratchpad RAM.
 scratchpad      equ >8300
 scratchpad_size equ >0100
 scratchpad_end  equ scratchpad + scratchpad_size
 
+* Typical external peripheral ROM/RAM.
+peripheral_memory       equ >4000
+peripheral_memory_size  equ >2000
+peripheral_memory_end   equ peripheral_memory + peripheral_memory_size
+
 * Typical external solid state cartridge ROM/RAM.
 module_memory       equ >6000
 module_memory_size  equ >2000
-module_memory_end   equ >8000
+module_memory_end   equ module_memory + module_memory_size
 
 * Typical base address for module memory bank selection
 * (copying a byte at >6000, >6002,..., >7ffe).
 module_bank_selection equ >6000
 module_bank_count     equ >1000
 module_bank_increment equ 2
-module_bank_end       equ >8000
+module_bank_end       equ module_bank_selection + (module_bank_count * module_bank_increment)
 
 * Expansion RAM.
 low_expansion_memory       equ >2000
 low_expansion_memory_size  equ >2000
-low_expansion_memory_end   equ >4000
+low_expansion_memory_end   equ low_expansion_memory + low_expansion_memory_size
 
 high_expansion_memory       equ >a000
 high_expansion_memory_size  equ >6000
