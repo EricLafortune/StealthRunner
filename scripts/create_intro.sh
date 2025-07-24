@@ -16,27 +16,53 @@ convert \
   -gravity Center \
   -fill white \
   -draw 'text 0,-60 "Stealth Runner"' \
+  \( \
+    -size 256x192 \
+    xc:white \
+    -fill white           -draw 'line 0,26 255,26' \
+    -fill white           -draw 'line 0,27 255,27' \
+    -fill grey80          -draw 'line 0,28 255,28' \
+    -fill grey80          -draw 'line 0,29 255,29' \
+    -fill turquoise       -draw 'line 0,30 255,30' \
+    -fill turquoise       -draw 'line 0,31 255,31' \
+    -fill turquoise       -draw 'line 0,32 255,32' \
+    -fill LightSlateBlue  -draw 'line 0,33 255,33' \
+    -fill RoyalBlue       -draw 'line 0,34 255,34' \
+    -fill LightSlateBlue  -draw 'line 0,35 255,35' \
+    -fill RoyalBlue       -draw 'line 0,36 255,36' \
+    -fill green3          -draw 'line 0,37 255,37' \
+    -fill LimeGreen       -draw 'line 0,38 255,38' \
+    -fill green3          -draw 'line 0,39 255,39' \
+    -fill LimeGreen       -draw 'line 0,40 255,40' \
+    -fill LimeGreen       -draw 'line 0,41 255,41' \
+    -fill SeaGreen3       -draw 'line 0,42 255,42' \
+    -fill LimeGreen       -draw 'line 0,43 255,43' \
+    -fill SeaGreen3       -draw 'line 0,44 255,44' \
+    -fill LightGoldenrod3 -draw 'line 0,45 255,45' \
+  \) \
+  -compose multiply \
+  -composite \
   +dither \
   -remap images/palette.gif \
-  $ANIMATION_DIR/038.png
+  $ANIMATION_DIR/title.png
 
 # Draw the subtitles.
 convert \
-  $ANIMATION_DIR/038.png \
+  $ANIMATION_DIR/title.png \
   +antialias \
   -font Arial \
   -pointsize 12 \
   -gravity Center \
   -fill green \
-  -draw 'text 0,-35 "Version 0.1"' \
+  -draw 'text 0,-35 "Version 1.0"' \
   -draw 'text 0,80 "Copyright © 2024-2025 Eric Lafortune"' \
   +dither \
   -remap images/palette.gif \
-  $ANIMATION_DIR/039.png
+  $ANIMATION_DIR/subtitles.png
 
 # Draw the game keys.
 convert \
-  $ANIMATION_DIR/039.png \
+  $ANIMATION_DIR/subtitles.png \
   +antialias \
   -font Arial \
   -pointsize 10 \
@@ -77,11 +103,11 @@ convert \
   -draw 'text -53,59  "Enter"' \
   +dither \
   -remap images/palette.gif \
-  $ANIMATION_DIR/040.png
+  $ANIMATION_DIR/keys.png
 
 # Draw the mouse.
 convert \
-  $ANIMATION_DIR/040.png \
+  $ANIMATION_DIR/keys.png \
   +antialias \
   -font Arial \
   -pointsize 10 \
@@ -98,7 +124,7 @@ convert \
   -draw 'text 83,26 "turn"' \
   +dither \
   -remap images/palette.gif \
-  $ANIMATION_DIR/041.png
+  $ANIMATION_DIR/mouse.png
 
 mkdir -p $OUTPUT_DIR
 
@@ -108,13 +134,17 @@ zip \
   --quiet \
   --junk-paths \
   $OUTPUT_DIR/intro.zip \
-  $ANIMATION_DIR/*.png
+  $ANIMATION_DIR/0??.png
 
 # Create the video.
 java ComposeVideo \
   -ntsc \
   $OUTPUT_DIR/intro.zip \
   $OUTPUT_DIR/footsteps.snd \
-  100:$OUTPUT_DIR/StealthRunner.lpc \
-  200:$OUTPUT_DIR/PianoConcerto20_1.snd \
+  100:$ANIMATION_DIR/title.png \
+  102:$OUTPUT_DIR/StealthRunner.lpc \
+  200:$ANIMATION_DIR/subtitles.png \
+  202:$ANIMATION_DIR/keys.png \
+  204:$ANIMATION_DIR/mouse.png \
+  206:$OUTPUT_DIR/PianoConcerto20_1.snd \
   $OUTPUT_DIR/intro.tms
