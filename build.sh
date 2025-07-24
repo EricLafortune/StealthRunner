@@ -64,6 +64,7 @@ scripts/dither_intro.sh
 scripts/dither_objects.sh
 scripts/dither_player.sh
 
+scripts/convert_music.sh
 scripts/convert_sound.sh
 scripts/convert_speech.sh
 

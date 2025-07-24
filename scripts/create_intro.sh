@@ -115,5 +115,6 @@ java ComposeVideo \
   -ntsc \
   $OUTPUT_DIR/intro.zip \
   $OUTPUT_DIR/footsteps.snd \
-  $OUTPUT_DIR/hum.lpc \
+  100:$OUTPUT_DIR/StealthRunner.lpc \
+  200:$OUTPUT_DIR/PianoConcerto20_1.snd \
   $OUTPUT_DIR/intro.tms
