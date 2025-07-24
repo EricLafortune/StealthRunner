@@ -148,6 +148,8 @@ and speech in my [Bad Apple](https://github.com/EricLafortune/BadApple) demo
 for the TI-99/4a. The demo is linear; this game is fully interactive. The
 general strategy is still to preprocess resources to efficient custom formats.
 
+### Graphics
+
 The player's avatar and its motion-captured animations originate from
 [Mixamo](https://mixamo.com/). They have an amazing collection of 3D character
 models and motion-captured animations, which can be downloaded for free.
@@ -165,29 +167,55 @@ fixed resolution of 256x192 pixels and a fixed palette of 16 colors. The
 scripts eventually convert the images to efficient, custom file formats for
 the game.
 
-I've manually created some sound effects for the sound processor of the TI.
-I've also downloaded some public-domain sound files, which my open-source
-[Video Tools](https://github.com/EricLafortune/VideoTools/) can convert to
-speech coefficients for the speech synthesizer of the TI.
+### Speech
 
-The game world is represented by a plain image file, which gets converted to
-custom formats as well.
+The speech in the game is generated with AI text-to-speech conversion (on
+[OpenAI.fm](https://www.openai.fm/)). It's an effective way to get consistent
+and crisp sound files. I've then converted these files to speech coefficients
+for the TMS5200 speech synthesizer of the TI, with my own open-source [Video
+Tools](https://github.com/EricLafortune/VideoTools/docs/ConvertWavToLpc.md).
+
+### Music
+
+The music originates from freely available MusicXML files. Notably, I've
+picked a segment from Mozart's piano concerto No 20 (K466) and converted it to
+a format that is optimized for the TMS9919 sound chip of the TI, again with my
+[Video
+Tools](https://github.com/EricLafortune/VideoTools/docs/ConvertMusicXmlToSnd.md).
+The conversion tool tries to squeeze all parts, bars and chords into the 3
+available sound channels.
+
+### Sound
+
+I've manually created some simple sound effects for the sound chip of the TI.
+They are hard-coded in the game's code.
+
+### Video
 
 I've created the short introductory animation sequence with Blender,
-ImageMagick, and my Video Tools.
+ImageMagick, and my Video Tools, building on the Mixamo models and the MusicXML
+file.
 
-The assembly code ties together all resulting assets. For low-level code, it
-is still quite readable, thanks to macros and comments, and thanks to the
-excellent [xdt99](https://github.com/endlos99/xdt99) cross-development tools.
-The major challenge is to efficiently stream graphics to the video display
-processor. The code tries to update just the changes between frames: characters
-and patterns of the landscape, characters and patterns of the player's avatar,
-positions and patterns of the sprites. Standard 16x16 pixel sprites are
-combined into larger sprites. They are cached in the available space in video
-memory and swapped in when necessary. The most performance-sensitive code is
-run from the computer's 256 bytes of 16-bit scratchpad RAM. The game
-interleaves all computations between even and odd frames at 60 NTSC video
-frames per second, resulting in updates at 30 frames per second.
+### Game world
+
+The game world is represented by a plain image file. A custom tool again
+converts it to optimized formats that are then included in the application.
+
+### Game code
+
+The game's assembly code ties together all resulting assets. For low-level
+code, it is still quite readable, thanks to macros and comments, and thanks to
+the excellent [xdt99](https://github.com/endlos99/xdt99) cross-development
+tools. The major challenge is to efficiently stream graphics to the video
+display processor. The code tries to update just the changes between frames:
+characters and patterns of the landscape, characters and patterns of the
+player's avatar, positions and patterns of the sprites. Standard 16x16 pixel
+sprites are combined into larger sprites. They are cached in the available
+space in video memory and swapped in when necessary. The most
+performance-sensitive code is run from the computer's 256 bytes of 16-bit
+scratchpad RAM. The game interleaves all computations between even and odd
+frames at 60 NTSC video frames per second, resulting in updates at 30 frames
+per second.
         
 The source code contains a collection of [include files](src/include) that
 can be generally useful for game development. They provide convenient and

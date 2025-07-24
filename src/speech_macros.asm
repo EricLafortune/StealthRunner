@@ -18,16 +18,28 @@
 
 * Macros to send speech data to the speech synthesizer.
 
-* Macro: queue the speech data at the given address, if nothing
-* else is being sent.
+* Macro: queue the speech data at the given address, if nothing else is being
+* sent. We're not yet sending any speech data here, in order to keep it fast.
 * IN #1: the constant address of the speech data (length + LPC data bytes).
-* OUT current_speech
+* Alternatively, with two arguments:
+* IN #1: the source containing the address of the speech data.
+* IN #2: a temporary register.
+* IN OUT current_speech
+* IN OUT current_speech_length
 * LOCAL r0
     .defm start_speech
+    .ifndef #2                 ; Constant speech data address?
     mov  @current_speech_length, r0 ; Is any speech playing?
     jne  !
-    li   r0, #1                ; Queue our data.
+    li   r0, #1                ; Queue the length and data.
     mov  r0, @current_speech
+    .else                      ; Variable speech data address.
+    mov  @current_speech_length, #2 ; Is any speech playing?
+    jne  !
+    .switch_bank @speech_data_bank ; The speech addresses are in the speech bank.
+    mov  #1, @current_speech   ; Queue the length and data.
+    .endif
+
     seto @current_speech_length ; With an unknown length for now.
 !
     .endm

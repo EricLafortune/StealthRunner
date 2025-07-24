@@ -300,6 +300,14 @@ draw_message_loop
     .dist @player_y, r3, 32
     jgt  draw_message_loop
 
+    c    r1, @message_spoken   ; Has the message been spoken yet?
+    jhe  draw_message
+    mov  r1, r2                ; Play the spoken message.
+    sla  r2, 1
+    .start_speech @message_speech(r2), r3
+    mov  r1, @message_spoken   ; Remember that the message has been spoken.
+
+draw_message
     ai   r1, message_sprites   ; Compute the supersprite number.
 
     clr  r2                    ; Set the coordinates in screen space.

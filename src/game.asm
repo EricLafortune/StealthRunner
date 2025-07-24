@@ -158,6 +158,7 @@ parachute_intro
 * Reset the speech pointer.
     clr  @current_speech
     clr  @current_speech_length
+    seto @message_spoken
 
 * Start the parachuting.
     mov  @player_start_x, @player_x ; Initialize the screen x ordinate to the
@@ -179,7 +180,7 @@ dont_wait_for_vsync
     b    @parachute_loop
 parachute_intro_end
 
-    .start_speech speech_letsgo
+;    .start_speech speech_letsgo
 
 * The main game loop.
 game_loop
@@ -326,6 +327,8 @@ current_noise data 0 ; The start address of the currently playing noise.
 * Speech variables.
 current_speech        data 0; The address of the speech data currently being spoken.
 current_speech_length data 0; The address of the speech data currently being spoken.
+
+message_spoken        data -1; The lowest spoken message number.
 
 * Player variables. The coordinates are those of the top-left corner of the
 * screen in the world. The player is centered on the screen, with his base
@@ -582,7 +585,7 @@ sprite_cache_queue        bss 32 * 2   ; The queue with CPU quadsprite numbers (
 
 code_bank                        bss 2 * 1
 data_bank                        bss 2 * 1
-intro_video_bank                 bss 2 * 3
+intro_video_bank                 bss 2 * 4
 dying_player_animation_banks     bss 2 * 16
 crouching_player_animation_banks bss 2 * 16
 standing_player_animation_banks  bss 2 * 9 * 16
