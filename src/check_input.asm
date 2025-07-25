@@ -25,7 +25,12 @@
 
     clr r3                     ; Check whether the mouse buffer contains any
     .read_mouse r3, r3         ; deltas.
-    mov r3, @mouse_present
+    mov  r3, @mouse_present
+
+    clr  @mouse_x
+    clr  @mouse_y
+
+    clr  @keyboard_repeat
 
     .endm
 
@@ -158,7 +163,7 @@ check_apply_medkit
 
     li   r6, crouch            ; Start crouching to standing.
     clr  @player_frame
-    jmp  set_speed
+    b    @set_speed
 
 check_crouching_to_standing
     mov  @player_frame, r0     ; After the last crouching frame?
@@ -173,7 +178,7 @@ check_input_end0
 
 check_mouse
     mov  @mouse_present, r0    ; Is a mouse present at all?
-    jeq  check_turn_left       ; Then skip the mouse code, which seems to break
+    jeq  check_turn            ; Then skip the mouse code, which seems to break
                                ; the (immediately?) following keyboard checks.
 
     mov  @mouse_x, r4          ; Get the current mouse coodinates.
@@ -189,7 +194,7 @@ check_mouse
     mov  r4, r0                ; Are the coordinates not (0,0)?
     jne  !
     mov  r5, r5
-    jeq  check_turn_left
+    jeq  check_turn
 !
     mov  r5, r1                ; Then update the direction.
     mov  r7, r2
@@ -207,13 +212,20 @@ check_mouse
     mov  @delta_forward_far+4(r2), @mouse_y
     jmp  change_direction
 
+check_turn
+    mov  @keyboard_repeat, r0  ; Is the keyboard turn autorepeat counting?
+    jeq  check_turn_left
+
+    dec  @keyboard_repeat      ; Decrement the keyboard turn autorepeat.
+    jmp  check_change_weapon
+
 check_turn_left
     .test_keyboard 5, 6        ; Pushing left with 'Q'?
     jeq  check_turn_right
 
     inc  r7                    ; Then turn left.
     andi r7, player_direction_count-1
-    jmp  change_direction
+    jmp  turn
 
 check_turn_right
     .test_keyboard 2, 6        ; Pushing right with 'E'?
@@ -221,6 +233,10 @@ check_turn_right
 
     dec  r7                    ; Then turn right.
     andi r7, player_direction_count-1
+
+turn
+    li   r0, 4                 ; Start the keyboard turn autorepeat countdown.
+    mov  r0, @keyboard_repeat
 
 change_direction
     mov  r7, @player_direction

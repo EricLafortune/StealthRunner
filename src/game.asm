@@ -504,6 +504,9 @@ mouse_present data 0 ; Mouse present or not (>0000).
 mouse_x       data 0 ; Mouse x ordinate around player.
 mouse_y       data 0 ; Mouse y ordinate around player.
 
+* Keyboard variables.
+keyboard_repeat data 0 ; Keyboard turn autorepeat counter.
+
     .print 'Unused bytes in low expansion memory:', low_expansion_memory_end - $
 
     .ifgt  $, low_expansion_memory_end
