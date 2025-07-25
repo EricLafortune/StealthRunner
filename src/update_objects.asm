@@ -1114,7 +1114,7 @@ disable_shell
     jmp  update_shell_end
 
 update_shell_position
-    a    @shell_dx, r0       ; Adjust the coordinates.
+    a    @shell_dx, r0         ; Adjust the coordinates.
     a    @shell_dy, r1
 
     a    @shell_dfx, @shell_fx
@@ -1128,7 +1128,7 @@ update_shell_position
     sla  r3, 1                 ; Add a parabolic curve to the y ordinate.
     s    @high_parabolic_delta(r3), r1
 
-    mov  r0, @shell_x        ; Save them.
+    mov  r0, @shell_x          ; Save them.
     mov  r1, @shell_y
 
     .play_tone0_frame sound_shell, sound_shell_frames, r2

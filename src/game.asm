@@ -325,10 +325,10 @@ current_tone2 data 0 ; The start address of the currently playing tone 2.
 current_noise data 0 ; The start address of the currently playing noise.
 
 * Speech variables.
-current_speech        data 0; The address of the speech data currently being spoken.
-current_speech_length data 0; The address of the speech data currently being spoken.
+current_speech        data 0 ; The address of the speech data currently being spoken.
+current_speech_length data 0 ; The address of the speech data currently being spoken.
 
-message_spoken        data -1; The lowest spoken message number.
+message_spoken        data -1 ; The lowest spoken message number.
 
 * Player variables. The coordinates are those of the top-left corner of the
 * screen in the world. The player is centered on the screen, with his base
