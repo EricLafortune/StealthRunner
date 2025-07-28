@@ -448,7 +448,7 @@ check_target_player
     .save_player_weapon_states
     .save_object_states
 
-    .start_speech speech_ahohe ; Start singing.
+    .start_music target_reached ; Play a jingle.
 
     jmp  update_target_loop
 
@@ -864,7 +864,7 @@ update_stone_position
     mov  r0, @stone_x          ; Save them.
     mov  r1, @stone_y
 
-    .play_tone0_frame sound_stone, sound_stone_frames, r2
+    .play_tone2_frame sound_stone, sound_stone_frames, r2
 
     jmp  update_stone_counter
 
@@ -905,7 +905,7 @@ update_emp_position
     mov  r1, @emp_y
 
 update_emp_sound
-    .play_tone0_frame sound_emp, sound_emp_frames, r2
+    .play_tone2_frame sound_emp, sound_emp_frames, r2
 
 update_emp_counter
     inc  @emp_counter
@@ -945,7 +945,7 @@ update_grenade_position
     mov  r0, @grenade_x        ; Save them.
     mov  r1, @grenade_y
 
-    .play_tone0_frame sound_grenade, sound_grenade_frames, r2
+    .play_tone2_frame sound_grenade, sound_grenade_frames, r2
 
     b    @update_grenade_counter
 
@@ -1131,7 +1131,7 @@ update_shell_position
     mov  r0, @shell_x          ; Save them.
     mov  r1, @shell_y
 
-    .play_tone0_frame sound_shell, sound_shell_frames, r2
+    .play_tone2_frame sound_shell, sound_shell_frames, r2
     jmp  update_shell_counter
 
 check_shell_player

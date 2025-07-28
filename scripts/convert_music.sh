@@ -26,3 +26,11 @@ java ConvertMusicXmlToSnd \
   -part 'Cb.'              -chordnotes 1 -transpose 0 -attenuate 2 -instrument piano \
   $INPUT_DIR/PianoConcerto20_1.xml \
   $OUTPUT_DIR/PianoConcerto20_1.snd
+
+java ConvertMusicXmlToSnd \
+  -startmeasure 117 \
+  -endmeasure 117 \
+  -part 'P7'               -chordnotes 1 -transpose -1 -attenuate 0 -instrument piano \
+  $INPUT_DIR/PianoConcerto20_1.xml \
+  $OUTPUT_DIR/TargetReached.snd
+

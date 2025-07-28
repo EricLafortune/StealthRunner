@@ -108,6 +108,51 @@
     .endm
 
 
+* Macro: send a tone2 setup command (e.g. for the frequency) and a tone2 frame
+* command (e.g. for the changing volume) to the sound processor.
+* The commands are only sent if they have a higher priority than the currently
+* playing tone2, i.e. if their source address is smaller.
+* The setup command is only sent if the tone2 isn't playing yet, i.e. if its
+* source address is different.
+* The setup command and the frame command both are 1 byte.
+* IN #1: the constant address of the tone2 setup command.
+* IN #2: the constant address of the addresses of tone2 frame commands.
+* IN #3: the register or address with the sound type number (0, 1,...)
+* IN #4: the register or address with the frame number (0, 1,...)
+* LOCAL r0
+* LOCAL r1
+* LOCAL #3
+* LOCAL #4
+    .defm play_tone2_type_frame
+    .play_sound_type_frame 1, 2, #1, #2, #3, #4
+    .endm
+
+* Macro: send a tone2 setup command (e.g. for the frequency) and a tone2 frame
+* command (e.g. for the changing volume) to the tone2 processor.
+* The commands are only sent if they have a higher priority than the currently
+* playing tone2, i.e. if their source address is smaller.
+* The setup command is only sent if the tone2 isn't playing yet, i.e. if its
+* source address is different.
+* The setup command and the frame command both are 1 byte.
+* IN #1: the constant address of the tone2 setup command.
+* IN #2: the constant address of the tone2 frame commands.
+* IN #3: the register or address with the frame number (0, 1,...)
+* LOCAL r0
+* LOCAL r1
+    .defm play_tone2_frame
+    .play_sound_frame 1, 2, #1, #2, #3
+    .endm
+
+* Macro: stop a playing tone2.
+* The sound command is only sent if its source address is equal to the
+* currently playing tone2 source address.
+* IN #1: the constant address of the tone2 setup command.
+* LOCAL r0
+    .defm stop_tone2
+    .stop_sound 1, #1
+    .endm
+
+
 * Macro: send a noise setup command (e.g. for the frequency) and a noise frame
 * command (e.g. for the changing volume) to the sound processor.
 * The commands are only sent if they have a higher priority than the currently
