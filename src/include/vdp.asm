@@ -326,11 +326,17 @@ magnified_sprites equ >01
 * Macro: wait for a Vsync and clear the VDP Vsync status.
 *        Note that VDP interrupts must be enabled for this to work
 *        (with VDP register 1).
+* IN #1: an optional address label to loop to as long as the Vsync
+*        isn't reached yet.
 * LOCAL r12
     .defm wait_for_vsync
-    clr  r12
-!   tb   2                     ; Check the CRU interrupt bit (more reliable
-    jeq  -!                    ; than checking the VDP status byte).
+    clr  r12                   ; Check the CRU interrupt bit (more reliable
+!   tb   2                     ; than checking the VDP status byte).
+    .ifdef #1
+    jeq  #1                    ; Loop to the specified loop start.
+    .else
+    jeq  -!                    ; Or loop to our own loop start.
+    .endif
     .vdpsta r12                ; Clear the VDP status byte.
     .endm
 
