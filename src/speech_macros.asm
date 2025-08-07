@@ -54,16 +54,17 @@
     .defm play_speech
     mov  @current_speech_length, r1 ; Do we have any speech queued?
     jeq  play_speech_end
-    jgt  send_additional_data
+    jgt  check_additional_speech
 
-send_initial_data
+check_initial_speech
     bl   @speech_read_status_byte ; Isn't any other speech playing?
-    andi r2, speech_status_talking * 256
+    andi r2, speech_status_talking << 8
     jne  play_speech_end
 
+send_initial_speech
     .switch_bank @speech_data_bank ; The speech is in the speech bank.
 
-    li   r0, speech_speak_external * 256
+    li   r0, speech_speak_external << 8
     .spchwt r0                 ; Send the speak external command.
 
     mov  @current_speech, r0   ; Get the speech pointer.
@@ -72,16 +73,27 @@ send_initial_data
     li   r2, 16                ; We'll start with 16 data bytes.
     jmp  cap_speech_chunk_size
 
-send_additional_data
-    bl   @speech_read_status_byte ; Is the buffer sufficiently low?
-    andi r2, speech_status_buffer_low * 256
-    jeq  play_speech_end
+check_additional_speech
+    clr  r2
+    bl   @speech_read_status_byte
 
+    ci   r2, speech_status_talking << 8 ; Is it still talking,
+    jeq  play_speech_end                ; with the buffer not low?
+
+    ci   r2, (speech_status_talking | speech_status_buffer_low) << 8
+    jeq  send_additional_speech         ; Is it still talking,
+                                        ; with the buffer low?
+
+    clr  r0                    ; In all other cases, the buffer must have run
+    clr  r1                    ; empty before we could send additional bytes.
+    jmp  update_speech_address ; Abort the speech.
+
+send_additional_speech
     .switch_bank @speech_data_bank ; The speech is in the speech bank.
 
     mov  @current_speech, r0   ; Get the speech pointer.
 
-    li   r2, 9                 ; We'll send 9 more data bytes.
+    li   r2, 8                 ; We'll send 8 more data bytes.
 
 cap_speech_chunk_size
     c    r2, r1                ; Cap the chunk length to the available
@@ -94,6 +106,7 @@ send_speech_loop
     dec  r2
     jne  send_speech_loop
 
+update_speech_address
     mov  r0, @current_speech   ; Update the queued speech pointer and length.
     mov  r1, @current_speech_length
 play_speech_end
