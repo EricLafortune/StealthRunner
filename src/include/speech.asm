@@ -31,7 +31,7 @@ spchwt equ  >9400
 speech_load_frame_rate equ >00 ; Only on the TMS5520C.
 speech_read_byte       equ >10
 speech_read_and_branch equ >30
-speech_load_addres     equ >40 ; With the address nibbles in the lower nibble.
+speech_load_address    equ >40 ; With the address nibbles in the lower nibble.
 speech_speak           equ >50
 speech_speak_external  equ >60
 speech_reset           equ >70
@@ -79,7 +79,7 @@ r_spchwt equ #1
     .defm speech_read_data_byte
     .speech_write_address #1   ; Write the address commands.
     .delay_42
-    li   r0, speech_read_byte * 256
+    li   r0, speech_read_byte << 8
     .spchwt r0                 ; Write the read byte command.
     .spchrd #2                 ; Read the data byte.
     .delay_12
@@ -98,7 +98,7 @@ r_spchwt equ #1
 !   mov  r0, r1                ; Get the least significant nibble.
     swpb r1
     andi r1, >0f00
-    ori  r1, speech_load_addres * 256
+    ori  r1, speech_load_address << 8
     .spchwt r1                 ; Write the load address nibble command.
     srl  r0, 4                 ; Shift to the next nibble.
     dec  r2                    ; Loop.
