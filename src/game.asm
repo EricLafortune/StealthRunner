@@ -156,8 +156,8 @@ parachute_intro
     seto @current_tone2
     seto @current_noise
 
-* Reset the music pointer.
-    clr  @current_music
+* Set the music pointer to mute any sound and music.
+    .start_music mute_all
 
 * Reset the speech pointer.
     clr  @current_speech
@@ -174,7 +174,8 @@ parachute_loop
     .draw_parachute            ; Draw the player parachuting into view.
     .update_parachute          ; Update the player world coordinates.
     .draw_landscape_delta      ; Draw the landscape scrolling into view.
-    .fade_in_landscape_colors  ; Fade in the lanscape colors from black.
+    .fade_in_landscape_colors  ; Fade in the landscape colors from black.
+    .play_music
     .wait_for_vsync
 dont_wait_for_vsync
 
@@ -207,7 +208,12 @@ draw_player
     .check_input
 
 * Check if any of the quit keys is pressed (at 30 Hz).
+* The order is chosen so the jumps don't go out of range.
 check_quit
+    .test_keyboard 0, 0        ; Pressing '=' = <Quit>?
+    jeq  !
+    blwp @0                    ; Then quit.
+!
     .test_keyboard 4, 3        ; Pressing '6' = <Proceed>?
     jeq  !!!!
 !   .test_keyboard_row 3       ; Wait until '6' is released.
@@ -220,28 +226,31 @@ check_quit
     .test_keyboard 3, 3        ; Pressing '7' = <Aid>?
     jne  restore_savepoint     ; Then continue from the last save point.
 !
-    .test_keyboard 2, 3        ; Pressing '8' = <Redo>?
-    jne  next_game             ; Then restart the game.
-
     .test_keyboard 1, 3        ; Pressing '9' = <Back>?
     jne  return_to_intro       ; Then restart from the intro video.
 
-    .test_keyboard 0, 0        ; Pressing '=' = <Quit>?
-    jeq  !
-    blwp @0                    ; Then quit.
-!
+    .test_keyboard 2, 3        ; Pressing '8' = <Redo>?
+    jne  next_game             ; Then restart the game.
 
-* Play any speech data and music data (at 60 Hz).
+
+* Play any music and speech (at 60 Hz).
 play_speech
-    .play_speech
+    inc  @frame_timestamp      ; Update the frame counter (for the graphics).
+
     .play_music
+    .play_speech
 
-* After all drawing, updating, and checking, wait for the Vsync.
-wait_for_vsync
-    .wait_for_vsync
+* Wait for the Vsync, while checking the speech buffer if necessary,
+* and continue the game loop.
+    mov  r1, r1                ; Do we still have any speech data to send
+    jeq  wait_for_vsync        ; to the speech buffer when it goes low?
 
-* Continue with the next frame in the main game loop.
-    inc  @frame_timestamp
+wait_for_speech_and_vsync                   ; A bit of a hack: jump back into
+    .wait_for_vsync check_additional_speech ; the speech buffer checking code
+    b    @game_loop                         ; while waiting for the Vsync.
+
+wait_for_vsync                              ; Otherwise simply wait for the
+    .wait_for_vsync                         ; Vsync.
     b    @game_loop
 
 * Continue from the last save point.
