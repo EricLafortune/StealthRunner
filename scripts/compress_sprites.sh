@@ -140,26 +140,32 @@ INPUT_FRAMES=${1:-
   -explosioncount 15
   -explosionspeed 2
   -explosiongravity 50
+  -pixelfade 0.8
   -color 7
   $INPUT_DIR/Drone/*.png
   -explosioncount 0
+  -pixelfade 0.0
 
   -name turret_sprites
   -explosioncount 15
   -explosionspeed 2
   -explosiongravity 50
+  -pixelfade 0.8
   -color 14
   -append $INPUT_DIR/Base/*.png
   $INPUT_DIR/Cannon/*.png
   -explosioncount 0
+  -pixelfade 0.0
 
   -name launcher_sprites
   -explosioncount 15
   -explosionspeed 2
   -explosiongravity -50
+  -pixelfade 0.8
   -color 14
   $INPUT_DIR/Launcher/*.png
   -explosioncount 0
+  -pixelfade 0.0
 
   -name shell_sprite
   -color 9
@@ -185,8 +191,10 @@ INPUT_FRAMES=${1:-
   -explosioncount 12
   -explosionspeed 2
   -explosiongravity 0
+  -pixelfade 0.8
   $INPUT_DIR/Explosion/08.png
   -explosioncount 0
+  -pixelfade 0.0
 
   -name parachute_sprite
   -color 4

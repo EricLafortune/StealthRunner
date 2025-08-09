@@ -13,6 +13,7 @@ import java.util.List;
  *   java CompressSprites [options] <input_file> ... <name_output_file> <bounds_output_file> <index_output_file> <position_output_file> <pattern_output_file>
  * where options are
  *   -minpixelcount       the minimum number of pixels for a quadsprite to be added (default = 1).
+ *   -pixelfade           the probability for overlapping pixels to be suppressed (default = 0.0).
  *   -color <n>           the color number of the next supersprite(s) (default = 15).
  *   -shiftx <s>          the horizontal shift added to the object positions, expressed in pixels.
  *   -shifty <s>          the vertical shift added to the object positions, expressed in pixels.
@@ -72,6 +73,7 @@ public class CompressSprites
         {
             // Options.
             int    minPixelCount       = 1;
+            double pixelFade           = 0.;
             int    color               = 15;
             int    shiftX              = 0;
             int    shiftY              = 0;
@@ -80,6 +82,7 @@ public class CompressSprites
             double explosionGravity    = 0.;
             String appendFileName      = null;
             int    appendMinPixelCount = 1;
+            double appendPixelFade     = 0.;
             int    appendColor         = 0;
             int    appendShiftX        = 0;
             int    appendShiftY        = 0;
@@ -99,6 +102,7 @@ public class CompressSprites
                     switch (arg)
                     {
                         case "-minpixelcount"    -> minPixelCount    = Integer.parseInt(args[argIndex++]);
+                        case "-pixelfade"        -> pixelFade        = Double.parseDouble(args[argIndex++]);
                         case "-color"            -> color            = Integer.parseInt(args[argIndex++]);
                         case "-shiftx"           -> shiftX           = Integer.parseInt(args[argIndex++]);
                         case "-shifty"           -> shiftY           = Integer.parseInt(args[argIndex++]);
@@ -119,6 +123,7 @@ public class CompressSprites
                         {
                             appendFileName      = args[argIndex++];
                             appendMinPixelCount = minPixelCount;
+                            appendPixelFade     = pixelFade;
                             appendColor         = color;
                             appendShiftX        = shiftX;
                             appendShiftY        = shiftY;
@@ -136,6 +141,7 @@ public class CompressSprites
 
                     appendSprite(arg,
                                  minPixelCount,
+                                 pixelFade,
                                  color,
                                  shiftX,
                                  shiftY,
@@ -144,6 +150,7 @@ public class CompressSprites
                                  explosionGravity,
                                  appendFileName,
                                  appendMinPixelCount,
+                                 appendPixelFade,
                                  appendColor,
                                  appendShiftX,
                                  appendShiftY,
@@ -171,6 +178,7 @@ public class CompressSprites
      */
     private static void appendSprite(String                  fileName,
                                      int                     minPixelCount,
+                                     double                  pixelFade,
                                      int                     color,
                                      int                     shiftX,
                                      int                     shiftY,
@@ -179,6 +187,7 @@ public class CompressSprites
                                      double                  explosionGravity,
                                      String                  appendFileName,
                                      int                     appendMinPixelCount,
+                                     double                  appendPixelFade,
                                      int                     appendColor,
                                      int                     appendShiftX,
                                      int                     appendShiftY,
@@ -198,6 +207,7 @@ public class CompressSprites
         {
             spriteImage = createSpriteImage(fileName,
                                             minPixelCount,
+                                            pixelFade,
                                             patternOutputStream);
 
             nameImageMap.put(fileName, spriteImage);
@@ -214,6 +224,7 @@ public class CompressSprites
                      explosionGravity,
                      appendFileName,
                      appendMinPixelCount,
+                     appendPixelFade,
                      appendColor,
                      appendShiftX,
                      appendShiftY,
@@ -232,6 +243,7 @@ public class CompressSprites
      */
     private static SpriteImage createSpriteImage(String           fileName,
                                                  int              minPixelCount,
+                                                 double           pixelFade,
                                                  DataOutputStream patternOutputStream)
     throws IOException
     {
@@ -357,7 +369,8 @@ public class CompressSprites
 
                 // Extract the quadsprite from the supersprite bitraster,
                 // gradually clearing its pixels.
-                byte[] spritePattern = extractSprite(bitraster,
+                byte[] spritePattern = extractSprite(pixelFade,
+                                                     bitraster,
                                                      spriteX,
                                                      spriteY,
                                                      1 << spriteIndex);
@@ -400,6 +413,7 @@ public class CompressSprites
                                      double                  explosionGravity,
                                      String                  appendFileName,
                                      int                     appendMinPixelCount,
+                                     double                  appendPixelFade,
                                      int                     appendColor,
                                      int                     appendShiftX,
                                      int                     appendShiftY,
@@ -498,6 +512,7 @@ public class CompressSprites
             {
                 appendSprite(appendFileName,
                              appendMinPixelCount,
+                             appendPixelFade,
                              appendColor,
                              appendShiftX,
                              appendShiftY,
@@ -506,6 +521,7 @@ public class CompressSprites
                              0.0,
                              null,
                              0,
+                             0.,
                              0,
                              0,
                              0,
@@ -855,9 +871,10 @@ public class CompressSprites
     /**
      * Extracts and returns the pattern of 32 bytes of the 16x16 pixels
      * quadsprite at the specified position. Pixels that are covered by
-     * multiple quadsprites are randomized.
+     * multiple quadsprites are randomly suppressed, mostly near the edges.
      */
-    private static byte[] extractSprite(int[][] bitraster,
+    private static byte[] extractSprite(double  pixelFade,
+                                        int[][] bitraster,
                                         int     spriteX,
                                         int     spriteY,
                                         int     bit)
@@ -883,26 +900,25 @@ public class CompressSprites
                 if ((bits & bit) != 0)
                 {
                     // Is the pixel covered by multiple sprites?
-                    // We can then randomize the pixel, heuristically
-                    // with a lower probability near the edges.
+                    // We can then randomly suppress the pixel, heuristically
+                    // with a higher probability near the edges.
                     int coverage = Integer.bitCount(bits);
-                    if (coverage == 1 ||
-                        random.nextInt(coverage +
-                                       (sx <= 2 || sx >= 13 ? 1 : 0) +
-                                       (sy <= 2 || sy >= 13 ? 1 : 0)) == 0)
+                    if (coverage  > 1  &&
+                        pixelFade > 0. &&
+                        random.nextInt((sx-7) * (sx-8) +
+                                       (sy-7) * (sy-8) + 1) <
+                        (int)((2 * 7 * 8 + 1) * pixelFade))
                     {
-                        // Set the sprite pixel.
-                        pattern[sx / 8 * 16 + sy] |= 0x80 >> (sx & 7);
+                        // Suppress the sprite pixel.
 
-                        // Clear the bitraster pixel.
-                        // This sprite has it covered.
-                        bitraster[x][y] = 0;
+                        // Clear the sprite's bitraster bit.
+                        // The sprite isn't covering it.
+                        bitraster[x][y] &= ~bit;
                     }
                     else
                     {
-                        // Clear the bitraster bit.
-                        // This sprite won't cover it.
-                        bitraster[x][y] &= ~bit;
+                        // Set the sprite pixel.
+                        pattern[sx / 8 * 16 + sy] |= 0x80 >> (sx & 7);
                     }
                 }
             }
