@@ -141,10 +141,10 @@ java ComposeVideo \
   -ntsc \
   $OUTPUT_DIR/intro.zip \
   $OUTPUT_DIR/footsteps.snd \
-  100:$ANIMATION_DIR/title.png \
-  102:$OUTPUT_DIR/StealthRunner.lpc \
-  200:$ANIMATION_DIR/subtitles.png \
-  202:$ANIMATION_DIR/keys.png \
-  204:$ANIMATION_DIR/mouse.png \
-  206:$OUTPUT_DIR/PianoConcerto20_1.snd \
+  76:$ANIMATION_DIR/title.png \
+  78:$OUTPUT_DIR/StealthRunner.lpc \
+  150:$ANIMATION_DIR/subtitles.png \
+  152:$ANIMATION_DIR/keys.png \
+  154:$ANIMATION_DIR/mouse.png \
+  156:$OUTPUT_DIR/PianoConcerto20_1.snd \
   $OUTPUT_DIR/intro.tms
