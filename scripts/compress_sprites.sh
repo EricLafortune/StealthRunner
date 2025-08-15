@@ -105,9 +105,8 @@ INPUT_FRAMES=${1:-
   -name collectible_counter_sprites
   -shifty 25
   -name medkit_counter_sprites
-  -color 14
-  $INPUT_DIR/Tombstone/00.png
   -color 12
+  $INPUT_DIR/StoneCounters/00.png
   $INPUT_DIR/MedkitCounters/0[1-7].png
 
   -name weapon_counter_sprites
@@ -197,7 +196,7 @@ INPUT_FRAMES=${1:-
   -pixelfade 0.0
 
   -name parachute_sprite
-  -color 4
+  -color 5
   -shifty 0
   $INPUT_DIR/Player/01.png
   -shifty 48

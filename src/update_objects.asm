@@ -478,7 +478,8 @@ check_mine_player
     ci   r4, 40
     jgt  check_mine_emp
 
-    bl   @kill_player          ; Then kill the player.
+    .damage_player >0280       ; Then damage the player.
+    .start_speech speech_ah
     jmp  update_mine_explosion ; And let the mine explode.
 
 check_mine_emp
@@ -511,7 +512,7 @@ update_drone_loop
     jlt  update_drone_loop     ; Is it inactive?
 
     ci   r2, exploding         ; Is the drone already exploding?
-    jhe  update_drone_explosion
+    jhe  update_drone_explosion0
 
 check_drone_stone
     .dist @stone_x, r0, r4, 128+16 ; Is it close to the thrown stone?
@@ -540,7 +541,10 @@ check_drone_player_hit
     ci   r5, 20
     jgt  update_drone_player_direction
 
-    bl   @kill_player          ; Then kill the player.
+    .damage_player >0280       ; Then damage the player.
+    .start_speech speech_ah
+
+update_drone_explosion0
     jmp  update_drone_explosion ; And let the drone explode.
 
 update_drone_loop_end0         ; Bridging a long jump.
@@ -1082,7 +1086,8 @@ check_bullet_player
     .dist @player_y, r1, 20
     jgt  update_bullet_sound
 
-    bl   @kill_player          ; Then kill the player.
+    .damage_player >0200       ; Then damage the player.
+    .start_speech speech_ah
 
 disable_bullet
     seto @bullet_x             ; Disable the bullet.
@@ -1140,7 +1145,8 @@ check_shell_player
     .dist @player_y, r1, 20
     jgt  update_shell_explosion
 
-    bl   @kill_player          ; Then kill the player.
+    .damage_player >0200       ; Then damage the player.
+    .start_speech speech_ah
 
 update_shell_explosion
     ai   r2, -32               ; Compute the sound frame of the explosion.

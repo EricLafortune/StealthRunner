@@ -19,46 +19,58 @@
 * Data for the game graphics.
 
 * The hard-coded colors.
-landscape_color equ light_green
-player_color    equ blue
+landscape_color        equ light_green
+player_dead_color      equ gray
+player_wounded_color   equ dark_red
+player_exhausted_color equ magenta
+player_tired_color     equ blue
+player_healthy_color   equ light_blue
 
 * The complete color table.
 colors
     .byte_color black, black
-    .byte_color player_color, black
-    .byte_color player_color, black
-    .byte_color player_color, black
-    .byte_color player_color, black
-    .byte_color player_color, black
-    .byte_color player_color, black
-    .byte_color player_color, black
+    .byte_color player_healthy_color, black
+    .byte_color player_healthy_color, black
+    .byte_color player_healthy_color, black
+    .byte_color player_healthy_color, black
+    .byte_color player_healthy_color, black
+    .byte_color player_healthy_color, black
+    .byte_color player_healthy_color, black
 
-    .byte_color player_color, black
-    .byte_color player_color, black
-    .byte_color player_color, black
-    .byte_color player_color, black
-    .byte_color player_color, black
-    .byte_color player_color, black
-    .byte_color player_color, black
-    .byte_color player_color, black
+    .byte_color player_healthy_color, black
+    .byte_color player_healthy_color, black
+    .byte_color player_healthy_color, black
+    .byte_color white, black
+    .byte_color white, black
+    .byte_color white, black
+    .byte_color white, black
+    .byte_color white, black
 
-    .byte_color player_color, black
-    .byte_color player_color, black
-    .byte_color player_color, black
-    .byte_color player_color, black
-    .byte_color player_color, black
-    .byte_color player_color, black
-    .byte_color player_color, black
-    .byte_color player_color, black
+    .byte_color white, black
+    .byte_color white, black
+    .byte_color white, black
+    .byte_color white, black
+    .byte_color white, black
+    .byte_color white, black
+    .byte_color white, black
+    .byte_color white, black
 
-    .byte_color player_color, black
-    .byte_color player_color, black
-    .byte_color player_color, black
-    .byte_color player_color, black
-    .byte_color player_color, black
-    .byte_color player_color, black
-    .byte_color player_color, black
-    .byte_color player_color, black
+    .byte_color white, black
+    .byte_color white, black
+    .byte_color white, black
+    .byte_color white, black
+    .byte_color white, black
+    .byte_color white, black
+    .byte_color white, black
+    .byte_color white, black
+
+player_colors_dead
+    .byte_color player_dead_color, black
+player_colors
+    .byte_color player_wounded_color, black
+    .byte_color player_exhausted_color, black
+    .byte_color player_tired_color, black
+    .byte_color player_healthy_color, black
 
 * The landscape patterns.
 

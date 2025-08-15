@@ -30,6 +30,7 @@
     copy "draw_landscape.asm"
     copy "draw_player.asm"
     copy "draw_objects.asm"
+    copy "player_health_macros.asm"
     copy "update_player.asm"
     copy "check_input.asm"
     copy "update_objects.asm"
@@ -185,7 +186,6 @@ dont_wait_for_vsync
     b    @parachute_loop
 parachute_intro_end
 
-;    .start_speech speech_letsgo
 
 * The main game loop.
 game_loop
@@ -269,7 +269,7 @@ return_to_intro
     b    @play_intro_video
 
 * Various subroutines.
-    copy "kill_player.asm"
+    copy "player_health.asm"
     copy "supersprites.asm"
     copy "directions.asm"
 
@@ -358,6 +358,7 @@ player_fy              data 0 ; Fractional y ordinate (fixed point 16.16 bits).
 player_speed           data 0 ; Speed (=motion) (-2 for dying, -1 for crouching, 0 for standing,...)
 player_direction       data 0 ; Direction (=orientation) (0..15).
 player_direction_delta data 0 ; Preferential initial direction delta (-1 or 1).
+player_health          data 0 ; Health (>ff00 .. >02ff).
 
 * Player display variables.
 player_animation_bank          data 0 ; Animation memory bank (>6000, >6002,...).

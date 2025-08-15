@@ -77,10 +77,10 @@
 
 * LOCAL r6: Player speed (-2 for dying, -1 for crouching, 0 for standing,...)
 * LOCAL r7: Player direction (0..15).
-    mov  @player_direction, r7
+    mov  @player_speed, r6     ; Is the player dead?
+    jlt  check_input_end0      ; Then don't check input.
 
-    mov  @player_speed, r6     ; Is the player dead or crouching?
-    jlt  check_apply_medkit    ; Then check applying a medkit.
+    mov  @player_direction, r7
 
     seto r8                    ; No mouse buttons pressed.
     seto r9
@@ -116,7 +116,7 @@ check_forward
     mov  @go_forward(r1), r1
     jlt  check_speed_up
     mov  r1, r6
-    b   @change_speed
+    b    @change_speed
 
 check_backward
     .test_keyboard_row 5       ; Walking backward with 'S'?
@@ -141,37 +141,16 @@ check_speed_up
     .test_keyboard 0, 5        ; Speeding up with 'Shift'?
     jeq  check_mouse
 
+    mov  @player_health, r0    ; Not tired?
+    ci   r0, player_healthy
+    jlt  check_mouse
+
     mov  r6, r1                ; Speed up.
     sla  r1, 1
     mov  @speed_up(r1), r1
     jlt  check_mouse
     mov  r1, r6
-    b    @change_speed
-
-check_apply_medkit
-    ci   r6, die               ; Is the player dead or already crouching?
-    jne  check_crouching_to_standing
-
-    .test_keyboard 0, 6        ; Applying a medkit with 'Ctrl'?
-    jeq  check_input_end0
-
-    mov  @medkit_count, r0     ; Does he have any medkits?
-    dec  r0
-    jlt  check_input_end0
-
-    mov  r0, @medkit_count     ; Save the new number of medkits.
-
-    li   r6, crouch            ; Start crouching to standing.
-    clr  @player_frame
-    b    @set_speed
-
-check_crouching_to_standing
-    mov  @player_frame, r0     ; After the last crouching frame?
-    jne  check_input_end0
-
-    li   r6, stand             ; Start standing.
-    clr  @player_frame
-    jmp  set_speed
+    jmp  change_speed
 
 check_input_end0
     b    @check_input_end
@@ -204,7 +183,7 @@ check_mouse
     jne  !
     mov  r4, @mouse_x          ; Then just update the moved mouse
     mov  r5, @mouse_y          ; coordinates for now.
-    jmp  check_change_weapon
+    jmp  check_apply_medkit
 !
     mov  r2, r7                ; Otherwise update the direction and reset the
     sla  r2, 3                 ; mouse coordinates to the new direction on a
@@ -217,7 +196,7 @@ check_turn
     jeq  check_turn_left
 
     dec  @keyboard_repeat      ; Decrement the keyboard turn autorepeat.
-    jmp  check_change_weapon
+    jmp  check_apply_medkit
 
 check_turn_left
     .test_keyboard 5, 6        ; Pushing left with 'Q'?
@@ -229,7 +208,7 @@ check_turn_left
 
 check_turn_right
     .test_keyboard 2, 6        ; Pushing right with 'E'?
-    jeq  check_change_weapon
+    jeq  check_apply_medkit
 
     dec  r7                    ; Then turn right.
     andi r7, player_direction_count-1
@@ -252,6 +231,34 @@ set_speed
 
 update_player_animation_bank
     .update_player_animation_bank standing_player_animation_banks, r6, r7
+
+check_apply_medkit
+    .test_keyboard 0, 6        ; Applying a medkit with 'Ctrl'?
+    jeq  check_change_weapon
+
+    mov  @player_health, r0    ; Wounded or tired?
+    ci   r0, player_healthy
+    jhe  check_change_weapon
+
+    mov  @medkit_count, r0     ; Any medkits left?
+    jeq  show_medkit_count
+
+    dec  r0                    ; Update the number of medkits.
+    mov  r0, @medkit_count
+
+    li   r1, player_max_health ; Set the maximum player health.
+    bl   @set_player_health
+
+    .start_speech speech_yeah
+
+show_medkit_count
+    mov  @medkit_count, r0
+    ci   r0, 7                 ; Compute and set the HUD supersprite,
+    jle  !                     ; based on the (clamped) count...
+    li   r0, 7
+!   ai   r0, medkit_counter_sprites
+    mov  r0, @hud_sprite
+    clr  @hud_counter
 
 check_change_weapon
     sla  r9, 3                 ; Changing weapons with mouse button 2?

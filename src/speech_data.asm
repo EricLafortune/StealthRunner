@@ -63,6 +63,7 @@ collect_medkits                      .speech_entry 280, '../out/CollectMedkits.l
 move_with_the_keyboard_and_the_mouse .speech_entry 464, '../out/MoveWithTheKeyboardAndTheMouse.lpc'
 
 * Other speech.
-speech_letsgo .speech_entry  189, '../out/letsgo.lpc'
-speech_argh   .speech_entry   90, '../out/argh.lpc'
-speech_ahohe  .speech_entry 1382, '../out/ahohe.lpc'
+speech_huh    .speech_entry   72, '../out/Huh.lpc'
+speech_ah     .speech_entry   76, '../out/Ah.lpc'
+speech_aah    .speech_entry  130, '../out/Aah.lpc'
+speech_yeah   .speech_entry  107, '../out/Yeah.lpc'

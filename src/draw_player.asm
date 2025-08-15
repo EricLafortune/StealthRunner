@@ -77,42 +77,19 @@ draw_player_delta                   ; We're in the same animation bank.
 
 * Increment the player animation frame.
 draw_player_update_frame
-    .switch_bank @data_bank    ; The frame counts and sounds are in the data bank.
+    mov  @player_speed, r1     ; Check the animation frame based on the speed.
+    jeq  draw_player_end       ; Skip all updates if just standing.
 
     mov  @player_frame, r0     ; Increment the player animation frame number.
     inc  r0
 
-    mov  @player_speed, r1     ; Check the animation frame based on the speed.
-    jeq  draw_player_footsteps ; Skip all updates if just standing.
+    .switch_bank @data_bank    ; The frame counts and sounds are in the data bank.
 
     sla  r1, 1
     c    r0, @frame_counts(r1) ; After the last frame?
-    jl   draw_player_save_frame
-
+    jl   !
     clr  r0                    ; Then wrap the frame around.
-
-    ci   r1, crouch << 1       ; End of crouching?
-    jeq  draw_player_crouching_end
-    jgt  draw_player_save_frame ; End of a regular walking cycle?
-
-    mov  @medkit_count, r0     ; End of dying. Show the medkit counter.
-    ci   r0, 7
-    jle  !
-    li   r0, 7
-!   ai   r0, medkit_counter_sprites
-    mov  r0, @hud_sprite
-    li   r0, 16
-    mov  r0, @hud_counter
-
-    jmp  draw_player_end       ; But don't save the frame or play any more
-                               ; sound.
-
-draw_player_crouching_end
-    clr  @player_speed         ; End of crouching. Switch to standing.
-    mov  @player_direction, r1
-    .update_player_animation_bank standing_player_animation_banks, r1
-
-draw_player_save_frame
+!
     mov  r0, @player_frame
 
 * Play footstep sound effects.
@@ -127,8 +104,8 @@ draw_player_end
 * Macro: scale the player animation frame index, adapting it from the given old
 * speed to the given new speed (=motion). The animation should then be more
 * continuous.
-* IN #1: the register containing the old speed.
-* IN #2: the register containing the new speed.
+* IN #1: the register containing the old speed (not r0 or r1).
+* IN #2: the register containing the new speed (not r0 or r1).
 * OUT player_frame
 * LOCAL r0
 * LOCAL r1

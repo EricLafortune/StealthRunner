@@ -27,6 +27,7 @@
 * OUT player_speed
 * OUT player_direction
 * OUT player_direction_delta
+* OUT player_health
 * OUT player_animation_bank
 * OUT previous_player_animation_bank
 * OUT player_frame
@@ -53,6 +54,9 @@
     clr  @previous_player_animation_bank
     clr  @player_frame
     clr  @previous_player_frame
+
+    li   r1, player_max_health ; Start with a perfectly healthy player.
+    mov  r1, @player_health
 
     .endm
 
@@ -110,8 +114,8 @@
     .defm update_player
 
     mov  @player_speed, r6
-    jlt  dont_update_player_position ; Is the player dead or crouching?
-    jeq  dont_update_player_position ; Is the player standing still?
+    jlt  update_player_end     ; Is the player dead or crouching?
+    jeq  improve_player_health ; Is the player standing still?
                                ; Then we don't need to update the position.
 
     mov  @player_direction, r7
@@ -171,11 +175,29 @@ update_player_position
     mov  r4, @player_y         ; Update the y ordinate.
     mov  r5, @player_fy
 
-    srl  r8, 1                       ; Swap the preferential initial player
-    jnc  dont_update_player_position ; direction delta (-1 or 1) if the
-    neg  @player_direction_delta     ; current delta is even. This is mostly
-                                     ; to keep the accumulated delta -4 or +4
-                                     ; preferential if they are successful.
-dont_update_player_position
+    srl  r8, 1                   ; Swap the preferential initial player
+    jnc  tweak_player_health     ; direction delta (-1 or 1) if the
+    neg  @player_direction_delta ; current delta is even. This is mostly
+                                 ; to keep the accumulated delta -4 or +4
+                                 ; preferential if they are successful.
 
+tweak_player_health
+    srl  r6, 1                 ; Is the player running?
+    joc  improve_player_health
+
+    .damage_player 2           ; Then let the player get tired.
+    jmp  update_player_end
+
+improve_player_health
+    .heal_player 1             ; Otherwise let the player heal slowly.
+
+;check_crouching_to_standing
+;    mov  @player_frame, r0     ; After the last crouching frame?
+;    jne  check_input_end0
+;
+;    li   r6, stand             ; Start standing.
+;    clr  @player_frame
+;    jmp  set_speed
+
+update_player_end
     .endm
