@@ -26,6 +26,62 @@ mute_all
     .noise_off
     byte -1
 
+parachuting_sound
+    byte 11
+    .tone_frequency 0, 900
+    .tone_frequency 1, 1023
+    .tone_frequency 2, 1
+    .noise_frequency white_noise, 3
+    .tone_attenuation 0, 14
+    .tone_attenuation 1, 14
+    .tone_attenuation 2, 14
+    .noise_attenuation 14
+    byte 1
+    .noise_attenuation 13
+    byte 4
+    .tone_attenuation 0, 13
+    .tone_attenuation 1, 13
+    .tone_attenuation 2, 13
+    .noise_attenuation 12
+    byte 1
+    .noise_attenuation 11
+    byte 4
+    .tone_attenuation 0, 12
+    .tone_attenuation 1, 13
+    .tone_attenuation 2, 14
+    .noise_attenuation 10
+    byte 4
+    .tone_attenuation 0, 13
+    .tone_attenuation 1, 14
+    .tone_attenuation 2, 13
+    .noise_attenuation 9
+    byte 4
+    .tone_attenuation 0, 14
+    .tone_attenuation 1, 13
+    .tone_attenuation 2, 12
+    .noise_attenuation 8
+    byte 4
+    .tone_attenuation 0, 13
+    .tone_attenuation 1, 12
+    .tone_attenuation 2, 13
+    .noise_attenuation 7
+    byte 4
+    .tone_attenuation 0, 12
+    .tone_attenuation 1, 13
+    .tone_attenuation 2, 14
+    .noise_attenuation 8
+    byte 4
+    .tone_attenuation 0, 13
+    .tone_attenuation 1, 14
+    .tone_attenuation 2, 13
+    .noise_attenuation 9
+    byte 4
+    .tone_attenuation 0, 14
+    .tone_attenuation 1, 14
+    .tone_attenuation 2, 14
+    .noise_attenuation 10
+    byte -1
+
 target_reached_with_rest
     bcopy "../out/TargetReached.snd"
     byte -1

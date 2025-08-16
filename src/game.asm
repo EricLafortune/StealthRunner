@@ -116,6 +116,12 @@ key_press_loop
     ci   r0, >ff00
     jeq  key_press_loop
 
+* Silence all sound.
+    .silence_sound_generator 0
+    .silence_sound_generator 1
+    .silence_sound_generator 2
+    .silence_sound_generator 3
+
 * Copy the VDP blitting code to scratchpad RAM, for better performance.
     .switch_bank @data_bank    ; The blitting code is in the data bank.
     .copy_memory blit_code_start, blit_code_end, scratchpad
@@ -157,8 +163,8 @@ parachute_intro
     seto @current_tone2
     seto @current_noise
 
-* Set the music pointer to mute any sound and music.
-    .start_music mute_all
+* Set the music pointer to start the parachuting sound.
+    .start_music parachuting_sound
 
 * Reset the speech pointer.
     clr  @current_speech
@@ -175,8 +181,9 @@ parachute_loop
     .draw_parachute            ; Draw the player parachuting into view.
     .update_parachute          ; Update the player world coordinates.
     .draw_landscape_delta      ; Draw the landscape scrolling into view.
-    .fade_in_landscape_colors  ; Fade in the landscape colors from black.
-    .play_music
+    .fade_in_landscape_colors  ; Fade in the landscape colors from black
+    .play_music                ; (possibly skipping music or Vsync).
+dont_play_music
     .wait_for_vsync
 dont_wait_for_vsync
 
@@ -185,6 +192,9 @@ dont_wait_for_vsync
     jeq  parachute_intro_end
     b    @parachute_loop
 parachute_intro_end
+
+* Set the music pointer to mute the parachuting sound.
+    .start_music mute_all
 
 
 * The main game loop.

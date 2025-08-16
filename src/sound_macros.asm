@@ -323,7 +323,14 @@
     c    r0, @current_tones+(#1*2)
     jne  !
     seto @current_tones+(#1*2)
+    .silence_sound_generator #1 ; Send the stop sound command.
+!
+    .endm
+
+* Local macro: silence the specified sound generator.
+* IN #1: the generator (0..2 for tones, 3 for noise).
+* LOCAL r0
+    .defm silence_sound_generator
     li   r0, >9f00|(#1<<13)
     .sound r0                  ; Send the stop sound command.
-!
     .endm

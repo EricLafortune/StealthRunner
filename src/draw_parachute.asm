@@ -91,6 +91,8 @@
     .li_color r1, landscape_color, black
     .vdpwd    r1
 !
+    andi r0, >000f
+    jne  dont_play_music
     .endm
 
 
