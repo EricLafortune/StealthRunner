@@ -172,25 +172,34 @@ parachute_intro
     seto @message_spoken
 
 * Start the parachuting.
-    mov  @player_start_x, @player_x ; Initialize the screen x ordinate to the
-                                    ; start position.
-    li   r0, 400
-    mov  r0, @parachute_counter
+    .initalize_parachute
 
-parachute_loop
+parachute_x_loop
+    .draw_landscape_characters ; Draw the landscape deltas scrolling into view
+                               ; horizontally, to get the non-edge characters
+                               ; right.
+     inc  @player_x                  ; Scroll right until we've reached the
+     c    @player_x, @player_start_x ; vertical starting line.
+     jl   parachute_x_loop
+
+parachute_y_loop
     .draw_parachute            ; Draw the player parachuting into view.
-    .update_parachute          ; Update the player world coordinates.
     .draw_landscape_delta      ; Draw the landscape scrolling into view.
     .fade_in_landscape_colors  ; Fade in the landscape colors from black
-    .play_music                ; (possibly skipping music or Vsync).
-dont_play_music
-    .wait_for_vsync
-dont_wait_for_vsync
 
-    inc  @frame_timestamp      ; Update the time stamp.
-    dec  @parachute_counter    ; Continue with the next frame.
-    jeq  parachute_intro_end
-    b    @parachute_loop
+    andi r0, >000f             ; Update the sound effects at a slow pace.
+    jne  skip_music_updates
+    .play_music
+skip_music_updates
+
+    .wait_for_vsync
+
+     inc  @frame_timestamp     ; Update the time stamp.
+
+     inc  @player_y                  ; Scroll down until we've reached the
+     c    @player_y, @player_start_y ; starting point.
+     jhe  parachute_intro_end
+     b    @parachute_y_loop
 parachute_intro_end
 
 * Set the music pointer to mute the parachuting sound.
@@ -435,9 +444,6 @@ module_end
 
 * Global variables after the code in low expansion memory.
     dorg expansion_data_start
-
-* Parachute variables.
-parachute_counter data 0 ; Counter (down) for the parachute intro.
 
 * Player start position (initial or most recently reached target). The
 * coordinates are those of the top-left corner of a virtual screen in the

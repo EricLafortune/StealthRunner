@@ -45,10 +45,10 @@ game_sprite_attribute_table   equ >1300 ; Size >0080.
     .vdpwr_sprite_descriptor_table  game_sprite_descriptor_table
     .vdpwr_background_color         black
 
-* Initialize the screen image table.
+* Initialize the screen image table with the 2-dots char.
     .vdpwa game_screen_image_table | vdp_write_bit
 
-    clr  r0
+    li   r0, >0300
     li   r1, screen_image_table_size
 screen_loop
     .vdpwd r0

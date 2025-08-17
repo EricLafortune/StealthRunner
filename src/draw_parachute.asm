@@ -30,13 +30,12 @@
     li   r1, parachute_sprite  ; Pick the parachuting sprite.
     clr  r2
 
-    mov  @parachute_counter, r2 ; Compute the sprite x ordinate, converging
-    sra  r2, 2                  ; to 0 (the center of the screen).
+    mov  @player_start_y, r2   ; Compute animated sprite coordinates,
+    s    @player_y, r2         ; converging to 0 (the center of the screen).
     neg  r2
-
-    mov  @parachute_counter, r3 ; Compute the sprite y ordinate, converging
-    sra  r3, 1                  ; to 0 (the center of the screen).
-    neg  r3
+    mov  r2, r3
+    sra  r2, 2
+    sra  r3, 1
 
     bl   @draw_supersprite     ; Draw the parachute.
 
@@ -47,21 +46,22 @@
 
     .endm
 
-* Macro: update the world coordinates of the parachuting player.
-* IN OUT player_start_x
-* IN OUT player_start_y
-* IN     parachute_counter
+* Macro: initialize the world coordinates of the parachuting player.
+* OUT player_x
+* OUT player_y
 * LOCAL r0-r15
-    .defm update_parachute
+    .defm initalize_parachute
 
-    mov  @player_start_y, r0    ; Compute the screen y ordinate, converging
-    s    @parachute_counter, r0 ; to the start position.
+    clr  @player_x                  ; Initialize the screen ordinates.
+    mov  @player_start_y, r0
+    ai   r0, -300
     mov  r0, @player_y
 
     .endm
 
 * Macro: fade in the landscape colors as the player parachutes into view.
 * IN parachute_counter
+* OUT r0: the counter that counts down to the starting point.
 * LOCAL r0-r15
     .defm fade_in_landscape_colors
 
@@ -69,30 +69,28 @@
                                             ; in the color table.
 
                                ; The landscape color goes from black...
-    mov  @parachute_counter, r0 ; ...to blue
-    ci   r0, 400 - display_pixel_height
-    jh   dont_wait_for_vsync   ; Skip the Vsync for the initial incomplete
-    jne  !                     ; (black) frames, to fast-forward through them.
+    mov  @player_start_y, r0
+    s    @player_y, r0
+    ci   r0, 300               ; ...to blue
+    jne  !
     .li_color r1, blue, black
     .vdpwd    r1
 !
-    ci   r0, 180               ; ...to dark green
+    ci   r0, 250               ; ...to dark green
     jne  !
     .li_color r1, dark_green, black
     .vdpwd    r1
 !
-    ci   r0, 160               ; ...to green
+    ci   r0, 200               ; ...to green
     jne  !
     .li_color r1, green, black
     .vdpwd    r1
 !
-    ci   r0, 140               ; ...to light green.
+    ci   r0, 150               ; ...to light green.
     jne  !
     .li_color r1, landscape_color, black
     .vdpwd    r1
 !
-    andi r0, >000f
-    jne  dont_play_music
     .endm
 
 

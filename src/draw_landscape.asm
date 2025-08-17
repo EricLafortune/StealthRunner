@@ -39,12 +39,15 @@
 * IN player_x
 * IN player_y
 * IN previous_landscape_patterns_offset
-* IN previous_landscape_character_quadrant
 * LOCAL r0-r15
     .defm draw_landscape_delta
+    .draw_landscape_patterns
+    .draw_landscape_characters
+    .endm
 
-* Write the landscape patterns.
-;draw_landscape_patterns
+* Macro: write the landscape patterns.
+    .defm draw_landscape_patterns
+
     .switch_bank @data_bank    ; The patterns are in the data bank.
 
     .vdpwa game_pattern_descriptor_table + 8 | vdp_write_bit
@@ -59,7 +62,7 @@
     mov  r3, r0                ; Compute the source address of the first 1-dot pattern.
     a    r4, r0
     c    r0, @previous_landscape_patterns_offset ; Same dots as last time?
-    jeq  !! ;draw_landscape_characters_end           ; Then don't redraw the landscape at all.
+    jeq  !! ;draw_landscape_characters_end       ; Then don't redraw the landscape at all.
     mov  r0, @previous_landscape_patterns_offset
 
     ai   r0, landscape_patterns_1dot
@@ -81,10 +84,17 @@
     ai   r0, landscape_patterns_2dots
 
     .blit_more_bytes 8
-;draw_landscape_patterns_end
 
-* Write the landscape character deltas.
-;draw_landscape_characters
+    .endm
+
+* Macro: write the landscape character deltas.
+* IN player_x
+* IN player_y
+* IN previous_quadrant_x
+* IN previous_quadrant_y
+* LOCAL r0-r15
+    .defm draw_landscape_characters
+
     mov  @player_x, r0         ; Compute the current quadrant ordinates,
     srl  r0, 2                 ; expressed as multiples of 4 pixels.
 
