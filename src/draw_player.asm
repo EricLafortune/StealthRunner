@@ -88,9 +88,12 @@ draw_player_update_frame
     sla  r1, 1
     c    r0, @frame_counts(r1) ; After the last frame?
     jl   !
+    mov  r1, r1                ; Still alive?
+    jlt  !!
     clr  r0                    ; Then wrap the frame around.
 !
     mov  r0, @player_frame
+!
 
 * Play footstep sound effects.
 draw_player_footsteps
