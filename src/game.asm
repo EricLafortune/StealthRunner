@@ -126,9 +126,10 @@ key_press_loop
     .switch_bank @data_bank    ; The blitting code is in the data bank.
     .copy_memory blit_code_start, blit_code_end, scratchpad
 
+* Start the game from the world data.
 play_game
-* Initialize the player and the objects from the world data.
 
+* Initialize the player and the objects from the world data.
     .switch_bank @landscape_objects_bank
     li   r0, module_memory
 
@@ -136,6 +137,7 @@ play_game
     .initialize_player_weapons
     .initialize_objects
 
+* Save the initial states as a save point.
     .save_player_state
     .save_player_weapon_states
     .save_object_states
@@ -149,7 +151,12 @@ play_game
 * Animate the player parachuting in.
 parachute_intro
 
-* Reset some basic states.
+* Restore the initial states of the most recent save point.
+    .restore_player_state
+    .restore_player_weapon_states
+    .restore_object_states
+
+    .reset_player
     .reset_launched_weapons
     .initialize_landscape
 
@@ -179,7 +186,7 @@ parachute_x_loop
                                ; horizontally, to get the non-edge characters
                                ; right.
      inc  @player_x                  ; Scroll right until we've reached the
-     c    @player_x, @player_start_x ; vertical starting line.
+     c    @player_x, @saved_player_x ; vertical starting line.
      jl   parachute_x_loop
 
 parachute_y_loop
@@ -197,7 +204,7 @@ skip_music_updates
      inc  @frame_timestamp     ; Update the time stamp.
 
      inc  @player_y                  ; Scroll down until we've reached the
-     c    @player_y, @player_start_y ; starting point.
+     c    @player_y, @saved_player_y ; starting point.
      jhe  parachute_intro_end
      b    @parachute_y_loop
 parachute_intro_end
@@ -274,9 +281,6 @@ wait_for_vsync                              ; Otherwise simply wait for the
 
 * Continue from the last save point.
 restore_savepoint
-    .restore_player_state
-    .restore_player_weapon_states
-    .restore_object_states
     b    @parachute_intro
 
 * Continue with a new game.
@@ -372,20 +376,20 @@ message_spoken        data -1 ; The lowest spoken message number.
 player_state
 player_x               data 0 ; X ordinate, expressed in pixels.
 player_y               data 0 ; Y ordinate, expressed in pixels.
+player_health          data 0 ; Health (>ff00 .. >02ff).
+player_state_end
+
 player_fx              data 0 ; Fractional x ordinate (fixed point 16.16 bits).
 player_fy              data 0 ; Fractional y ordinate (fixed point 16.16 bits).
 player_speed           data 0 ; Speed (=motion) (-2 for dying, -1 for crouching, 0 for standing,...)
 player_direction       data 0 ; Direction (=orientation) (0..15).
 player_direction_delta data 0 ; Preferential initial direction delta (-1 or 1).
-player_health          data 0 ; Health (>ff00 .. >02ff).
 
 * Player display variables.
 player_animation_bank          data 0 ; Animation memory bank (>6000, >6002,...).
 previous_player_animation_bank data 0
 player_frame                   data 0 ; Animation frame (0..n-1).
 previous_player_frame          data 0
-
-player_state_end
 
 player_state_size equ player_state_end - player_state
 
@@ -444,12 +448,6 @@ module_end
 
 * Global variables after the code in low expansion memory.
     dorg expansion_data_start
-
-* Player start position (initial or most recently reached target). The
-* coordinates are those of the top-left corner of a virtual screen in the
-* world, compatible with the player coordinates.
-player_start_x data 0 ; X ordinate, expressed in pixels.
-player_start_y data 0 ; Y ordinate, expressed in pixels.
 
 * HUD variables.
 hud_sprite  data 0 ; Supersprite number to be shown in the HUD.
@@ -593,13 +591,18 @@ first_object_states_end
 
 * Reserve space for the remaining strips of object lists.
                           bss object_states_size - object_strip_size
-
 object_states_end
 
 * Saved states.
 saved_player_state       bss player_state_size
 saved_collectible_counts bss collectible_counts_size
 saved_object_states      bss object_states_size
+
+* Player start position (initial or most recently reached target). The
+* coordinates are those of the top-left corner of a virtual screen in the
+* world, compatible with the player coordinates.
+saved_player_x equ saved_player_state + 0 ; Saved X ordinate, expressed in pixels.
+saved_player_y equ saved_player_state + 2 ; Saved Y ordinate, expressed in pixels.
 
 * Supersprite/quadsprite cache pointers.
 vdp_quadsprite_numbers    bss 1024 * 2 ; The VDP quadsprite number (0..63 = 6 bits, shifted left 1 bit) for each CPU ROM quadsprite number (0..1023).

@@ -30,7 +30,7 @@
     li   r1, parachute_sprite  ; Pick the parachuting sprite.
     clr  r2
 
-    mov  @player_start_y, r2   ; Compute animated sprite coordinates,
+    mov  @saved_player_y, r2   ; Compute animated sprite coordinates,
     s    @player_y, r2         ; converging to 0 (the center of the screen).
     neg  r2
     mov  r2, r3
@@ -53,7 +53,7 @@
     .defm initalize_parachute
 
     clr  @player_x                  ; Initialize the screen ordinates.
-    mov  @player_start_y, r0
+    mov  @saved_player_y, r0
     ai   r0, -300
     mov  r0, @player_y
 
@@ -69,7 +69,7 @@
                                             ; in the color table.
 
                                ; The landscape color goes from black...
-    mov  @player_start_y, r0
+    mov  @saved_player_y, r0
     s    @player_y, r0
     ci   r0, 300               ; ...to blue
     jne  !

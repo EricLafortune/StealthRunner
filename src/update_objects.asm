@@ -441,9 +441,6 @@ check_target_player
 
     seto @-2(r8)               ; Disable the target.
 
-    mov  r0, @player_start_x   ; Remember the target position.
-    mov  r1, @player_start_y
-
     .save_player_state         ; Remember the current state.
     .save_player_weapon_states
     .save_object_states

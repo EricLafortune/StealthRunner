@@ -87,10 +87,25 @@ high_expansion_memory_end   equ >0000 ; Actually >10000.
 * IN #2: the end address of the source block.
 * IN #3: the start address of the destination.
     .defm copy_memory
+    .ifeq #2-#1, 2
+    mov  @#1, @#3
+    .else
+    .ifeq #2-#1, 4
+    mov  @#1, @#3
+    mov  @(#1+2), @(#3+2)
+    .else
+    .ifeq #2-#1, 6
+    mov  @#1, @#3
+    mov  @(#1+2), @(#3+2)
+    mov  @(#1+4), @(#3+4)
+    .else
     li   r0, #1
     li   r1, #3
 !
     mov  *r0+, *r1+
     ci   r0, #2
     jne  -!
+    .endif
+    .endif
+    .endif
     .endm

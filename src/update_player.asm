@@ -18,8 +18,23 @@
 
 * Macros to update the player.
 
-* Macro: initialize the position, direction,... of the player.
-* IN  r0: a pointer to the initial values.
+* Macro: initialize the start position and health of the player.
+* IN OUT r0: a pointer to the initial values.
+* LOCAL r1
+* OUT player_start_x
+* OUT player_start_y
+    .defm initialize_player
+
+    mov  *r0+, @player_x
+    mov  *r0+, @player_y
+    inct r0
+
+    li   r1, player_max_health ; Start with a perfectly healthy player.
+    mov  r1, @player_health
+
+    .endm
+
+* Macro: reset the position, direction,... of the player.
 * OUT player_x
 * OUT player_y
 * OUT player_fx
@@ -33,30 +48,22 @@
 * OUT player_frame
 * OUT previous_player_frame
 * LOCAL r0
-* LOCAL r1
-    .defm initialize_player
+    .defm reset_player
 
-    mov  *r0+, @player_start_x
-    mov  *r0+, @player_start_y
-    inct r0
-
-    clr  @player_x
-    clr  @player_y
+    ;clr  @player_x
+    ;clr  @player_y
     clr  @player_fx
     clr  @player_fy
     clr  @player_speed
 
-    li   r1, 8                 ; Start with the player facing away from us.
-    mov  r1, @player_direction
+    li   r0, 8                 ; Start with the player facing away from us.
+    mov  r0, @player_direction
     seto @player_direction_delta
 
-    .update_player_animation_bank standing_player_animation_banks, r1
+    .update_player_animation_bank standing_player_animation_banks, r0
     clr  @previous_player_animation_bank
     clr  @player_frame
     clr  @previous_player_frame
-
-    li   r1, player_max_health ; Start with a perfectly healthy player.
-    mov  r1, @player_health
 
     .endm
 
@@ -97,7 +104,7 @@
 * LOCAL r0
 * LOCAL r1
     .defm restore_player_state
-    .copy_memory saved_player_state, saved_player_state+player_state_end-player_state, player_state
+    .copy_memory saved_player_state, saved_player_state+player_state_size, player_state
     .endm
 
 
