@@ -30,9 +30,9 @@ You can also see a [video](https://youtu.be/e1ln8T1XRmM) on YouTube.
 
 * TI-99/4A home computer.
 * Programmable ROM/RAM cartridge, with about 1.5 MB of space.
-* 32K memory expansion.
-* Mechatronic mouse (recommended).
+* 32K memory expansion (optionally an internal one).
 * Speech synthesizer (optional).
+* Mechatronic mouse (optional).
 
 or:
 
@@ -80,14 +80,18 @@ You'll then have
 
 ## Running
 
-The easiest way is to use the Mame emulator (version 0.243 or higher).
+The easiest way is to use the Mame emulator (version 0.278 or higher).
 
 On Linux, you can run the script to launch Mame with the proper options:
 
     ./run.sh
 
 Alternatively, you can run the Mame command manually. The game targets an
-NTSC system, with a display at 60 Hz.
+NTSC system, with a display at 60 Hz. You can optionally enable the faster
+_internal_ memory expansion, to improve the frame rate at busy moments
+(<kbd>Scroll Lock</kbd>, if needed, to get in Mame's UI mode, and then
+<kbd>Tab</kbd> > Machine Configuration > Console 32 KiB RAM upgrade (16 bit)
+> On).
 
 With the computer or emulator running, at the TI-99/4A home screen:
 
@@ -132,10 +136,11 @@ mouse:
 | <kbd>9</kbd> = <kbd>Back</kbd>   | Return to the game title screen.                                 |
 | <kbd>=</kbd> = <kbd>Quit</kbd>   | Return to the computer title screen.                             |
     
-When you die or reach the target cross, you can quit the level with
-<kbd>Redo</kbd>, <kbd>Back</kbd>, or <kbd>Quit</kbd>.
+When you die, you can still press <kbd>Aid</kbd>, <kbd>Redo</kbd>,
+<kbd>Back</kbd>, or <kbd>Quit</kbd>.
 
-You can exit Mame by pressing <kbd>Scroll Lock</kbd> and then <kbd>Esc</kbd>.
+You can exit Mame by pressing <kbd>Scroll Lock</kbd> (if needed, to get in
+Mame's UI mode) and then <kbd>Esc</kbd>.
 
 ## Technical background
 
