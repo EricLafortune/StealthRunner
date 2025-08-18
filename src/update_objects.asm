@@ -742,6 +742,9 @@ check_launcher_player_hit
     jlt  update_launcher_explosion ; Then let the launcher explode.
 
 fire_launcher_player_shell
+    mov  @player_speed, r3     ; Is the player dead?
+    jlt  update_launcher_loop  ; Then continue with the next launcher.
+
     mov  @player_x, r3         ; Otherwise target the player.
     mov  @player_y, r4
 
