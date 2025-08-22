@@ -165,18 +165,13 @@ parachute_intro
     .initialize_game_graphics
 
 * Reset the sound pointers.
-    seto @current_tone0
-    seto @current_tone1
-    seto @current_tone2
-    seto @current_noise
+    .reset_sound
 
 * Set the music pointer to start the parachuting sound.
     .start_music parachuting_sound
 
-* Reset the speech pointer.
-    clr  @current_speech
-    clr  @current_speech_length
-    seto @message_spoken
+* Reset the speech pointers.
+    .reset_speech
 
 * Start the parachuting.
     .initalize_parachute
@@ -224,6 +219,8 @@ game_loop
     .draw_objects
     .draw_landscape_delta
     .update_objects
+    .play_tone
+    .play_noise
 
     b    @play_speech
 
@@ -355,11 +352,14 @@ frame_timestamp data 0 ; Counter for the current frame
                        ; (used for caching and even/odd tests).
 
 * Sound variables.
-current_tones
-current_tone0 data 0 ; The start address of the currently playing tone 0.
-current_tone1 data 0 ; The start address of the currently playing tone 1.
-current_tone2 data 0 ; The start address of the currently playing tone 2.
-current_noise data 0 ; The start address of the currently playing noise.
+current_tone  data 0 ; The pointer to the currently playing tone data.
+current_noise data 0 ; The pointer to the currently playing noise data.
+
+;current_tones
+;current_tone0 data 0 ; The start address of the currently playing tone 0.
+;current_tone1 data 0 ; The start address of the currently playing tone 1.
+;current_tone2 data 0 ; The start address of the currently playing tone 2.
+;current_noise data 0 ; The start address of the currently playing noise.
 
 * Music variables.
 current_music data 0 ; The address of the music data currently being played.

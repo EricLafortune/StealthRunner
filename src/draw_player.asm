@@ -89,15 +89,20 @@ draw_player_update_frame
     c    r0, @frame_counts(r1) ; After the last frame?
     jl   !
     mov  r1, r1                ; Still alive?
-    jlt  !!
+    jlt  draw_player_end
     clr  r0                    ; Then wrap the frame around.
-!
-    mov  r0, @player_frame
-!
+!   mov  r0, @player_frame
 
 * Play footstep sound effects.
 draw_player_footsteps
-    .play_noise_type_frame sound_walking, sound_walking_frames, player_speed, r0
+    a    @walking_sounds(r1), r0 ; Compute the address of the footstep flag.
+    movb *r0, r0               ; Get the footstep flag.
+    jeq  draw_player_end       ; Play a footstep sound?
+    jlt  !                     ; Walking or running?
+    li   r0, sound_walking
+    jmp  !!
+!   li   r0, sound_running
+!   .start_noise r0            ; Start the footstep sound.
 
 draw_player_end
 

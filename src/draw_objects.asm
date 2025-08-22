@@ -302,6 +302,7 @@ draw_message_loop
 
     c    r1, @message_spoken   ; Has the message been spoken yet?
     jhe  draw_message
+    .switch_bank @speech_data_bank ; The speech addresses are in the speech bank.
     mov  r1, r2                ; Play the spoken message.
     sla  r2, 1
     .start_speech @message_speech(r2), r3
@@ -388,11 +389,6 @@ draw_hud
     clr  r3
 
     bl   @draw_small_supersprite_unchecked
-
-    mov  r0, r2                ; Save the sprite cache queue address.
-    .switch_bank @data_bank    ; The sounds are in the data bank.
-    .play_tone1_frame sound_pickup, sound_pickup_frames, r8
-    mov  r2, r0                ; Restore the sprite cache queue address.
 
     inc  r8                    ; Update the HUD lifetime counter.
     ci   r8, 16

@@ -18,6 +18,11 @@
 
 * Macros to play music or complex sounds stored in our custom SND format.
 
+* Macro: reset the music pointer.
+    .defm reset_music
+    seto @current_music
+    .endm
+
 * Macro: queue the music data at the given address, if nothing else is being
 * sent. We're not yet sending any music data here, in order to keep it fast.
 * IN #1: the constant address of the music data (chunks of length + data

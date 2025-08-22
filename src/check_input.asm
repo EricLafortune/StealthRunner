@@ -289,6 +289,8 @@ change_weapon
     ai   r0, weapon_counter_sprites
     mov  r0, @hud_sprite
 
+    .start_noise sound_click
+
 dont_change_weapon
     li   r0, 14                ; Reset the (short) HUD lifetime.
     mov  r0, @hud_counter
@@ -327,6 +329,9 @@ launch_weapon
 !   mov  r7, *r2+
 
     clr  *r2                   ; Reset the weapon lifetime counter.
+
+    mov  @launch_sounds(r1), r0 ; Start the corresponding launching sound.
+    .start_tone r0
 
 check_input_end
 

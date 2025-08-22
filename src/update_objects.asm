@@ -475,9 +475,9 @@ check_mine_player
     ci   r4, 40
     jgt  check_mine_emp
 
-    .damage_player >0280       ; Then damage the player.
+    .damage_player >0280       ; Damage the player.
     .start_speech speech_ah
-    jmp  update_mine_explosion ; And let the mine explode.
+    jmp  start_mine_explosion  ; And let the mine explode.
 
 check_mine_emp
     .dist @emp_x, r0, 16       ; Is it close to the EMP?
@@ -485,11 +485,10 @@ check_mine_emp
     .dist @emp_y, r1, 16
     jgt  update_mine_loop
 
-update_mine_explosion
-    mov  r2, r3                ; Compute the sound frame of the explosion.
-    srl  r3, 11
-    .play_noise_frame sound_explosion, sound_explosion_frames, r3
+start_mine_explosion
+    .start_noise sound_explosion ; Let it explode.
 
+update_mine_explosion
     ai   r2, exploding         ; Let the mine explode, automatically
     mov  r2,@-2(r8)            ; disabling it at the end.
     jmp  update_mine_loop
@@ -541,8 +540,10 @@ check_drone_player_hit
     .damage_player >0280       ; Then damage the player.
     .start_speech speech_ah
 
-update_drone_explosion0
-    jmp  update_drone_explosion ; And let the drone explode.
+    jmp  start_drone_explosion ; And let the drone explode.
+
+update_drone_explosion0        ; Bridging a long jump.
+    jmp  update_drone_explosion
 
 update_drone_loop_end0         ; Bridging a long jump.
     jmp  update_drone_loop_end
@@ -576,12 +577,21 @@ update_drone_position
     mov  r7, @-8(r8)
 
 update_drone_sound
+    mov  @current_noise, r0    ; Isn't any noise playing?
+    jgt  !
+    li   r0, sound_drone_flying ; Then start the drone noise.
+    .sound *r0+
+    jmp  !!
+!
+    ai   r0, -sound_drone_flying-1 ; Is the drone noise playing?
+    ci   r0, 32
+    jhe  check_drone_emp
+    li   r0, sound_drone_flying+1 ; Then continue the drone noise.
+!
     a    r4, r5                ; Distance range roughly 0..255.
     srl  r5, 3                 ; Sound frame range roughly 0..31.
-    .play_noise_frame sound_drone, sound_drone_frames, r5 ; (clobbers r0, r1)
-    ci   r5, 16                ; Don't lock the noise channel if the drone is
-    jl   check_drone_emp       ; far away.
-    seto @current_noise
+    a    r5, r0                ; Tweak the noise pointer.
+    mov  r0, @current_noise    ; Save the tweaked noise pointer.
 
 check_drone_emp
     .dist @emp_x, r6, 20       ; Is it close to the EMP?
@@ -589,11 +599,10 @@ check_drone_emp
     .dist @emp_y, r7, 32
     jgt  update_drone_loop0
 
-update_drone_explosion
-    mov  r2, r3                ; Compute the sound frame of the explosion.
-    srl  r3, 11
-    .play_noise_frame sound_explosion, sound_explosion_frames, r3
+start_drone_explosion
+    .start_noise sound_explosion
 
+update_drone_explosion
     ai   r2, exploding         ; Let the drone explode, automatically
     mov  r2, @-2(r8)           ; disabling it at the end.
 
@@ -656,7 +665,7 @@ check_turret_player_hit
     ci   r4, 40                ; Is the turret very near?
     jgt  update_turret_player_direction
     ci   r5, 20
-    jlt  update_turret_explosion ; Then let the turret explode.
+    jlt  start_turret_explosion ; Then let the turret explode.
 
 update_turret_player_direction
     mov  r0, r6                ; Save a copy of the absolute position.
@@ -692,14 +701,13 @@ check_turret_emp
     .dist @emp_y, r1, 32
     jgt  update_turret_loop
 
-update_turret_explosion
-    mov  r2, r3                ; Compute the sound frame of the explosion.
-    srl  r3, 11
-    .play_noise_frame sound_explosion, sound_explosion_frames, r3
+start_turret_explosion
+    .start_noise sound_explosion
 
+update_turret_explosion
     ai   r2, exploding         ; Let the turret explode, automatically
     mov  r2, @-2(r8)           ; disabling it at the end.
-    b    @update_turret_loop
+    jmp  update_turret_loop
 
 update_turret_loop_end
 
@@ -739,7 +747,7 @@ check_launcher_player_hit
     ci   r3, 40                ; Is it very near?
     jgt  fire_launcher_player_shell
     ci   r4, 20
-    jlt  update_launcher_explosion ; Then let the launcher explode.
+    jlt  start_launcher_explosion ; Then let the launcher explode.
 
 fire_launcher_player_shell
     mov  @player_speed, r3     ; Is the player dead?
@@ -781,11 +789,10 @@ check_launcher_emp
     .dist @emp_y, r1, 32
     jgt  update_launcher_loop
 
-update_launcher_explosion
-    mov  r2, r3                ; Compute the sound frame of the explosion.
-    srl  r3, 11
-    .play_noise_frame sound_explosion, sound_explosion_frames, r3
+start_launcher_explosion
+    .start_noise sound_explosion
 
+update_launcher_explosion
     ai   r2, exploding         ; Let the launcher explode, automatically
     mov  r2,@-2(r8)            ; disabling it at the end.
     jmp  update_launcher_loop
@@ -801,7 +808,7 @@ update_collectible_loop
     jlt  update_collectible_loop_end ; Is it the last collectible?
     mov  *r8+, r1              ; Get the y ordinate.
     mov  *r8+, r2              ; Get the type.
-    jlt  update_collectible_loop     ; Is it inactive?
+    jlt  update_collectible_loop ; Is it inactive?
 
 check_collectible_player
     .dist @player_x, r0, 20    ; Is it close to the player?
@@ -817,13 +824,18 @@ check_collectible_player
     ci   r1, 7                 ; Compute and set the supersprite.
     jle  !                     ; based on the (clamped) count...
     li   r1, 7
-!   sla  r2, 2                 ; ...and the type.
-    a    r2, r1
+!   mov  r2, r3
+    sla  r3, 2                 ; ...and the type.
+    a    r3, r1
     ai   r1, collectible_counter_sprites
     mov  r1, @hud_sprite
     clr  @hud_counter
 
     seto @-2(r8)               ; Disable the collectible.
+
+    mov  @pickup_sounds(r2), r1 ; Start the corresponding pickup sound.
+    .start_tone r1
+
     jmp  update_collectible_loop
 
 update_collectible_loop_end
@@ -844,13 +856,17 @@ update_stone
     mov  @stone_counter, r2    ; In which phase is it?
     ci   r2, 32                ; Is it flying?
     jl   update_stone_position
-    ci   r2, 36                ; Is it landing?
-    jl   update_stone_landing
+    jh   update_stone_lying    ; Is it landing?
+
+    .start_noise sound_stone_landing ; Then start a sound.
+    jmp  update_stone_counter
+
+update_stone_lying
     ci   r2, 100               ; Is it still lying there?
     jl   update_stone_counter
 
 disable_stone
-    seto @stone_x              ; Disable the stone.
+    seto @stone_x              ; Otherwise disable the stone.
     jmp  update_stone_end
 
 update_stone_position
@@ -868,14 +884,6 @@ update_stone_position
     mov  r0, @stone_x          ; Save them.
     mov  r1, @stone_y
 
-    .play_tone2_frame sound_stone, sound_stone_frames, r2
-
-    jmp  update_stone_counter
-
-update_stone_landing
-    ai   r2, -32               ; Compute the sound frame of the landing.
-    .play_noise_frame sound_stone_landing, sound_stone_landing_frames, r2
-
 update_stone_counter
     inc  @stone_counter
 
@@ -892,9 +900,7 @@ update_emp
     jl   update_emp_position
 
 disable_emp
-    seto @emp_x                ; Then disable it.
-
-    .stop_tone0 sound_emp      ; Stop the EMP sound.
+    seto @emp_x                ; Otherwise disable the EMP.
     jmp  update_emp_end
 
 update_emp_position
@@ -908,9 +914,6 @@ update_emp_position
     mov  r0, @emp_x            ; Save them.
     mov  r1, @emp_y
 
-update_emp_sound
-    .play_tone2_frame sound_emp, sound_emp_frames, r2
-
 update_emp_counter
     inc  @emp_counter
 
@@ -921,16 +924,15 @@ update_emp_end
     jlt  update_grenade_end0   ; Is it inactive?
     mov  @grenade_y, r1
 
-    mov  @grenade_counter, r2  ; In which phase is it?
-    ci   r2, 32                ; Is it flying?
+    mov  @grenade_counter, r2   ; In which phase is it?
+    ci   r2, 32                 ; Is it flying?
     jl   update_grenade_position
-    jeq  check_grenade_objects ; Is it landing and exploding?
-    ci   r2, 40                ; Is it exploding?
-    jhe  disable_grenade
-    b    @update_grenade_explosion
+    jeq  update_grenade_landing ; Is it landing?
+    ci   r2, 40                 ; Is it still exploding?
+    jl  update_grenade_counter0
 
 disable_grenade
-    seto @grenade_x            ; Disable the grenade.
+    seto @grenade_x            ; Otherwise disable the grenade.
 update_grenade_end0
     b    @update_grenade_end
 
@@ -949,11 +951,11 @@ update_grenade_position
     mov  r0, @grenade_x        ; Save them.
     mov  r1, @grenade_y
 
-    .play_tone2_frame sound_grenade, sound_grenade_frames, r2
+update_grenade_counter0
+    jmp  update_grenade_counter
 
-    b    @update_grenade_counter
-
-check_grenade_objects
+update_grenade_landing
+    .start_noise sound_medium_explosion
 
     .object_strip r1, -32, r9  ; Check the object lists of all horizontal
     .object_strip r1, 32, r10  ; strips surrounding the exploding grenade.
@@ -1050,10 +1052,6 @@ check_grenade_launcher_loop_end
 
                                ; Continue after having checked the landed
                                ; grenade against all nearby objects.
-update_grenade_explosion
-    ai   r2, -32               ; Compute the sound frame of the explosion.
-    .play_noise_frame sound_medium_explosion, sound_medium_explosion_frames, r2
-
 update_grenade_counter
     inc  @grenade_counter
 
@@ -1082,21 +1080,16 @@ update_bullet_position
 
 check_bullet_player
     .dist @player_x, r0, 40    ; Is the bullet near the player?
-    jgt  update_bullet_sound
+    jgt  update_bullet_counter
     .dist @player_y, r1, 20
-    jgt  update_bullet_sound
+    jgt  update_bullet_counter
 
     .damage_player >0200       ; Then damage the player.
     .start_speech speech_ah
 
 disable_bullet
     seto @bullet_x             ; Disable the bullet.
-
-    .stop_noise sound_bullet   ; Stop the bullet noise.
     jmp  update_bullet_end
-
-update_bullet_sound
-    .play_noise_frame sound_bullet, sound_bullet_frames, r2 ; (clobbers r0, r1)
 
 update_bullet_counter
     inc  @bullet_counter
@@ -1111,11 +1104,12 @@ update_bullet_end
     mov  @shell_counter, r2    ; In which phase is it?
     ci   r2, 32                ; Is it flying?
     jl   update_shell_position
+    jeq  update_shell_landing  ; Is it landing?
     ci   r2, 36                ; Is it exploding?
-    jl   check_shell_player
+    jl   update_shell_counter
 
 disable_shell
-    seto @shell_x              ; Disable the shell.
+    seto @shell_x              ; Otherwise disable the shell.
     jmp  update_shell_end
 
 update_shell_position
@@ -1129,17 +1123,15 @@ update_shell_position
     jnc  !
     inc  r1
 !
-    mov  r2, r3
-    sla  r3, 1                 ; Add a parabolic curve to the y ordinate.
-    s    @high_parabolic_delta(r3), r1
+    sla  r2, 1                 ; Add a parabolic curve to the y ordinate.
+    s    @high_parabolic_delta(r2), r1
 
     mov  r0, @shell_x          ; Save them.
     mov  r1, @shell_y
 
-    .play_tone2_frame sound_shell, sound_shell_frames, r2
     jmp  update_shell_counter
 
-check_shell_player
+update_shell_landing
     .dist @player_x, r0, 40    ; Is the shell near the player?
     jgt  update_shell_explosion
     .dist @player_y, r1, 20
@@ -1149,8 +1141,7 @@ check_shell_player
     .start_speech speech_ah
 
 update_shell_explosion
-    ai   r2, -32               ; Compute the sound frame of the explosion.
-    .play_noise_frame sound_short_explosion, sound_short_explosion_frames, r2
+    .start_noise sound_short_explosion
 
 update_shell_counter
     inc  @shell_counter

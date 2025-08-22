@@ -18,6 +18,13 @@
 
 * Macros to send speech data to the speech synthesizer.
 
+* Macro: reset the speech pointers.
+    .defm reset_speech
+    clr  @current_speech
+    clr  @current_speech_length
+    seto @message_spoken
+    .endm
+
 * Macro: queue the speech data at the given address, if nothing else is being
 * sent. We're not yet sending any speech data here, in order to keep it fast.
 * IN #1: the constant address of the speech data (length + LPC data bytes).
@@ -36,7 +43,6 @@
     .else                      ; Variable speech data address.
     mov  @current_speech_length, #2 ; Is any speech playing?
     jne  !
-    .switch_bank @speech_data_bank ; The speech addresses are in the speech bank.
     mov  #1, @current_speech   ; Queue the length and data.
     .endif
 
