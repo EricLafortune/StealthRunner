@@ -355,12 +355,6 @@ frame_timestamp data 0 ; Counter for the current frame
 current_tone  data 0 ; The pointer to the currently playing tone data.
 current_noise data 0 ; The pointer to the currently playing noise data.
 
-;current_tones
-;current_tone0 data 0 ; The start address of the currently playing tone 0.
-;current_tone1 data 0 ; The start address of the currently playing tone 1.
-;current_tone2 data 0 ; The start address of the currently playing tone 2.
-;current_noise data 0 ; The start address of the currently playing noise.
-
 * Music variables.
 current_music data 0 ; The address of the music data currently being played.
 
