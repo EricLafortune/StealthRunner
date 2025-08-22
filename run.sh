@@ -2,6 +2,11 @@
 #
 # This script launches Mame with the TI-99/4A, peripherals, and game cartridge
 # mounted.
+#
+# Useful extra options for Mame:
+#   -joyport mecmouse
+# and
+#   -aviwrite file.avi
 
 RPK=out/StealthRunner.rpk
 
@@ -21,7 +26,8 @@ mame ti99_4a \
   -ui_active \
   -ioport peb \
   -ioport:peb:slot2 32kmem \
-  -ioport:peb:slot3 speech \
-  -joyport mecmouse \
+  -ioport:peb:slot3 speechadapter \
   -cart1 $RPK \
   "$@"
+
+
