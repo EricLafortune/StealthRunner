@@ -955,8 +955,6 @@ update_grenade_counter0
     jmp  update_grenade_counter
 
 update_grenade_landing
-    .start_noise sound_medium_explosion
-
     .object_strip r1, -32, r9  ; Check the object lists of all horizontal
     .object_strip r1, 32, r10  ; strips surrounding the exploding grenade.
 
@@ -1049,6 +1047,8 @@ check_grenade_launcher_loop_end
 
     .next_object_strip r9, r10 ; Repeat for the next strip, if any.
     jle  check_grenade_objects_strip_loop
+
+    .start_noise sound_medium_explosion
 
                                ; Continue after having checked the landed
                                ; grenade against all nearby objects.
