@@ -120,6 +120,29 @@
 * LOCAL r0-r15
     .defm update_player
 
+    .ifdef pan
+    .test_keyboard 6, 1        ; Panning view with joystick left?
+    jeq  !
+    dect @player_x
+    jmp  improve_player_health
+!
+    .test_keyboard_row 2       ; Panning view with joystick right?
+    jeq  !
+    inct @player_x
+    jmp  improve_player_health
+!
+    .test_keyboard_row 3       ; Panning view with joystick down?
+    jeq  !
+    inct @player_y
+    jmp  improve_player_health
+!
+    .test_keyboard_row 4       ; Panning view with joystick up?
+    jeq  !
+    dect @player_y
+    jmp  improve_player_health
+!
+    .endif
+
     mov  @player_speed, r6
     jlt  update_player_end     ; Is the player dead or crouching?
     jeq  improve_player_health ; Is the player standing still?
