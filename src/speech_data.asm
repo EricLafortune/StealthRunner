@@ -30,7 +30,12 @@
 
 * Speech data corresponding to in-game messages.
 message_speech
+    data you_have_made_it
+    data now_go_and_reach_the_final_target
+    data destroy_the_mines_with_grenades
+    data press_x_to_swap_weapons
     data collect_grenades
+    data destroy_the_turret_with_an_emp
     data press_x_to_swap_weapons
     data collect_emp_batteries
     data distract_the_drone_with_stones
@@ -47,7 +52,11 @@ message_speech
 
 * Inconveniently, the file lengths have to be hardcoded here.
 
+you_have_made_it                     .speech_entry 170, '../out/YouHaveMadeIt.lpc'
+now_go_and_reach_the_final_target    .speech_entry 474, '../out/NowGoAndReachTheFinalTarget.lpc'
+destroy_the_mines_with_grenades      .speech_entry 459, '../out/DestroyTheMinesWithGrenades.lpc'
 collect_grenades                     .speech_entry 265, '../out/CollectGrenades.lpc'
+destroy_the_turret_with_an_emp       .speech_entry 530, '../out/DestroyTheTurretWithAnEMP.lpc'
 press_x_to_swap_weapons              .speech_entry 437, '../out/PressXToSwapWeapons.lpc'
 collect_emp_batteries                .speech_entry 466, '../out/CollectEMPBatteries.lpc'
 distract_the_drone_with_stones       .speech_entry 516, '../out/DistractTheDroneWithStones.lpc'

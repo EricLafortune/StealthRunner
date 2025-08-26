@@ -31,7 +31,12 @@ while read MESSAGE; do
 
     COUNTER=$[COUNTER+1]
 done <<EOF
+You've_ made it!
+Now go and_ reach the_ final target.
+Destroy the_ mines with_ grenades.
+Press X to_ swap weapons.
 Collect_ grenades.
+Destroy the_ turret with_ an EMP.
 Press X to_ swap weapons.
 Collect EMP_ batteries.
 Distract_the drone_ with stones.
