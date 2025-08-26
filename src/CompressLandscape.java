@@ -240,6 +240,12 @@ public class CompressLandscape
                                                    quadrantDeltaX,
                                                    quadrantDeltaY);
 
+        int mergedSpansLength = mergedSpans.length();
+        if (mergedSpansLength > MAX_SPAN_DATA_SIZE)
+        {
+            throw new IllegalArgumentException("Merged character spans are larger than " + MAX_SPAN_DATA_SIZE + " bytes [" + mergedSpansLength + "]");
+        }
+
         // Write the character spans as destination offsets, lengths, and
         // source offsets.
         writeCharacterSpans(quadrantX,
@@ -274,7 +280,7 @@ public class CompressLandscape
         outputStream.write(mergedSpans.getBytes(StandardCharsets.US_ASCII));
 
         // Skip to the next memory bank.
-        outputStream.write(new byte[MAX_SPAN_DATA_SIZE - mergedSpans.length()]);
+        outputStream.write(new byte[MAX_SPAN_DATA_SIZE - mergedSpansLength]);
     }
 
 
@@ -334,7 +340,7 @@ public class CompressLandscape
             int length = endX - startX;
             if (length > 255)
             {
-                throw new IllegalArgumentException("Span longer than 255 bytes ("+length+" bytes)");
+                throw new IllegalArgumentException("Span longer than 255 bytes ("+length+" bytes) at scanline "+charY*2);
             }
 
             MultiCharacterSpan span = new MultiCharacterSpan();
@@ -432,7 +438,7 @@ public class CompressLandscape
             int length = endX - startX;
             if (length > 255)
             {
-                throw new IllegalArgumentException("Span longer than 255 bytes ("+length+" bytes)");
+                throw new IllegalArgumentException("Span longer than 255 bytes ("+length+" bytes) at scanline "+charY*2);
             }
 
             StringBuilder span = new StringBuilder();
@@ -448,12 +454,12 @@ public class CompressLandscape
             int spanOffset = mergedSpans.indexOf(span.toString());
             if (spanOffset < 0)
             {
-                throw new IllegalArgumentException("Can't find span ["+span+"]");
+                throw new IllegalArgumentException("Can't find span ["+span+"] at scanline "+charY*2);
             }
 
             if (spanOffset > 255)
             {
-                throw new IllegalArgumentException("Span offset ["+span+"] larger than 255");
+                throw new IllegalArgumentException("Span offset ("+spanOffset+" / "+mergedSpans.length()+") larger than 255 at scanline "+charY*2);
             }
 
             // Write the span: destination, length, and source offset.

@@ -15,6 +15,8 @@ import java.io.*;
  * The landscape mask has the same width but half the height as the image.
  *
  * The landscape mask is compressed as horizontal runs of accessible area.
+ * For simplicity, we're encoding two spans per scanline, each with a start and
+ * an end.
  */
 public class CompressLandscapeMask
 {
@@ -117,6 +119,14 @@ public class CompressLandscapeMask
 
             outputStream.writeChar(spanStart2);
             outputStream.writeChar(spanEnd2);
+
+            int spanStart3 = spanStart(spanEnd2, y);
+            if (spanStart3 < landscapeWidth)
+            {
+                int spanEnd3 = spanEnd(spanStart3, y);
+
+                throw new IllegalArgumentException("Three spans ("+spanStart1+", "+spanEnd1+") ("+spanStart2+", "+spanEnd2+") ("+spanStart3+", "+spanEnd3+") at scanline "+y*2);
+            }
         }
     }
 
