@@ -70,39 +70,47 @@ sound_click
 * A bullet approaching from the distance.
 sound_bullet_flying
     .noise_frequency white_noise, 0
-                               ; 32 frames.
+                               ; 40 frames.
     .noise_attenuation 0       ; Frame 0.
-    .noise_attenuation 0       ; Frame 1.
-    .noise_attenuation 1       ; Frame 2.
-    .noise_attenuation 1       ; Frame 3.
-    .noise_attenuation 2       ; Frame 4.
-    .noise_attenuation 2       ; Frame 5.
-    .noise_attenuation 3       ; Frame 6.
-    .noise_attenuation 3       ; Frame 7.
-    .noise_attenuation 4       ; Frame 8.
-    .noise_attenuation 4       ; Frame 9.
-    .noise_attenuation 5       ; Frame 10.
-    .noise_attenuation 5       ; Frame 11.
-    .noise_attenuation 6       ; Frame 12.
-    .noise_attenuation 6       ; Frame 13.
+    .noise_attenuation 8       ; Frame 1.
+    .noise_attenuation 13      ; Frame 2.
+    .noise_attenuation 13      ; Frame 3.
+    .noise_attenuation 12      ; Frame 4.
+    .noise_attenuation 12      ; Frame 5.
+    .noise_attenuation 11      ; Frame 6.
+    .noise_attenuation 11      ; Frame 7.
+    .noise_attenuation 10      ; Frame 8.
+    .noise_attenuation 10      ; Frame 9.
+    .noise_attenuation 9       ; Frame 10.
+    .noise_attenuation 9       ; Frame 11.
+    .noise_attenuation 8       ; Frame 12.
+    .noise_attenuation 8       ; Frame 13.
     .noise_attenuation 7       ; Frame 14.
     .noise_attenuation 7       ; Frame 15.
-    .noise_attenuation 8       ; Frame 16.
-    .noise_attenuation 8       ; Frame 17.
-    .noise_attenuation 9       ; Frame 18.
-    .noise_attenuation 9       ; Frame 19.
-    .noise_attenuation 10      ; Frame 20.
-    .noise_attenuation 10      ; Frame 21.
-    .noise_attenuation 11      ; Frame 22.
-    .noise_attenuation 11      ; Frame 23.
-    .noise_attenuation 12      ; Frame 24.
-    .noise_attenuation 12      ; Frame 25.
-    .noise_attenuation 13      ; Frame 26.
-    .noise_attenuation 13      ; Frame 27.
-    .noise_attenuation 14      ; Frame 28.
-    .noise_attenuation 14      ; Frame 29.
-    .noise_attenuation 14      ; Frame 30.
-    byte 0                     ; Frame 31.
+    .noise_attenuation 6       ; Frame 16.
+    .noise_attenuation 6       ; Frame 17.
+    .noise_attenuation 5       ; Frame 18.
+    .noise_attenuation 5       ; Frame 19.
+    .noise_attenuation 4       ; Frame 20.
+    .noise_attenuation 4       ; Frame 21.
+    .noise_attenuation 4       ; Frame 22.
+    .noise_attenuation 4       ; Frame 23.
+    .noise_attenuation 4       ; Frame 24.
+    .noise_attenuation 4       ; Frame 25.
+    .noise_attenuation 4       ; Frame 26.
+    .noise_attenuation 4       ; Frame 27.
+    .noise_attenuation 4       ; Frame 28.
+    .noise_attenuation 4       ; Frame 29.
+    .noise_attenuation 4       ; Frame 30.
+    .noise_attenuation 4       ; Frame 31.
+    .noise_attenuation 4       ; Frame 32.
+    .noise_attenuation 4       ; Frame 33.
+    .noise_attenuation 4       ; Frame 34.
+    .noise_attenuation 4       ; Frame 35.
+    .noise_attenuation 4       ; Frame 36.
+    .noise_attenuation 4       ; Frame 37.
+    .noise_attenuation 4       ; Frame 38.
+    byte 0                     ; Frame 39.
 
 * A shell being launched.
 sound_shell_flying

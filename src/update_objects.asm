@@ -695,6 +695,9 @@ fire_turret_bullet
     mov  r2, @bullet_direction
     clr  @bullet_counter
 
+    li   r3, sound_bullet_flying
+    .start_noise r3
+
 check_turret_emp
     .dist @emp_x, r0, 20       ; Is it close to the EMP?
     jgt  update_turret_loop    ; Then let the turret explode.
@@ -707,7 +710,7 @@ start_turret_explosion
 update_turret_explosion
     ai   r2, exploding         ; Let the turret explode, automatically
     mov  r2, @-2(r8)           ; disabling it at the end.
-    jmp  update_turret_loop
+    b    @update_turret_loop
 
 update_turret_loop_end
 
@@ -1064,7 +1067,7 @@ update_grenade_end
     mov  @bullet_y, r1
 
     mov  @bullet_counter, r2   ; In which phase is it?
-    ci   r2, 32                ; Is it flying?
+    ci   r2, 40                ; Is it flying?
     jhe  disable_bullet
 
 update_bullet_position
