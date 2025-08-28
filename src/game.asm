@@ -556,13 +556,13 @@ object_states_size        equ object_strip_count * object_strip_size         ; T
 
 * Maximum numbers of objects per strip.
 max_target_count          equ  1
-max_mine_count            equ  3
-max_drone_count           equ  3
-max_launcher_count        equ  3
-max_turret_count          equ  3
-max_collectible_count     equ  8
+max_mine_count            equ  4
+max_drone_count           equ  4
+max_launcher_count        equ  4
+max_turret_count          equ  4
+max_collectible_count     equ 10
 max_message_count         equ  4
-max_background_count      equ 12
+max_background_count      equ  6
 
 * Reserve space for the first strip of object lists.
 * Each list has a terminator word.
@@ -577,10 +577,14 @@ messages                  bss max_message_count * 6 + 2     ; X ordinate, y ordi
 background_objects        bss max_background_count * 6 + 2  ; X ordinate, y ordinate, type.
 first_object_states_end
                                                             ; Filler to get to the strip size.
-                          bss object_strip_size + object_states - first_object_states_end
+object_strip_padding equ object_strip_size + object_states - first_object_states_end
+
+                          bss object_strip_padding
+
+    .print 'Unused bytes padding each object strip:', object_strip_padding
 
     .ifgt first_object_states_end - object_states, object_strip_size
-    .error 'Incorrect strip size.'
+    .error 'Object strip size exceeded.'
     .endif
 
 * Reserve space for the remaining strips of object lists.

@@ -57,13 +57,13 @@ public class CompressLandscapeObjects
 
     // The maximum number of objects per strip.
     private static final int MAX_TARGET_COUNT      =  1;
-    private static final int MAX_MINE_COUNT        =  3;
-    private static final int MAX_DRONE_COUNT       =  3;
-    private static final int MAX_LAUNCHER_COUNT    =  3;
-    private static final int MAX_TURRET_COUNT      =  3;
-    private static final int MAX_COLLECTIBLE_COUNT =  8;
+    private static final int MAX_MINE_COUNT        =  4;
+    private static final int MAX_DRONE_COUNT       =  4;
+    private static final int MAX_LAUNCHER_COUNT    =  4;
+    private static final int MAX_TURRET_COUNT      =  4;
+    private static final int MAX_COLLECTIBLE_COUNT = 10;
     private static final int MAX_MESSAGE_COUNT     =  4;
-    private static final int MAX_BACKGROUND_COUNT  = 12;
+    private static final int MAX_BACKGROUND_COUNT  =  6;
 
     // The object sizes, when unpacked in memory, expressed in bytes.
     private static final int TARGET_OBJECT_SIZE      =  4;
