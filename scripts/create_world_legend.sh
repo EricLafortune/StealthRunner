@@ -65,7 +65,7 @@ legend $(color  6 fef0ff) Tripod
 legend $(color 13 fefeff) Barrel
 legend $(color  9 fef0ff) Bricks
 legend $(color  8 fefeff) Manhole
-legend $(color 11 fefeff) Pylon
+legend $(color  4 fefeff) Pylon
 
 Y=$[Y+10]
 

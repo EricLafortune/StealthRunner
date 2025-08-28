@@ -66,7 +66,7 @@ INPUT_FRAMES=${1:-
   $INPUT_DIR/Manhole/00.png
 
   -name pylon_sprite
-  -color 11
+  -color 4
   $INPUT_DIR/Pylon/00.png
 
   -name target_sprite
