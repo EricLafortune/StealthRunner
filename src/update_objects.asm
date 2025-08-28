@@ -710,7 +710,7 @@ start_turret_explosion
 update_turret_explosion
     ai   r2, exploding         ; Let the turret explode, automatically
     mov  r2, @-2(r8)           ; disabling it at the end.
-    b    @update_turret_loop
+    jmp  update_turret_loop
 
 update_turret_loop_end
 
