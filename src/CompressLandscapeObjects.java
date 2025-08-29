@@ -295,14 +295,14 @@ public class CompressLandscapeObjects
             if (maxBackgroundCount  < backgroundCount ) maxBackgroundCount  = backgroundCount;
         }
 
-        System.out.printf("Total targets      = %2d, max/strip = %2d / %2d (%2d / %2d bytes)\n", totalTargetCount,      maxTargetCount,      MAX_TARGET_COUNT,      maxTargetCount      * TARGET_OBJECT_SIZE      + 2, MAX_TARGET_COUNT      * TARGET_OBJECT_SIZE      + 2);
-        System.out.printf("Total mines        = %2d, max/strip = %2d / %2d (%2d / %2d bytes)\n", totalMineCount,        maxMineCount,        MAX_MINE_COUNT,        maxMineCount        * MINE_OBJECT_SIZE        + 2, MAX_MINE_COUNT        * MINE_OBJECT_SIZE        + 2);
-        System.out.printf("Total drones       = %2d, max/strip = %2d / %2d (%2d / %2d bytes)\n", totalDroneCount,       maxDroneCount,       MAX_DRONE_COUNT,       maxDroneCount       * DRONE_OBJECT_SIZE       + 2, MAX_DRONE_COUNT       * DRONE_OBJECT_SIZE       + 2);
-        System.out.printf("Total launchers    = %2d, max/strip = %2d / %2d (%2d / %2d bytes)\n", totalLauncherCount,    maxLauncherCount,    MAX_LAUNCHER_COUNT,    maxLauncherCount    * LAUNCHER_OBJECT_SIZE    + 2, MAX_LAUNCHER_COUNT    * LAUNCHER_OBJECT_SIZE    + 2);
-        System.out.printf("Total turrets      = %2d, max/strip = %2d / %2d (%2d / %2d bytes)\n", totalTurretCount,      maxTurretCount,      MAX_TURRET_COUNT,      maxTurretCount      * TURRET_OBJECT_SIZE      + 2, MAX_TURRET_COUNT      * TURRET_OBJECT_SIZE      + 2);
-        System.out.printf("Total collectibles = %2d, max/strip = %2d / %2d (%2d / %2d bytes)\n", totalCollectibleCount, maxCollectibleCount, MAX_COLLECTIBLE_COUNT, maxCollectibleCount * COLLECTIBLE_OBJECT_SIZE + 2, MAX_COLLECTIBLE_COUNT * COLLECTIBLE_OBJECT_SIZE + 2);
-        System.out.printf("Total messages     = %2d, max/strip = %2d / %2d (%2d / %2d bytes)\n", totalMessageCount,     maxMessageCount,     MAX_MESSAGE_COUNT,     maxMessageCount     * MESSAGE_OBJECT_SIZE     + 2, MAX_MESSAGE_COUNT     * MESSAGE_OBJECT_SIZE     + 2);
-        System.out.printf("Total background   = %2d, max/strip = %2d / %2d (%2d / %2d bytes)\n", totalBackgroundCount,  maxBackgroundCount,  MAX_BACKGROUND_COUNT,  maxBackgroundCount  * BACKGROUND_OBJECT_SIZE  + 2, MAX_BACKGROUND_COUNT  * BACKGROUND_OBJECT_SIZE  + 2);
+        System.out.printf("Total targets      = %3d, max/strip = %2d / %2d (%2d / %2d bytes)\n", totalTargetCount,      maxTargetCount,      MAX_TARGET_COUNT,      maxTargetCount      * TARGET_OBJECT_SIZE      + 2, MAX_TARGET_COUNT      * TARGET_OBJECT_SIZE      + 2);
+        System.out.printf("Total mines        = %3d, max/strip = %2d / %2d (%2d / %2d bytes)\n", totalMineCount,        maxMineCount,        MAX_MINE_COUNT,        maxMineCount        * MINE_OBJECT_SIZE        + 2, MAX_MINE_COUNT        * MINE_OBJECT_SIZE        + 2);
+        System.out.printf("Total drones       = %3d, max/strip = %2d / %2d (%2d / %2d bytes)\n", totalDroneCount,       maxDroneCount,       MAX_DRONE_COUNT,       maxDroneCount       * DRONE_OBJECT_SIZE       + 2, MAX_DRONE_COUNT       * DRONE_OBJECT_SIZE       + 2);
+        System.out.printf("Total launchers    = %3d, max/strip = %2d / %2d (%2d / %2d bytes)\n", totalLauncherCount,    maxLauncherCount,    MAX_LAUNCHER_COUNT,    maxLauncherCount    * LAUNCHER_OBJECT_SIZE    + 2, MAX_LAUNCHER_COUNT    * LAUNCHER_OBJECT_SIZE    + 2);
+        System.out.printf("Total turrets      = %3d, max/strip = %2d / %2d (%2d / %2d bytes)\n", totalTurretCount,      maxTurretCount,      MAX_TURRET_COUNT,      maxTurretCount      * TURRET_OBJECT_SIZE      + 2, MAX_TURRET_COUNT      * TURRET_OBJECT_SIZE      + 2);
+        System.out.printf("Total collectibles = %3d, max/strip = %2d / %2d (%2d / %2d bytes)\n", totalCollectibleCount, maxCollectibleCount, MAX_COLLECTIBLE_COUNT, maxCollectibleCount * COLLECTIBLE_OBJECT_SIZE + 2, MAX_COLLECTIBLE_COUNT * COLLECTIBLE_OBJECT_SIZE + 2);
+        System.out.printf("Total messages     = %3d, max/strip = %2d / %2d (%2d / %2d bytes)\n", totalMessageCount,     maxMessageCount,     MAX_MESSAGE_COUNT,     maxMessageCount     * MESSAGE_OBJECT_SIZE     + 2, MAX_MESSAGE_COUNT     * MESSAGE_OBJECT_SIZE     + 2);
+        System.out.printf("Total background   = %3d, max/strip = %2d / %2d (%2d / %2d bytes)\n", totalBackgroundCount,  maxBackgroundCount,  MAX_BACKGROUND_COUNT,  maxBackgroundCount  * BACKGROUND_OBJECT_SIZE  + 2, MAX_BACKGROUND_COUNT  * BACKGROUND_OBJECT_SIZE  + 2);
 
         int stripSize =
             maxTargetCount        * TARGET_OBJECT_SIZE      + 2 +
