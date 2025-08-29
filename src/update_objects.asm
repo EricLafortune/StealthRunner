@@ -482,7 +482,7 @@ check_mine_player
 check_mine_emp
     .dist @emp_x, r0, 16       ; Is it close to the EMP?
     jgt  update_mine_loop
-    .dist @emp_y, r1, 16
+    .dist @emp_y, r1, 24
     jgt  update_mine_loop
 
 start_mine_explosion
@@ -973,9 +973,9 @@ check_grenade_mine_loop
     mov  *r8+, r5              ; Get the explosion state.
     jne  check_grenade_mine_loop ; Is it inactive?
 
-    .dist r0, r3, 24           ; Is it close to the landing grenade?
+    .dist r0, r3, 32           ; Is it close to the landing grenade?
     jgt  check_grenade_mine_loop
-    .dist r1, r4, 24
+    .dist r1, r4, 32
     jgt  check_grenade_mine_loop
 
     ai   r5, exploding         ; Let the mine explode.
@@ -995,9 +995,9 @@ check_grenade_drone_loop
     mov  *r8+, r5              ; Get the direction.
     jlt  check_grenade_drone_loop ; Is it inactive?
 
-    .dist r0, r3, 32           ; Is it close to the landing grenade?
+    .dist r0, r3, 40           ; Is it close to the landing grenade?
     jgt  check_grenade_drone_loop
-    .dist r1, r4, 32
+    .dist r1, r4, 40
     jgt  check_grenade_drone_loop
 
     ai   r5, exploding         ; Let the drone explode.
@@ -1016,9 +1016,9 @@ check_grenade_turret_loop
     mov  *r8+, r5              ; Get the direction.
     jlt  check_grenade_turret_loop ; Is it inactive?
 
-    .dist r0, r3, 32           ; Is it close to the landing grenade?
+    .dist r0, r3, 40           ; Is it close to the landing grenade?
     jgt  check_grenade_turret_loop
-    .dist r1, r4, 32
+    .dist r1, r4, 40
     jgt  check_grenade_turret_loop
 
     ai   r5, exploding         ; Let the turret explode.
