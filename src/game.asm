@@ -539,62 +539,72 @@ keyboard_repeat data 0 ; Keyboard turn autorepeat counter.
 * Global variables in high expansion memory.
     dorg high_expansion_memory
 
-* Object lists. We have a set of object data per horizontal strip of 128 pixels
-* high. All coordinates in the lists are those of the top-left corner of a
-* virtual screen in the world, compatible with the player coordinates.
-object_strip_pixel_height       equ 128 ; Number of pixels vertically per strip.
-object_strip_pixel_height_shift equ 7   ; The corresponding bit shift.
-
-object_strip_size         equ 256 ; Bytes of data per strip.
-object_strip_size_shift   equ 8   ; The corresponding bit shift.
-
-world_character_height    equ 512 ; Number of characters vertically in the world.
-world_pixel_height        equ world_character_height * 8 ; Number of pixels vertically in the world.
-
-object_strip_count        equ world_pixel_height / object_strip_pixel_height ; Number of strips.
-object_states_size        equ object_strip_count * object_strip_size         ; Total size of all strips.
+* Static objects and dynamic objects, partitioned in horizontal strips.
+* Each strip contains lists with object data, at fixed offsets (currently
+* 2 lists in each static strip, 6 lists in each dynamic strip).
+* All object coordinates are relative to the top-left corner of the game
+* world (4096x4096 pixels), compatible with the player coordinates.
 
 * Maximum numbers of objects per strip.
-max_target_count          equ  1
-max_mine_count            equ  4
-max_drone_count           equ  4
-max_launcher_count        equ  4
-max_turret_count          equ  4
-max_collectible_count     equ 10
 max_message_count         equ  4
 max_background_count      equ  6
 
-* Reserve space for the first strip of object lists.
+max_target_count          equ  2
+max_mine_count            equ  5
+max_drone_count           equ  5
+max_launcher_count        equ  5
+max_turret_count          equ  5
+max_collectible_count     equ 16
+
+* Reserve space for the first strip of static (background/scenery) objects.
+* The list has a terminator word.
+static_objects
+messages                  bss max_message_count * 6 + 2    ; X ordinate, y ordinate, number.
+background_objects        bss max_background_count * 6 + 2 ; X ordinate, y ordinate, type.
+first_static_objects_strip_end
+                                                            ; Filler to get to the strip size.
+static_object_strip_padding equ static_object_strip_size + static_objects - first_static_objects_strip_end
+
+                          bss static_object_strip_padding
+
+    .print 'Unused bytes padding each static object strip:', static_object_strip_padding
+
+    .ifgt first_static_objects_strip_end - static_objects, static_object_strip_size
+    .error 'static object strip size exceeded.'
+    .endif
+
+* Reserve space for the remaining strips of object lists.
+                          bss static_objects_size - static_object_strip_size
+
+* Reserve space for the first strip of dynamic object lists.
 * Each list has a terminator word.
-object_states
+dynamic_objects
 targets                   bss max_target_count * 4 + 2      ; X ordinate, y ordinate.
 mines                     bss max_mine_count * 6 + 2        ; X ordinate, y ordinate, explosion.
 drones                    bss max_drone_count * 10 + 2      ; X ordinate, y ordinate, fractional x ordinate, fractional y ordinate, direction (0..15 = 4 bits).
 launchers                 bss max_launcher_count * 6 + 2    ; X ordinate, y ordinate, explosion.
 turrets                   bss max_turret_count * 6 + 2      ; X ordinate, y ordinate, direction (0..15 = 4 bits).
 collectibles              bss max_collectible_count * 6 + 2 ; X ordinate, y ordinate, type.
-messages                  bss max_message_count * 6 + 2     ; X ordinate, y ordinate, number.
-background_objects        bss max_background_count * 6 + 2  ; X ordinate, y ordinate, type.
-first_object_states_end
+first_dynamic_objects_strip_end
                                                             ; Filler to get to the strip size.
-object_strip_padding equ object_strip_size + object_states - first_object_states_end
+dynamic_object_strip_padding equ dynamic_object_strip_size + dynamic_objects - first_dynamic_objects_strip_end
 
-                          bss object_strip_padding
+                          bss dynamic_object_strip_padding
 
-    .print 'Unused bytes padding each object strip:', object_strip_padding
+    .print 'Unused bytes padding each dynamic object strip:', dynamic_object_strip_padding
 
-    .ifgt first_object_states_end - object_states, object_strip_size
-    .error 'Object strip size exceeded.'
+    .ifgt first_dynamic_objects_strip_end - dynamic_objects, dynamic_object_strip_size
+    .error 'Dynamic object strip size exceeded.'
     .endif
 
 * Reserve space for the remaining strips of object lists.
-                          bss object_states_size - object_strip_size
-object_states_end
+                          bss dynamic_objects_size - dynamic_object_strip_size
+dynamic_objects_end
 
 * Saved states.
 saved_player_state       bss player_state_size
 saved_collectible_counts bss collectible_counts_size
-saved_object_states      bss object_states_size
+saved_object_states      bss dynamic_objects_size
 
 * Player start position (initial or most recently reached target). The
 * coordinates are those of the top-left corner of a virtual screen in the

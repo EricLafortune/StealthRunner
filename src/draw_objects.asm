@@ -85,11 +85,11 @@ draw_bullet
 draw_bullet_end
 
 
-* Draw the object lists of all surrounding horizontal strips.
-    .first_object_strip r9
-    .last_object_strip r10
+* Draw the dynamic object lists of all surrounding horizontal strips.
+    .first_dynamic_object_strip r9
+    .last_dynamic_object_strip r10
 
-draw_object_strip_loop
+draw_dynamic_object_strip_loop
 
 * Draw the drones (supersprites, high priority).
     li   r8, drones
@@ -248,40 +248,18 @@ draw_collectible_loop
 
 draw_collectible_loop_end
 
-* Draw the background objects: grass, bushes,... (supersprites, low priority).
-    li   r8, background_objects
-    a    r9, r8
-
-draw_background_object_loop
-    mov  *r8+, r2              ; Get the x ordinate.
-    jlt  draw_background_object_loop_end ; Is it the last object?
-    mov  *r8+, r3              ; Get the y ordinate.
-    mov  *r8+, r1              ; Get the type.
-
-    ;ai   r1, background_object_sprites ; Compute the supersprite number.
-                               ; The offset is currently 0.
-
-    s    @player_x, r2         ; Get the coordinates in screen space.
-    s    @player_y, r3
-
-    bl   @draw_supersprite
-
-    jmp  draw_background_object_loop
-
-draw_background_object_loop_end
-
 * Repeat for the next strip, if any.
-    .next_object_strip r9, r10
+    .next_dynamic_object_strip r9, r10
     jh   !
-    b    @draw_object_strip_loop
+    b    @draw_dynamic_object_strip_loop
 !
 
 
 * Draw the message lists of all surrounding horizontal strips.
 * We're drawing them in a separate loop, for tighter bounds,
 * and so we can stop after the first message.
-    .object_strip @player_y, -32, r9
-    .object_strip @player_y, 32, r10
+    .static_object_strip @player_y, -32, r9
+    .static_object_strip @player_y, 32, r10
 
 draw_message_strip_loop
 
@@ -320,7 +298,7 @@ draw_message
 draw_message_loop_end
 
 * Repeat for the next strip, if any.
-    .next_object_strip r9, r10
+    .next_static_object_strip r9, r10
     jle  draw_message_strip_loop
 
 draw_message_strip_loop_end
@@ -397,6 +375,40 @@ draw_hud
 !   mov  r8, @hud_counter
 
 draw_hud_end
+
+
+* Draw the static object lists of all surrounding horizontal strips.
+    .first_static_object_strip r9
+    .last_static_object_strip r10
+
+draw_static_object_strip_loop
+
+* Draw the background objects: grass, bushes,... (supersprites, low priority).
+    li   r8, background_objects
+    a    r9, r8
+
+draw_background_object_loop
+    mov  *r8+, r2              ; Get the x ordinate.
+    jlt  draw_background_object_loop_end ; Is it the last object?
+    mov  *r8+, r3              ; Get the y ordinate.
+    mov  *r8+, r1              ; Get the type.
+
+    ;ai   r1, background_object_sprites ; Compute the supersprite number.
+                               ; The offset is currently 0.
+
+    s    @player_x, r2         ; Get the coordinates in screen space.
+    s    @player_y, r3
+
+    bl   @draw_supersprite
+
+    jmp  draw_background_object_loop
+
+draw_background_object_loop_end
+
+* Repeat for the next strip, if any.
+    .next_static_object_strip r9, r10
+    jle  draw_static_object_strip_loop
+
 
 * End the list of sprites.
 draw_objects_sentinel

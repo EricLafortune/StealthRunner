@@ -56,24 +56,24 @@ public class CompressLandscapeObjects
     private static final int STRIP_SIZE   = 256;         // bytes.
 
     // The maximum number of objects per strip.
-    private static final int MAX_TARGET_COUNT      =  1;
-    private static final int MAX_MINE_COUNT        =  4;
-    private static final int MAX_DRONE_COUNT       =  4;
-    private static final int MAX_LAUNCHER_COUNT    =  4;
-    private static final int MAX_TURRET_COUNT      =  4;
-    private static final int MAX_COLLECTIBLE_COUNT = 10;
     private static final int MAX_MESSAGE_COUNT     =  4;
     private static final int MAX_BACKGROUND_COUNT  =  6;
+    private static final int MAX_TARGET_COUNT      =  2;
+    private static final int MAX_MINE_COUNT        =  5;
+    private static final int MAX_DRONE_COUNT       =  5;
+    private static final int MAX_LAUNCHER_COUNT    =  5;
+    private static final int MAX_TURRET_COUNT      =  5;
+    private static final int MAX_COLLECTIBLE_COUNT = 16;
 
     // The object sizes, when unpacked in memory, expressed in bytes.
+    private static final int MESSAGE_OBJECT_SIZE     =  6;
+    private static final int BACKGROUND_OBJECT_SIZE  =  6;
     private static final int TARGET_OBJECT_SIZE      =  4;
     private static final int MINE_OBJECT_SIZE        =  6;
     private static final int DRONE_OBJECT_SIZE       = 10;
     private static final int LAUNCHER_OBJECT_SIZE    =  6;
     private static final int TURRET_OBJECT_SIZE      =  6;
     private static final int COLLECTIBLE_OBJECT_SIZE =  6;
-    private static final int MESSAGE_OBJECT_SIZE     =  6;
-    private static final int BACKGROUND_OBJECT_SIZE  =  6;
 
     // Main color palette indices.
     private static final int EMPTY     =  1;
@@ -262,7 +262,36 @@ public class CompressLandscapeObjects
         // Write out the (single) initial player position.
         writeObjectPositions(0, height, outputStream, PLAYER, 1);
 
-        // Write out all other object positions, per horizontal strip.
+        // Write out all static object positions, per horizontal strip.
+        for (int startY = 0; startY < height; startY += STRIP_HEIGHT)
+        {
+            int endY = Math.min(height, startY + STRIP_HEIGHT);
+
+            int messageCount    = writeBackgroundObjectPositions(startY, endY, outputStream, messageRGBCounters,  MAX_MESSAGE_COUNT, 1);
+            int backgroundCount = writeBackgroundObjectPositions(startY, endY, outputStream, backgroundRGBTypes,  MAX_BACKGROUND_COUNT);
+
+            totalMessageCount    += messageCount;
+            totalBackgroundCount += backgroundCount;
+
+            if (maxMessageCount    < messageCount   ) maxMessageCount    = messageCount;
+            if (maxBackgroundCount < backgroundCount) maxBackgroundCount = backgroundCount;
+        }
+
+        System.out.println("Static objects:");
+        System.out.printf("  Total messages     = %3d, max/strip = %2d / %2d (%2d / %2d bytes)\n", totalMessageCount,     maxMessageCount,     MAX_MESSAGE_COUNT,     maxMessageCount     * MESSAGE_OBJECT_SIZE     + 2, MAX_MESSAGE_COUNT     * MESSAGE_OBJECT_SIZE     + 2);
+        System.out.printf("  Total background   = %3d, max/strip = %2d / %2d (%2d / %2d bytes)\n", totalBackgroundCount,  maxBackgroundCount,  MAX_BACKGROUND_COUNT,  maxBackgroundCount  * BACKGROUND_OBJECT_SIZE  + 2, MAX_BACKGROUND_COUNT  * BACKGROUND_OBJECT_SIZE  + 2);
+
+        int staticStripSize =
+            maxMessageCount       * MESSAGE_OBJECT_SIZE     + 2 +
+            maxBackgroundCount    * BACKGROUND_OBJECT_SIZE  + 2;
+
+        int maxStaticStripSize =
+            MAX_MESSAGE_COUNT     * MESSAGE_OBJECT_SIZE     + 2 +
+            MAX_BACKGROUND_COUNT  * BACKGROUND_OBJECT_SIZE  + 2;
+
+        System.out.printf("  Strip size: min %d bytes, max %d bytes\n", staticStripSize, maxStaticStripSize);
+
+        // Write out all dynamic object positions, per horizontal strip.
         for (int startY = 0; startY < height; startY += STRIP_HEIGHT)
         {
             int endY = Math.min(height, startY + STRIP_HEIGHT);
@@ -273,8 +302,6 @@ public class CompressLandscapeObjects
             int launcherCount    = writeObjectPositions(          startY, endY, outputStream, LAUNCHER,            MAX_LAUNCHER_COUNT);
             int turretCount      = writeObjectPositions(          startY, endY, outputStream, TURRET,              MAX_TURRET_COUNT);
             int collectibleCount = writeBackgroundObjectPositions(startY, endY, outputStream, collectibleRGBTypes, MAX_COLLECTIBLE_COUNT);
-            int messageCount     = writeBackgroundObjectPositions(startY, endY, outputStream, messageRGBCounters,  MAX_MESSAGE_COUNT, 1);
-            int backgroundCount  = writeBackgroundObjectPositions(startY, endY, outputStream, backgroundRGBTypes,  MAX_BACKGROUND_COUNT);
 
             totalTargetCount      += targetCount;
             totalMineCount        += mineCount;
@@ -282,8 +309,6 @@ public class CompressLandscapeObjects
             totalLauncherCount    += launcherCount;
             totalTurretCount      += turretCount;
             totalCollectibleCount += collectibleCount;
-            totalMessageCount     += messageCount;
-            totalBackgroundCount  += backgroundCount;
 
             if (maxTargetCount      < targetCount     ) maxTargetCount      = targetCount;
             if (maxMineCount        < mineCount       ) maxMineCount        = mineCount;
@@ -291,40 +316,33 @@ public class CompressLandscapeObjects
             if (maxLauncherCount    < launcherCount   ) maxLauncherCount    = launcherCount;
             if (maxTurretCount      < turretCount     ) maxTurretCount      = turretCount;
             if (maxCollectibleCount < collectibleCount) maxCollectibleCount = collectibleCount;
-            if (maxMessageCount     < messageCount    ) maxMessageCount     = messageCount;
-            if (maxBackgroundCount  < backgroundCount ) maxBackgroundCount  = backgroundCount;
         }
 
-        System.out.printf("Total targets      = %3d, max/strip = %2d / %2d (%2d / %2d bytes)\n", totalTargetCount,      maxTargetCount,      MAX_TARGET_COUNT,      maxTargetCount      * TARGET_OBJECT_SIZE      + 2, MAX_TARGET_COUNT      * TARGET_OBJECT_SIZE      + 2);
-        System.out.printf("Total mines        = %3d, max/strip = %2d / %2d (%2d / %2d bytes)\n", totalMineCount,        maxMineCount,        MAX_MINE_COUNT,        maxMineCount        * MINE_OBJECT_SIZE        + 2, MAX_MINE_COUNT        * MINE_OBJECT_SIZE        + 2);
-        System.out.printf("Total drones       = %3d, max/strip = %2d / %2d (%2d / %2d bytes)\n", totalDroneCount,       maxDroneCount,       MAX_DRONE_COUNT,       maxDroneCount       * DRONE_OBJECT_SIZE       + 2, MAX_DRONE_COUNT       * DRONE_OBJECT_SIZE       + 2);
-        System.out.printf("Total launchers    = %3d, max/strip = %2d / %2d (%2d / %2d bytes)\n", totalLauncherCount,    maxLauncherCount,    MAX_LAUNCHER_COUNT,    maxLauncherCount    * LAUNCHER_OBJECT_SIZE    + 2, MAX_LAUNCHER_COUNT    * LAUNCHER_OBJECT_SIZE    + 2);
-        System.out.printf("Total turrets      = %3d, max/strip = %2d / %2d (%2d / %2d bytes)\n", totalTurretCount,      maxTurretCount,      MAX_TURRET_COUNT,      maxTurretCount      * TURRET_OBJECT_SIZE      + 2, MAX_TURRET_COUNT      * TURRET_OBJECT_SIZE      + 2);
-        System.out.printf("Total collectibles = %3d, max/strip = %2d / %2d (%2d / %2d bytes)\n", totalCollectibleCount, maxCollectibleCount, MAX_COLLECTIBLE_COUNT, maxCollectibleCount * COLLECTIBLE_OBJECT_SIZE + 2, MAX_COLLECTIBLE_COUNT * COLLECTIBLE_OBJECT_SIZE + 2);
-        System.out.printf("Total messages     = %3d, max/strip = %2d / %2d (%2d / %2d bytes)\n", totalMessageCount,     maxMessageCount,     MAX_MESSAGE_COUNT,     maxMessageCount     * MESSAGE_OBJECT_SIZE     + 2, MAX_MESSAGE_COUNT     * MESSAGE_OBJECT_SIZE     + 2);
-        System.out.printf("Total background   = %3d, max/strip = %2d / %2d (%2d / %2d bytes)\n", totalBackgroundCount,  maxBackgroundCount,  MAX_BACKGROUND_COUNT,  maxBackgroundCount  * BACKGROUND_OBJECT_SIZE  + 2, MAX_BACKGROUND_COUNT  * BACKGROUND_OBJECT_SIZE  + 2);
+        System.out.println("Dynamic objects:");
+        System.out.printf("  Total targets      = %3d, max/strip = %2d / %2d (%2d / %2d bytes)\n", totalTargetCount,      maxTargetCount,      MAX_TARGET_COUNT,      maxTargetCount      * TARGET_OBJECT_SIZE      + 2, MAX_TARGET_COUNT      * TARGET_OBJECT_SIZE      + 2);
+        System.out.printf("  Total mines        = %3d, max/strip = %2d / %2d (%2d / %2d bytes)\n", totalMineCount,        maxMineCount,        MAX_MINE_COUNT,        maxMineCount        * MINE_OBJECT_SIZE        + 2, MAX_MINE_COUNT        * MINE_OBJECT_SIZE        + 2);
+        System.out.printf("  Total drones       = %3d, max/strip = %2d / %2d (%2d / %2d bytes)\n", totalDroneCount,       maxDroneCount,       MAX_DRONE_COUNT,       maxDroneCount       * DRONE_OBJECT_SIZE       + 2, MAX_DRONE_COUNT       * DRONE_OBJECT_SIZE       + 2);
+        System.out.printf("  Total launchers    = %3d, max/strip = %2d / %2d (%2d / %2d bytes)\n", totalLauncherCount,    maxLauncherCount,    MAX_LAUNCHER_COUNT,    maxLauncherCount    * LAUNCHER_OBJECT_SIZE    + 2, MAX_LAUNCHER_COUNT    * LAUNCHER_OBJECT_SIZE    + 2);
+        System.out.printf("  Total turrets      = %3d, max/strip = %2d / %2d (%2d / %2d bytes)\n", totalTurretCount,      maxTurretCount,      MAX_TURRET_COUNT,      maxTurretCount      * TURRET_OBJECT_SIZE      + 2, MAX_TURRET_COUNT      * TURRET_OBJECT_SIZE      + 2);
+        System.out.printf("  Total collectibles = %3d, max/strip = %2d / %2d (%2d / %2d bytes)\n", totalCollectibleCount, maxCollectibleCount, MAX_COLLECTIBLE_COUNT, maxCollectibleCount * COLLECTIBLE_OBJECT_SIZE + 2, MAX_COLLECTIBLE_COUNT * COLLECTIBLE_OBJECT_SIZE + 2);
 
-        int stripSize =
+        int dynamicStripSize =
             maxTargetCount        * TARGET_OBJECT_SIZE      + 2 +
             maxMineCount          * MINE_OBJECT_SIZE        + 2 +
             maxDroneCount         * DRONE_OBJECT_SIZE       + 2 +
             maxLauncherCount      * LAUNCHER_OBJECT_SIZE    + 2 +
             maxTurretCount        * TURRET_OBJECT_SIZE      + 2 +
-            maxCollectibleCount   * COLLECTIBLE_OBJECT_SIZE + 2 +
-            maxMessageCount       * MESSAGE_OBJECT_SIZE     + 2 +
-            maxBackgroundCount    * BACKGROUND_OBJECT_SIZE  + 2;
+            maxCollectibleCount   * COLLECTIBLE_OBJECT_SIZE + 2;
 
-        int maxStripSize =
+        int maxDynamicStripSize =
             MAX_TARGET_COUNT      * TARGET_OBJECT_SIZE      + 2 +
             MAX_MINE_COUNT        * MINE_OBJECT_SIZE        + 2 +
             MAX_DRONE_COUNT       * DRONE_OBJECT_SIZE       + 2 +
             MAX_LAUNCHER_COUNT    * LAUNCHER_OBJECT_SIZE    + 2 +
             MAX_TURRET_COUNT      * TURRET_OBJECT_SIZE      + 2 +
-            MAX_COLLECTIBLE_COUNT * COLLECTIBLE_OBJECT_SIZE + 2 +
-            MAX_MESSAGE_COUNT     * MESSAGE_OBJECT_SIZE     + 2 +
-            MAX_BACKGROUND_COUNT  * BACKGROUND_OBJECT_SIZE  + 2;
+            MAX_COLLECTIBLE_COUNT * COLLECTIBLE_OBJECT_SIZE + 2;
 
-        System.out.printf("Strip size: min %d bytes, max %d bytes\n", stripSize, maxStripSize);
+        System.out.printf("  Strip size: min %d bytes, max %d bytes\n", dynamicStripSize, maxDynamicStripSize);
 
         int size = outputStream.size();
         if (size > 8 * 1024)

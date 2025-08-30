@@ -67,10 +67,44 @@ exploding equ >0800
 * LOCAL r2
     .defm initialize_objects
 
-* Initialize the object lists of all horizontal strips.
+* Initialize the static object lists of all horizontal strips.
     clr  r1
 
-initialize_object_strip_loop
+initialize_static_object_strip_loop
+
+* Initialize the message positions and sprites.
+    li   r2, messages
+    a    r1, r2
+
+initialize_message_loop
+    mov  *r0+, *r2+            ; Copy the x ordinate.
+    jlt  initialize_message_loop_end ; Is it the last message?
+    mov  *r0+, *r2+            ; Copy the y ordinate.
+    mov  *r0+, *r2+            ; Copy the supersprite number.
+    jmp  initialize_message_loop
+initialize_message_loop_end
+
+* Initialize the background object positions and sprites.
+    li   r2, background_objects
+    a    r1, r2
+
+initialize_background_object_loop
+    mov  *r0+, *r2+            ; Copy the x ordinate.
+    jlt  initialize_background_object_loop_end ; Is it the last object?
+    mov  *r0+, *r2+            ; Copy the y ordinate.
+    mov  *r0+, *r2+            ; Copy the supersprite number.
+    jmp  initialize_background_object_loop
+initialize_background_object_loop_end
+
+* Repeat for the next strip, if any.
+    ai   r1, static_object_strip_size
+    ci   r1, static_objects_size
+    jl   initialize_static_object_strip_loop
+
+* Initialize the dynamic object lists of all horizontal strips.
+    clr  r1
+
+initialize_dynamic_object_strip_loop
 
 * Initialize the target positions.
     li   r2, targets
@@ -145,34 +179,10 @@ initialize_collectible_loop
     jmp  initialize_collectible_loop
 initialize_collectible_loop_end
 
-* Initialize the message positions and sprites.
-    li   r2, messages
-    a    r1, r2
-
-initialize_message_loop
-    mov  *r0+, *r2+            ; Copy the x ordinate.
-    jlt  initialize_message_loop_end ; Is it the last message?
-    mov  *r0+, *r2+            ; Copy the y ordinate.
-    mov  *r0+, *r2+            ; Copy the supersprite number.
-    jmp  initialize_message_loop
-initialize_message_loop_end
-
-* Initialize the background object positions and sprites.
-    li   r2, background_objects
-    a    r1, r2
-
-initialize_background_object_loop
-    mov  *r0+, *r2+            ; Copy the x ordinate.
-    jlt  initialize_background_object_loop_end ; Is it the last object?
-    mov  *r0+, *r2+            ; Copy the y ordinate.
-    mov  *r0+, *r2+            ; Copy the supersprite number.
-    jmp  initialize_background_object_loop
-initialize_background_object_loop_end
-
 * Repeat for the next strip, if any.
-    ai   r1, object_strip_size
-    ci   r1, object_strip_count * object_strip_size
-    jl   initialize_object_strip_loop
+    ai   r1, dynamic_object_strip_size
+    ci   r1, dynamic_objects_size
+    jl   initialize_dynamic_object_strip_loop
 
     .endm
 
@@ -217,7 +227,7 @@ initialize_background_object_loop_end
 * LOCAL r0
 * LOCAL r1
     .defm save_object_states
-    .copy_memory object_states, object_states_end, saved_object_states
+    .copy_memory dynamic_objects, dynamic_objects_end, saved_object_states
     .endm
 
 
@@ -261,7 +271,7 @@ initialize_background_object_loop_end
 * LOCAL r0
 * LOCAL r1
     .defm restore_object_states
-    .copy_memory saved_object_states, saved_object_states+object_states_size, object_states
+    .copy_memory saved_object_states, saved_object_states+dynamic_objects_size, dynamic_objects
     .endm
 
 
@@ -418,8 +428,8 @@ initialize_background_object_loop_end
                                ; bank.
 
 * Update the object lists of all visible horizontal strips.
-    .first_object_strip r9
-    .last_object_strip r10
+    .first_dynamic_object_strip r9
+    .last_dynamic_object_strip r10
 
 update_object_strip_loop
 
@@ -572,7 +582,7 @@ update_drone_position
 
     mov  r6, @-10(r8)          ; Save them.
     mov  r7, r3                ; However, check that the y ordinate is still
-    .check_object_strip r3, r9 ; in the same strip.
+    .check_dynamic_object_strip r3, r9 ; in the same strip.
     jne  update_drone_sound
     mov  r7, @-8(r8)
 
@@ -844,7 +854,7 @@ check_collectible_player
 update_collectible_loop_end
 
 * Repeat for the next strip, if any.
-    .next_object_strip r9, r10
+    .next_dynamic_object_strip r9, r10
     jh   !
     b    @update_object_strip_loop
 !
@@ -958,8 +968,8 @@ update_grenade_counter0
     jmp  update_grenade_counter
 
 update_grenade_landing
-    .object_strip r1, -32, r9  ; Check the object lists of all horizontal
-    .object_strip r1, 32, r10  ; strips surrounding the exploding grenade.
+    .dynamic_object_strip r1, -32, r9 ; Check the object lists of all horizontal
+    .dynamic_object_strip r1, 32, r10 ; strips surrounding the exploding grenade.
 
 check_grenade_objects_strip_loop
 
@@ -1048,7 +1058,7 @@ check_grenade_launcher_loop
 
 check_grenade_launcher_loop_end
 
-    .next_object_strip r9, r10 ; Repeat for the next strip, if any.
+    .next_dynamic_object_strip r9, r10 ; Repeat for the next strip, if any.
     jle  check_grenade_objects_strip_loop
 
     .start_noise sound_medium_explosion
