@@ -28,7 +28,7 @@ open-world action game for the TI-99/4A home computer.
 ![Screenshot 11](screenshots/screenshot11.png)
 ![Screenshot 12](screenshots/screenshot12.png)
    
-You can also see a [video](https://youtu.be/e1ln8T1XRmM) on YouTube.
+You can also see a [video](https://youtu.be/URf8y2Z6vso) on YouTube.
 
 You're welcome to comment in the [Stealth Runner
 thread](https://forums.atariage.com/topic/371758-new-game-stealth-runner/) at
