@@ -168,7 +168,7 @@ Mame's UI mode) and then <kbd>Esc</kbd>.
 * You can carry any number of medkits and weapons that you can find.
 * The game doesn't show an overview map. The layout of the world is relatively
   straightforward, but if you struggle getting your bearings, you can peek at
-  the [image](levels/00.png) that defines the world. You can generate the
+  the [image](world.png) that defines the game world. You can generate the
   corresponding legend with a [script](scripts/create_world_legend.sh) for
   bash and ImageMagick.
 
