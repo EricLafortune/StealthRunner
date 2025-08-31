@@ -98,8 +98,8 @@ Alternatively, you can run the Mame command manually. The game targets an
 NTSC system, with a display at 60 Hz. You can optionally enable the faster
 _internal_ memory expansion, to improve the frame rate at busy moments
 (<kbd>Scroll Lock</kbd>, if needed, to get in Mame's UI mode, and then
-<kbd>Tab</kbd> > Machine Configuration > Console 32 KiB RAM upgrade (16 bit)
-> On).
+<kbd>Tab</kbd> > Machine Configuration > Console 32 KiB RAM upgrade (16
+bit) > On).
 
 With the computer or emulator running, at the TI-99/4A home screen:
 
