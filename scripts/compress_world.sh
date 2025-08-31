@@ -1,14 +1,13 @@
 #!/bin/bash
 #
-# This script compresses the image file of a level to custom data files with
-# the landscape graphics and the landscape collision mask, and the objects in
-# the level.
+# This script compresses the image file of the game world to custom data files
+# with the landscape graphics, the landscape collision mask, and the objects.
 
 LEVEL=${1:-00}
 
-INPUT=levels/$LEVEL.png
-OUTPUT_DIR=out/levels
-OUTPUT_PREFIX=$OUTPUT_DIR/$LEVEL
+INPUT=world.png
+OUTPUT_DIR=out
+OUTPUT_PREFIX=$OUTPUT_DIR/world
 
 mkdir -p $OUTPUT_DIR
 

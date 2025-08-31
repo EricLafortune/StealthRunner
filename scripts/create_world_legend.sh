@@ -1,10 +1,7 @@
 #!/bin/bash
 #
-# This script creates an image of an empty level with a legend, suitable for
-# editing in an image editor.
-#
-# The available colors are listed at
-#   https://imagemagick.org/script/color.php#color_names
+# This script creates an image with a legend of the colors
+# in the image that defines the game world.
 
 COLORS=(\
 000000
@@ -100,4 +97,4 @@ convert \
 \
   "${LEGEND_OPTIONS[@]}" \
 \
-  levels/legend.png
+  legend.png

@@ -78,6 +78,6 @@ scripts/create_emp.sh
 
 scripts/compress_sprites.sh
 scripts/compress_player.sh
-scripts/compress_levels.sh
+scripts/compress_world.sh
 
 scripts/assemble.sh

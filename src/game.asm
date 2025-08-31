@@ -413,13 +413,13 @@ blit_code_end
 ;player_animations
     bcopy "../out/player.dat"
 ;landscape_objects
-    bcopy "../out/levels/00_objects.dat"
+    bcopy "../out/world_objects.dat"
     .next_bank
 ;out/levels/00_landscape
-    bcopy "../out/levels/00_landscape.dat"
+    bcopy "../out/world_landscape.dat"
     ;.next_bank
 ;out/levels/00_mask
-    bcopy "../out/levels/00_mask.dat"
+    bcopy "../out/world_mask.dat"
     .next_bank
 ;sprite_bounds
     bcopy "../out/sprite_bounds.dat"
