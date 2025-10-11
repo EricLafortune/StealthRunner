@@ -131,7 +131,7 @@
 
     sla  r0, 1                 ; Switch to the right landscape delta memory
     ai   r0, landscape_characters_banks ; bank.
-    .switch_bank *r0, *r0
+    .switch_bank *r0
 
     ai   r3, -player_base_y/4  ; Compute the address of the first visible row
     andi r3, >03fe             ; index (a list of words).

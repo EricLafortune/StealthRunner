@@ -79,7 +79,7 @@ high_expansion_memory_end   equ >0000 ; Actually >10000.
 * IN #1: the operand containing the address of the memory bank (@>6000,
 *        @>6002,..., @>7ffe, or *r0,...)
     .defm switch_bank
-    movb #1, #1
+    clr #1
     .endm
 
 * Macro: copy a block of memory (words).
