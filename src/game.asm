@@ -235,7 +235,8 @@ draw_player
 check_quit
     .test_keyboard 0, 0        ; Pressing '=' = <Quit>?
     jeq  !
-    blwp @0                    ; Then quit.
+    .switch_bank @code_bank    ; Then make sure the main bank is active,
+    blwp @0                    ; and quit.
 !
     .test_keyboard 4, 3        ; Pressing '6' = <Proceed>?
     jeq  !!!!
