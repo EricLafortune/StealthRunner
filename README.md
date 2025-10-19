@@ -28,23 +28,27 @@ open-world action game for the TI-99/4A home computer.
 ![Screenshot 11](screenshots/screenshot11.png)
 ![Screenshot 12](screenshots/screenshot12.png)
    
-You can also see a [video](https://youtu.be/URf8y2Z6vso) on YouTube.
+You can also watch a [video](https://youtu.be/URf8y2Z6vso) of the intro and the
+first section of the game on YouTube.
 
-You're welcome to comment in the [Stealth Runner
+You're welcome to join the [Stealth Runner
 thread](https://forums.atariage.com/topic/371758-new-game-stealth-runner/) at
 AtariAge.
 
 ## Requirements
 
-* TI-99/4A home computer.
-* Programmable ROM/RAM cartridge, with about 1.8 MB of space.
-* 32K memory expansion (optionally an internal one).
-* Speech synthesizer (optional).
-* Mechatronic mouse (optional).
+Most conveniently, if you want to run the game on a modern platform:
 
-or:
+* A TI-99/4A emulator, such as Mame, Classic99, JS99er, or MiSTer FPGA.
 
-* An emulator for the TI-99/4A, such as Mame.
+Alternatively, if you want to run the game on the original hardware:
+
+* A TI-99/4A home computer,
+* a programmable ROM/RAM cartridge, with about 1.8 MB of space, such as the
+  Pi Pico PEB expansion or the Yellow Board cartridge,
+* a 32K memory expansion (optionally an internal one),
+* a speech synthesizer (optional),
+* a Mechatronic mouse (optional).
 
 ## Downloading
 
@@ -67,7 +71,8 @@ as well.
 * The command-line tool `xxd` (Debian package `xxd`), for converting simple hex
   source files to binary files.
 * My [Video Tools](https://github.com/EricLafortune/VideoTools/) for the
-  TI-99/4A, for computing speech coefficients and for creating the intro video.
+  TI-99/4A, for computing speech coefficients, for converting music, and for
+  creating the intro video.
 * A Java development environment (Debian package `openjdk-17-jdk`, for example),
   version 14 or higher, for the video tools.
 * The [xdt99](https://github.com/endlos99/xdt99) cross-development tools, for
@@ -82,13 +87,16 @@ On Linux, you can then run the build script:
 Alternatively, you can run its commands manually.
 
 You'll then have
-* a raw cartridge ROM file `out/romc.bin`.
-* a cartridge file `out/StealthRunner.rpk` that is suitable for emulators like
-  Mame.
+
+* a raw cartridge ROM file `out/romc.bin`, which is suitable for physical
+  cartridges and for emulators like Classic99 and JS99,
+* a cartridge file `out/StealthRunner.rpk`, which is suitable for emulators
+  like Mame.
 
 ## Running
 
-The easiest way is to use the Mame emulator (version 0.278 or higher).
+The easiest way is to run the ROM in an emulator, such as Mame (version 0.278
+or higher).
 
 On Linux, you can run the script to launch Mame with the proper options:
 
@@ -161,9 +169,9 @@ Mame's UI mode) and then <kbd>Esc</kbd>.
   decreases when you're running and when you get hit by enemy fire. Your
   avatar will stop running whenever your stamina gets too low. You can recover
   slowly by standing still or walking quietly, or you can heal instantly by
-  applying a medkit (with <kbd>Ctrl</kbd>.
-* Gun turrets react to noise. You may be able to pass them undetected by
-  walking quietly (not running).
+  applying a medkit (with <kbd>Ctrl</kbd>).
+* Ennemies react to noise. You may be able to pass them undetected by walking
+  quietly (not running).
 * You can lure enemies away from you by throwing stones.
 * You can carry any number of medkits and weapons that you can find.
 * The game doesn't show an overview map. The layout of the world is relatively
@@ -265,6 +273,14 @@ per second.
 The source code contains a collection of [include files](src/include) that
 can be more generally useful for game development. They provide convenient and
 efficient support for graphics, sound, speech, and keyboard/mouse input.
+
+## Label
+
+If you're creating a physical cartridge for the game, you can apply
+[ti99iuc](https://forums.atariage.com/topic/371758-new-game-stealth-runner/?do=findComment&comment=5714141)'s
+nice label:
+
+![Label](images/label.webp)
 
 ## License
 
