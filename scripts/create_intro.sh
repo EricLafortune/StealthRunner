@@ -54,7 +54,7 @@ convert \
   -pointsize 12 \
   -gravity Center \
   -fill green \
-  -draw 'text 0,-35 "Version 1.0"' \
+  -draw 'text 0,-35 "Version 1.1"' \
   -draw 'text 0,80 "Copyright © 2024-2025 Eric Lafortune"' \
   +dither \
   -remap images/palette.gif \
